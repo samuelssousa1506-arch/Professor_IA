@@ -4,13 +4,18 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from database import init_db, create_user, verify_user
 from ai_service import gerar_conteudo_educacional as generate_pedagogical_content
 
+# 🔒 Carrega as variáveis de ambiente seguras (essencial para produção)
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_secreta_do_professor_ia_123")
 
+# Inicialização segura e blindada do banco de dados
 try:
     init_db()
 except Exception as e:
-    print("Aviso na inicialização do banco:", e)
+    print("Aviso na inicialização automática do banco:", e)
 
 @app.route('/')
 def index():
@@ -27,10 +32,11 @@ def register():
         password = request.form.get('password')
         
         if create_user(name, email, school_name, password):
-            flash('Conta criada com sucesso!', 'success')
+            flash('Conta criada com sucesso! Faça o seu login.', 'success')
             return redirect(url_for('login'))
         else:
             flash('Este e-mail já está cadastrado.', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -39,6 +45,7 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
+        # 🔐 CHAVE MESTRA DESENVOLVEDOR: SAMUEL DEV MASTER
         if email == 'dev@professoria.com' and password == 'dev123':
             session['user_id'] = 999
             session['user_name'] = 'Samuel Araújo Sousa'
@@ -50,31 +57,43 @@ def login():
         try:
             user = verify_user(email, password)
             if user:
-                session['user_id'] = user['id']
-                session['user_name'] = user['name']
-                session['user_email'] = user['email']
-                session['user_school'] = user['school_name']
-                session['user_role'] = user.get('role', 'user') if isinstance(user, dict) else 'user'
+                session['user_id'] = user['id'] if isinstance(user, dict) else user[0]
+                session['user_name'] = user['name'] if isinstance(user, dict) else user[1]
+                session['user_email'] = user['email'] if isinstance(user, dict) else user[2]
+                session['user_school'] = user['school_name'] if isinstance(user, dict) else user[3]
+                
+                # 🛡️ TRATAMENTO SEGURO CONTRA BUG DE INDEXERROR DO DICIONÁRIO
+                try:
+                    if isinstance(user, dict):
+                        session['user_role'] = user.get('role', 'user')
+                    else:
+                        session['user_role'] = user[4] if len(user) > 4 else 'user'
+                except Exception:
+                    session['user_role'] = 'user'
+                    
                 return redirect(url_for('dashboard'))
         except Exception as e:
-            print("Erro no banco:", e)
+            print("Erro na consulta do banco de dados:", e)
             
         flash('Usuário ou senha incorretos.', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
+        flash('Por favor, faça login primeiro.', 'warning')
         return redirect(url_for('login'))
+        
     return redirect(url_for('gerador', form_type='plano'))
 
-# 🤖 SISTEMA MULTI-MÓDULO REFORÇADO COM RESTRIÇÕES NEGATIVAS
+# 🤖 MOTOR INTELIGENTE MULTI-MÓDULO COM MATRIZ DE DIRETRIZES
 @app.route('/gerador', methods=['GET', 'POST'])
 def gerador():
     if 'user_id' not in session:
         return redirect(url_for('login'))
         
-    # 🔒 SEGURANÇA: Busca o módulo tanto do formulário POST quanto dos argumentos da URL
+    # 🔒 BLINDAGEM DE ROTA: Captura o tipo de módulo via formulário oculto ou argumento de link
     form_type = request.form.get('form_type') or request.args.get('form_type', 'plano')
     bncc_digitada = request.form.get('bncc', '')
     
@@ -85,9 +104,12 @@ def gerador():
             'cor': '#4e73df', 
             'diretriz': (
                 "Desenvolva um Plano de Aula extremamente detalhado e robusto para o professor usar como guia. "
-                "Inclua: 1. OBJETIVOS DE APRENDIZAGEM (BNCC); 2. CONTEÚDO PROGRAMÁTICO; "
-                "3. METODOLOGIA PASSO A PASSO DIVIDIDA POR TEMPO (Introdução: 10 min, Teoria: 20 min, Prática: 15 min, Fechamento: 5 min); "
-                "4. RECURSOS DIDÁTICOS; 5. CRITÉRIOS DE AVALIAÇÃO FORMATIVA."
+                "Você deve incluir impreterivelmente: "
+                "1. OBJETIVOS DE APRENDIZAGEM (Gerais e específicos alinhados à BNCC). "
+                "2. CONTEÚDO PROGRAMÁTICO (Subtópicos detalhados da aula). "
+                "3. METODOLOGIA PASSO A PASSO DIVIDIDA POR TEMPO (Acolhimento/Introdução: 10 min; Desenvolvimento/Teoria: 20 min; Prática Guiada: 15 min; Conclusão/Fechamento: 5 min). Explique o que o professor fala e faz em cada etapa. "
+                "4. RECURSOS DIDÁTICOS (Materiais necessários). "
+                "5. ESTRATÉGIA DE AVALIAÇÃO (Como verificar se aprenderam de forma formativa)."
             )
         },
         'atividades': {
@@ -111,9 +133,9 @@ def gerador():
                 "Gere EXCLUSIVAMENTE uma Avaliação Formal/Prova Escrita institucional prontas para aplicação. "
                 "⚠️ AVISO CRÍTICO: NÃO GERE PLANOS DE AULA, metodologias ou cronogramas de ensino. "
                 "A estrutura deve conter: 1. INSTRUÇÕES GERAIS AO ESTUDANTE; "
-                "2. QUESTÕES OBJETIVAS (Gere 4 questões de múltipla escolha de A até E com distratores plausíveis); "
+                "2. QUESTÕES OBJETIVAS (Gere 4 questões de múltipla escolha. Cada questão DEVE ter 5 alternativas de A até E. Certifique-se de que os distratores sejam plausíveis); "
                 "3. QUESTÕES DISCURSIVAS (Gere 2 questões dissertativas com espaço/linhas para resposta); "
-                "4. MATRIZ de correção e critérios de pontuação detalhados no final."
+                "4. MATRIZ de correção, critérios de pontuação detalhados e expectativas de resposta no final."
             )
         },
         'relatorios': {
@@ -122,9 +144,9 @@ def gerador():
             'cor': '#f6c23e', 
             'diretriz': (
                 "Gere um Guia de Parecer Descritivo e Relatórios Pedagógicos de Alunos. "
-                "⚠️ AVISO CRÍTICO: NÃO GERE PLANOS DE AULA OU EXERCÍCIOS. "
-                "O foco é a avaliação de desempenho. Forneça: 1. Modelos de escrita para desempenho Cognitivo (Alto, Regular e Crítico); "
-                "2. Indicadores de avaliação Socioemocional; 3. Um MODELO DE TEXTO FORMAL PREENCHÍVEL (esqueleto com lacunas para o professor preencher com os dados do estudante)."
+                "⚠️ AVISO CRÍTICO: NÃO GERE PLANOS DE AULA OU EXERCÍCIOS PARA OS ALUNOS. "
+                "O foco é a avaliação de desempenho escolar. Forneça: 1. Modelos de escrita para desempenho Cognitivo (Alto, Regular e Crítico); "
+                "2. Indicadores de avaliação Socioemocional; 3. Um MODELO DE TEXTO FORMAL PREENCHÍVEL (esqueleto com lacunas/parênteses para o professor preencher manualmente com os dados de cada estudante); 4. Sugestões de plano de intervenção pedagógica."
             )
         },
         'inclusao': {
@@ -134,9 +156,9 @@ def gerador():
             'diretriz': (
                 "Gere um documento técnico focado em Adaptação Curricular para Atendimento Educacional Especializado (AEE). "
                 "⚠️ AVISO CRÍTICO: NÃO GERE UM PLANO DE AULA TRADICIONAL. "
-                "Forneça estratégias de acessibilidade diretas para o tema proposto divididas para: "
-                "1. Transtorno do Espectro Autista (TEA); 2. TDAH; 3. Dislexia/Dificuldades acentuadas de leitura; "
-                "4. Sugestão de instrumentos avaliativos flexibilizados para inclusão."
+                "Forneça modificações estruturais completas e estratégias de acessibilidade diretas para o tema proposto divididas para: "
+                "1. Transtorno do Espectro Autista (TEA) (adaptações visuais e estruturação de comandos); 2. TDAH (estratégias de foco e dinâmicas cinestésicas); 3. Dislexia/Dificuldades acentuadas de leitura; "
+                "4. Sugestão de instrumentos avaliativos flexibilizados para inclusão escolar."
             )
         },
         'projetos': {
@@ -146,8 +168,8 @@ def gerador():
             'diretriz': (
                 "Gere um Projeto Pedagógico de Médio/Longo Prazo baseado na Aprendizagem Baseada em Projetos (PBL). "
                 "⚠️ AVISO CRÍTICO: NÃO GERE UM PLANO DE AULA SIMPLES DE 50 MINUTOS. "
-                "O escopo deve conter: 1. Pergunta Disparadora/Desafio Central; 2. Mapeamento de Conexão entre Disciplinas; "
-                "3. Cronograma de Atividades de execução por semanas; 4. Produto Final/Culminância do projeto; 5. Rúbrica de Avaliação de competências."
+                "O escopo deve conter: 1. Pergunta Disparadora / Desafio Central motivador; 2. Mapeamento de Conexão entre Disciplinas (Interdisciplinaridade); "
+                "3. Cronograma de Atividades de execução sugerido por semanas; 4. Produto Final / Culminância do projeto para a comunidade escolar; 5. Rúbrica de Avaliação de competências holística."
             )
         }
     }
@@ -160,6 +182,7 @@ def gerador():
         ano = request.form.get('ano', '')
         
         try:
+            # Engenharia de super-prompt estrutural sem conflitos de contexto
             prompt_completo = (
                 f"Você é o Co-Pilot Acadêmico Premium do Professor {session.get('user_name')}.\n"
                 f"DIRETRIZ OBRIGATÓRIA DO MÓDULO EXECUTADO: {config['diretriz']}\n\n"
@@ -169,10 +192,10 @@ def gerador():
                 f"- Ano/Turma: '{ano}'\n"
                 f"- Alinhamento BNCC: '{bncc_digitada if bncc_digitada else 'Geral'}'\n\n"
                 f"REGRAS ESTREITAS DE SAÍDA:\n"
-                f"1. NÃO utilize caracteres Markdown como asteriscos (*) ou hashtags (#).\n"
+                f"1. NÃO utilize caracteres Markdown como asteriscos (*) ou hashtags (#) em momento algum.\n"
                 f"2. Inicie títulos principais estritamente com o prefixo 'SECAO: '\n"
                 f"3. Inicie subtítulos ou tópicos menores estritamente com 'SUBSECAO: '\n"
-                f"4. Escreva de forma profunda, assertiva e sem textos introdutórios informais fora do documento."
+                f"4. Escreva de forma profunda, assertiva, longa e sem textos introdutórios informais fora do corpo do documento."
             )
             
             conteudo_gerado = generate_pedagogical_content(prompt_completo)
@@ -198,7 +221,7 @@ def gerador():
 def banco():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    flash('Banco de Materiais em desenvolvimento.', 'info')
+    flash('O Banco de Materiais está sendo preparado e estará disponível em breve!', 'info')
     return redirect(url_for('dashboard'))
 
 @app.route('/logout')
@@ -207,4 +230,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Configuração inteligente: lê a porta dinâmica injetada pelo Render ou roda em 5000 localmente
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
