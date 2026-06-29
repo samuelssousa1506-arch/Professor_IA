@@ -1,0 +1,57 @@
+import sqlite3
+
+def init_db():
+    # Mudamos o nome para database_v2.db para burlar o travamento do Windows
+    conn = sqlite3.connect('database_v2.db')
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                school_name TEXT,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'user'
+            )
+        ''')
+        
+        # CADASTRO AUTOMÁTICO DO CRIADOR DO SISTEMA (SAMUEL)
+        cursor.execute("SELECT * FROM users WHERE email = 'dev@professoria.com'")
+        if not cursor.fetchone():
+            cursor.execute('''
+                INSERT INTO users (name, email, school_name, password, role) 
+                VALUES (?, ?, ?, ?, ?)
+            ''', ('Samuel Araújo Sousa', 'dev@professoria.com', 'Fábrica de Software', 'dev123', 'developer'))
+            print("🚀 Conta Dev Master de Samuel Araújo Sousa criada com sucesso!")
+            
+        conn.commit()
+    finally:
+        conn.close()
+
+def create_user(name, email, school_name, password):
+    conn = sqlite3.connect('database_v2.db')
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO users (name, email, school_name, password, role) 
+            VALUES (?, ?, ?, ?, 'user')
+        ''', (name, email, school_name, password))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+def verify_user(email, password):
+    conn = sqlite3.connect('database_v2.db')
+    try:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE email = ? AND password = ?', (email, password))
+        user = cursor.fetchone()
+        return user
+    finally:
+        conn.close()
+    

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark m-0">Banco de Materiais Salvos</h2>
+        <p class="text-muted">Consulte, pesquise ou exclua os materiais já gerados pela sua conta.</p>
+    </div>
+
+    <div class="card border-0 shadow-sm p-3 bg-white mb-4">
+        <form method="GET" action="{{ url_for('banco') }}" class="row g-2">
+            <div class="col-md-6">
+                <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Pesquisar por título ou disciplina...">
+            </div>
+            <div class="col-md-4">
+                <select name="type" class="form-select">
+                    <option value="">Todos os Modelos</option>
+                    <option value="plano" {% if selected_type == 'plano' %}selected{% endif %}>Planos de Aula</option>
+                    <option value="atividade" {% if selected_type == 'atividade' %}selected{% endif %}>Atividades</option>
+                    <option value="avaliacao" {% if selected_type == 'avaliacao' %}selected{% endif %}>Avaliações</option>
+                    <option value="relatorio" {% if selected_type == 'relatorio' %}selected{% endif %}>Relatórios</option>
+                    <option value="adaptacao" {% if selected_type == 'adaptacao' %}selected{% endif %}>Adaptações</option>
+                    <option value="projeto" {% if selected_type == 'projeto' %}selected{% endif %}>Projetos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="fa-solid fa-magnifying-glass"></i> Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        {% for item in materials %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 border-0 shadow-sm bg-white p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge text-uppercase
+                            {% if item.type == 'plano' %}bg-primary
+                            {% elif item.type == 'atividade' %}bg-success
+                            {% elif item.type == 'avaliacao' %}bg-warning text-dark
+                            {% else %}bg-info
+                            {% endif %}">
+                            {{ item.type }}
+                        </span>
+                        <small class="text-muted" style="font-size:0.75rem;">{{ item.created_at[:10] }}</small>
+                    </div>
+                    <h5 class="fw-bold text-dark text-truncate mb-1">{{ item.title }}</h5>
+                    <p class="text-muted small mb-3"><i class="fa-solid fa-tags me-1"></i> {{ item.discipline }} | {{ item.grade }}</p>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                    <a href="{{ url_for('ver_material', material_id=item.id) }}" class="btn btn-sm btn-outline-primary fw-bold px-3"><i class="fa-solid fa-folder-open"></i> Abrir</a>
+                    
+                    <form action="{{ url_for('deletar_material', material_id=item.id) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja apagar permanentemente este material pedagógico do seu banco?');">
+                        <button type="submit" class="btn btn-sm btn-link text-danger p-0"><i class="fa-solid fa-trash-can"></i> Remover</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% opacity_else %}
+        <div class="col-12 text-center py-5">
+            <i class="fa-solid fa-filter-circle-xmark fa-3x text-muted mb-2"></i>
+            <p class="text-muted">Nenhum registro localizado para os filtros informados.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

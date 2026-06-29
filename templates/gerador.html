@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid" style="max-width: 900px;">
+    <div class="mb-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-link text-secondary p-0 mb-2"><i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard</a>
+        <h2 class="fw-bold text-dark m-0">{{ title }}</h2>
+        <p class="text-muted">Preencha os critérios abaixo. Os prompts são calibrados com algoritmos de aprendizagem da BNCC.</p>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 rounded-4 bg-white">
+        <div id="loader" class="d-none text-center py-5">
+            <div class="spinner-border text-teal mb-3" style="width: 3rem; height: 3rem; color: #0d9488;" role="status"></div>
+            <h5 class="fw-bold text-dark">A Inteligência Artificial está processando as diretrizes curriculares...</h5>
+            <p class="text-muted small">Isto pode levar de 10 a 20 segundos devido à profundidade do material pedagógico requisitado.</p>
+        </div>
+
+        <form id="generatorForm" method="POST" action="{{ url_for('gerador', form_type=type) }}">
+            <div class="row">
+                {% if type in ['plano', 'atividade', 'avaliacao', 'projeto'] %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Série / Ano Letivo</label>
+                    <select class="form-select" name="grade" required>
+                        <option value="1º Ano - Fundamental I">1º Ano - Fundamental I</option>
+                        <option value="5º Ano - Fundamental I">5º Ano - Fundamental I</option>
+                        <option value="6º Ano - Fundamental II">6º Ano - Fundamental II</option>
+                        <option value="9º Ano - Fundamental II">9º Ano - Fundamental II</option>
+                        <option value="1º Ano - Ensino Médio">1º Ano - Ensino Médio</option>
+                        <option value="3º Ano - Ensino Médio">3º Ano - Ensino Médio</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Componente Curricular (Disciplina)</label>
+                    <input type="text" class="form-control" name="discipline" placeholder="Ex: Língua Portuguesa, Matemática, História" required>
+                </div>
+                {% endif %}
+
+                {% if type == 'plano' %}
+                <div class="col-md-8 mb-3">
+                    <label class="form-label fw-bold">Tema Central da Aula</label>
+                    <input type="text" class="form-control" name="theme" placeholder="Ex: Introdução às Frações com Objetos Reais" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Duração Estimada</label>
+                    <input type="text" class="form-control" name="duration" placeholder="Ex: 50 minutos / 2 horas aula" required>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Objetivo de Aprendizagem Desejado</label>
+                    <textarea class="form-control" name="objective" rows="3" placeholder="O que você deseja que os alunos compreendam ao fim desta aula?" required></textarea>
+                </div>
+                {% endif %}
+
+                {% if type in ['atividade', 'avaliacao'] %}
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Conteúdo Técnico / Objeto de Conhecimento</label>
+                    <textarea class="form-control" name="content" rows="3" placeholder="Ex: Revolução Industrial, Equações de 2º Grau, Sintaxe da Oração..." required></textarea>
+                </div>
+                {% endif %}
+
+                {% if type == 'relatorio' %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Série / Ano Letivo</label>
+                    <input type="text" class="form-control" name="grade" placeholder="Ex: 3º Ano B" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Componente Curricular</label>
+                    <input type="text" class="form-control" name="discipline" placeholder="Ex: Polivalente / Geral" required>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Insira suas Anotações/Observações Brutas sobre o Aluno (Sem dados sensíveis de identificação pessoal)</label>
+                    <textarea class="form-control" name="observations" rows="5" placeholder="Ex: Aluno demonstra grande interesse em leitura, mas possui dificuldades em lógica matemática estruturada. Participa bem em grupos, porém se distrai facilmente de forma individual..." required></textarea>
+                </div>
+                {% endif %}
+
+                {% if type == 'adaptacao' %}
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Selecione o Foco do Nivelamento/Inclusão</label>
+                    <select class="form-select" name="adaptation_type">
+                        <option value="Educação Especial Inclusiva (TDAH / TEA / Deficiência Intelectual)">Educação Especial Inclusiva (TDAH / TEA / Baixa Visão)</option>
+                        <option value="Defasagem Crítica de Aprendizagem (Pós-Pandemia / Nivelamento)">Defasagem Crítica de Aprendizagem (Nivelamento Básico)</option>
+                        <option value="Altas Habilidades / Superdotação">Altas Habilidades / Enriquecimento Curricular</option>
+                    </select>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Cole o Conteúdo da Atividade Original aqui para Adaptar</label>
+                    <textarea class="form-control" name="original_activity" rows="6" placeholder="Cole aqui as questões ou textos que deseja simplificar ou tornar acessíveis..." required></textarea>
+                </div>
+                {% endif %}
+
+                {% if type == 'projeto' %}
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Tema do Projeto Temático Interdisciplinar</label>
+                    <input type="text" class="form-control" name="theme" placeholder="Ex: Sustentabilidade e Reciclagem no Ambiente Escolar" required>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">Disciplinas Integradas / Envolvidas</label>
+                    <input type="text" class="form-control" name="disciplines" placeholder="Ex: Ciências, Geografia e Artes trabalhando em conjunto" required>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 pt-3 border-top text-end">
+                <button type="submit" class="btn btn-teal px-5 py-2 fw-bold text-white shadow-sm" style="background:#0d9488;">
+                    <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Executar Engenharia de IA
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Gerenciador do estado de loading para evitar cliques repetidos
+    document.getElementById('generatorForm').addEventListener('submit', function() {
+        document.getElementById('generatorForm').classList.add('d-none');
+        document.getElementById('loader').classList.remove('d-none');
+    });
+</script>
+{% endblock %}

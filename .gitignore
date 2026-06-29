@@ -1,0 +1,14 @@
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+
+# Arquivo de configuração local (onde ficam as senhas/chaves se usar)
+.env
+
+# Opcional: Se não quiser enviar seu banco de dados de teste atual
+# database.db

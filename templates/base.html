@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor IA - Planejamento Inteligente</title>
+    <link href="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css](https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css)" rel="stylesheet">
+    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css)" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <div class="wrapper">
+        <nav id="sidebar" class="btn-print-hide">
+            <div class="sidebar-header text-center">
+                <div class="mb-2"><i class="fa-solid fa-graduation-cap fa-2x text-info"></i></div>
+                <h5>Professor IA</h5>
+                <small class="text-muted">{{ session['school_name'] }}</small>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li class="{% if request.path == '/dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('dashboard') }}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                </li>
+                
+                <p>Módulos de IA</p>
+                <li><a href="{{ url_for('gerador', form_type='plano') }}"><i class="fa-solid fa-book"></i> Plano de Aula</a></li>
+                <li><a href="{{ url_for('gerador', form_type='atividade') }}"><i class="fa-solid fa-pencil"></i> Criar Atividades</a></li>
+                <li><a href="{{ url_for('gerador', form_type='avaliacao') }}"><i class="fa-solid fa-file-pen"></i> Criar Avaliações</a></li>
+                <li><a href="{{ url_for('gerador', form_type='relatorio') }}"><i class="fa-solid fa-address-card"></i> Relatórios</a></li>
+                <li><a href="{{ url_for('gerador', form_type='adaptacao') }}"><i class="fa-solid fa-wheelchair-move"></i> Inclusão/Adaptação</a></li>
+                <li><a href="{{ url_for('gerador', form_type='projeto') }}"><i class="fa-solid fa-diagram-project"></i> Projetos</a></li>
+                
+                <p>Gestão</p>
+                <li class="{% if request.path == '/banco' %}active{% endif %}">
+                    <a href="{{ url_for('banco') }}"><i class="fa-solid fa-folder-open"></i> Banco de Materiais</a>
+                </li>
+                <li class="mt-5">
+                    <a href="{{ url_for('logout') }}" class="text-danger"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="content">
+            <nav class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 rounded shadow-sm mb-4 btn-print-hide">
+                <div class="container-fluid">
+                    <span class="navbar-text fw-bold text-primary">
+                        <i class="fa-solid fa-user-tie me-2"></i> Prof. {{ session['user_name'] }}
+                    </span>
+                    <div class="ms-auto d-flex align-items-center">
+                        <div class="border border-secondary px-3 py-1 rounded text-secondary bg-light fw-bold" style="font-size: 0.85rem;">
+                            <i class="fa-solid fa-school me-1"></i> {{ session['school_name'] }}
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-by-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js](https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js)"></script>
+<footer style="text-align: center; padding: 20px; margin-top: 50px; border-top: 1px solid #e0e0e0; color: #555; font-size: 14px; font-family: Arial, sans-serif;">
+        <p style="margin: 5px 0;">Desenvolvido por <strong>Samuel Araújo Sousa</strong></p>
+        <p style="margin: 5px 0;">
+            📞 <strong>Telefone:</strong> (99) 98131-6820 &nbsp;|&nbsp; 
+            ✉️ <strong>E-mail:</strong> <a href="mailto:samuel.ssousa1506@gmail.com" style="color: #007bff; text-decoration: none;">samuel.ssousa1506@gmail.com</a>
+        </p>
+    </footer>
+</body>
+</html>

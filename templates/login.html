@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso ao Sistema - Professor IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #74b9ff, #a29bfe);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 450px;
+            width: 100%;
+            padding: 2.5rem;
+        }
+        .nav-pills .nav-link {
+            color: #6c757d;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #6c5ce7;
+            color: #ffffff;
+        }
+        .btn-primary-custom {
+            background-color: #6c5ce7;
+            border: none;
+            font-weight: 600;
+            padding: 0.6rem;
+            transition: all 0.3s ease;
+        }
+        .btn-primary-custom:hover {
+            background-color: #5b4cc4;
+            transform: translateY(-1px);
+        }
+        .btn-success-custom {
+            background-color: #00b894;
+            border: none;
+            font-weight: 600;
+            padding: 0.6rem;
+            transition: all 0.3s ease;
+        }
+        .btn-success-custom:hover {
+            background-color: #00a383;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card m-3">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-dark mb-1">🤖 Professor IA</h2>
+            <p class="text-muted small">Planejamentos de aula inteligentes</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'danger' else 'danger' }} alert-dismissible fade show small py-2" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 0.75rem;"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <ul class="nav nav-pills nav-fill gap-2 p-1 bg-light rounded-secondary mb-4" id="authTabs" role="tablist" style="border-radius: 10px;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-form" type="button" role="tab" aria-controls="login-form" aria-selected="true">Entrar</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-form" type="button" role="tab" aria-controls="register-form" aria-selected="false">Cadastrar-se</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="authTabsContent">
+            
+            <div class="tab-pane fade show active" id="login-form" role="tabpanel" aria-labelledby="login-tab">
+                <form action="{{ url_for('login') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="login_email" class="form-label small fw-bold text-muted">E-mail corporativo</label>
+                        <input type="email" class="form-control" id="login_email" name="email" placeholder="nome@escola.com" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="login_password" class="form-label small fw-bold text-muted">Sua senha</label>
+                        <input type="password" class="form-control" id="login_password" name="password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom text-white w-100 rounded-3">Acessar Painel</button>
+                </form>
+            </div>
+
+            <div class="tab-pane fade" id="register-form" role="tabpanel" aria-labelledby="register-tab">
+                <form action="{{ url_for('register') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="reg_name" class="form-label small fw-bold text-muted">Nome Completo</label>
+                        <input type="text" class="form-control" id="reg_name" name="name" placeholder="Prof. Exemplo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reg_email" class="form-label small fw-bold text-muted">E-mail de Cadastro</label>
+                        <input type="email" class="form-control" id="reg_email" name="email" placeholder="seuemail@provedor.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reg_school" class="form-label small fw-bold text-muted">Nome da sua Escola</label>
+                        <input type="text" class="form-control" id="reg_school" name="school_name" placeholder="Escola Municipal..." required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="reg_password" class="form-label small fw-bold text-muted">Crie uma Senha</label>
+                        <input type="password" class="form-control" id="reg_password" name="password" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+                    <button type="submit" class="btn btn-success-custom text-white w-100 rounded-3">Criar Minha Conta</button>
+                </form>
+            </div>
+
+        </div>
+
+        <hr class="mt-4 text-muted" style="opacity: 0.15;">
+        <div class="text-center text-muted" style="font-size: 11px; letter-spacing: 0.5px;">
+            Software desenvolvido por:<br>
+            <strong class="text-dark fw-bold" style="font-size: 12px;">Samuel Araújo Sousa (Dev Master)</strong>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.location.pathname.includes('register')) {
+                const registerTab = new bootstrap.Tab(document.getElementById('register-tab'));
+                registerTab.show();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+:root {
+    --primary-color: #1e3a8a;    /* Azul Escuro Educacional */
+    --secondary-color: #0d9488;  /* Verde Azulado / Tecnologia */
+    --accent-color: #f59e0b;     /* Amarelo Ouro / Atenção e Destaques */
+    --bg-light: #f8fafc;         /* Fundo das Páginas */
+    --sidebar-dark: #0f172a;     /* Cinza Escuro Premium para Menu Lateral */
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #334155;
+}
+
+/* Layout Wrapper */
+.wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+}
+
+/* Sidebar Menu */
+#sidebar {
+    min-width: 260px;
+    max-width: 260px;
+    background: var(--sidebar-dark);
+    color: #fff;
+    transition: all 0.3s;
+    min-height: 100vh;
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: #020617;
+    border-bottom: 1px solid #1e293b;
+}
+
+#sidebar ul p {
+    color: #64748b;
+    padding: 10px 20px 0 20px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+#sidebar ul li a {
+    padding: 12px 20px;
+    font-size: 1rem;
+    display: block;
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+#sidebar ul li a:hover, #sidebar ul li.active > a {
+    color: #fff;
+    background: var(--secondary-color);
+}
+
+#sidebar ul li a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Área de Conteúdo Principal */
+#content {
+    width: 100%;
+    padding: 30px;
+    min-height: 100vh;
+}
+
+/* Cards do Dashboard */
+.card-counter {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    border: none;
+    transition: transform 0.2s;
+}
+.card-counter:hover {
+    transform: translateY(-3px);
+}
+
+/* Editor de Material */
+.editor-box {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+    border-top: 5px solid var(--primary-color);
+}
+
+/* Estilos de Impressão Direta */
+@media print {
+    #sidebar, .btn-print-hide, nav {
+        display: none !important;
+    }
+    #content {
+        padding: 0;
+        width: 100%;
+    }
+    .editor-box {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+}
