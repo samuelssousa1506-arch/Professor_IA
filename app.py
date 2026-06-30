@@ -113,11 +113,11 @@ def gerador():
             )
         },
         'bimestral': {
-            'nome': 'Planejamento Bimestral SEMED', 
+            'nome': 'Planejamento Bimestral', 
             'icone': 'fa-calendar-check', 
             'cor': '#fd7e14', 
             'diretriz': (
-                "Gere um Planejamento de Curso Bimestral corporativo completo, baseado rigorosamente no modelo padrão institucional da Secretaria Municipal de Educação (SEMED) de Presidente Dutra - MA. "
+                "Gere um Planejamento de Curso Bimestral corporativo completo, baseado rigorosamente no modelo padrão institucional da Secretaria Municipal de Educação de Presidente Dutra - MA. "
                 "⚠️ AVISO CRÍTICO: NÃO GERE UM PLANO DE AULA INDIVIDUAL OU DIÁRIO. O escopo deve abranger o bimestre inteiro e conter obrigatoriamente as seguintes partes organizadas:\n"
                 "1. COMPETÊNCIAS GERAIS DA EDUCAÇÃO BÁSICA: Enumere de forma adaptada as macro-competências da BNCC focadas nas necessidades do bimestre.\n"
                 "2. COMPETÊNCIAS ESPECÍFICAS DO COMPONENTE: Detalhe as competências exclusivas para a disciplina e ano informados.\n"
@@ -161,7 +161,7 @@ def gerador():
             'nome': 'Modelos de Relatórios Pedagógicos', 
             'icone': 'fa-chart-line', 
             'cor': '#f6c23e', 
-            'diretriz': (
+            'direzriz': (
                 "Gere um Guia de Parecer Descritivo e Relatórios Pedagógicos de Alunos. "
                 "⚠️ AVISO CRÍTICO: NÃO GERE PLANOS DE AULA OU EXERCÍCIOS PARA OS ALUNOS. "
                 "O foco é a avaliação de desempenho escolar. Forneça: 1. Modelos de escrita para desempenho Cognitivo (Alto, Regular e Crítico); "
