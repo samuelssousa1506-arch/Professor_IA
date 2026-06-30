@@ -26,7 +26,7 @@ def index():
 def executar_logica_painel():
     """
     Função centralizada que processa os formulários e faz a chamada ao Gemini.
-    Evita duplicação de código e serve os dois endpoints simultaneamente.
+    Evita duplicação de código e serve os endpoints simultaneamente.
     """
     form_type = request.args.get('form_type') or request.form.get('form_type') or 'plano'
     
@@ -71,15 +71,21 @@ def executar_logica_painel():
         school="Fábrica de Software"
     )
 
-# Endpoint 1: Atende a linha 23 do base.html (url_for('dashboard'))
+# Endpoint 1: Atende a linha 23 do base.html
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     return executar_logica_painel()
 
-# Endpoint 2: Atende a linha 27 do base.html (url_for('gerador'))
+# Endpoint 2: Atende a linha 27 do base.html
 @app.route('/gerador', methods=['GET', 'POST'])
 def gerador():
     return executar_logica_painel()
+
+# Endpoint 3: CORREÇÃO DO ERRO - Atende a linha 36 do base.html (Banco de Materiais)
+@app.route('/banco')
+def banco():
+    # Redireciona dinamicamente para a aba de Banco de Atividades sem quebrar o layout
+    return redirect(url_for('dashboard', form_type='atividades'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
