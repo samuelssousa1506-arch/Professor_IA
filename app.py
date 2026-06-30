@@ -18,15 +18,16 @@ MODULOS = {
 
 @app.route('/')
 def index():
-    # Redireciona a página inicial direto para o primeiro módulo padrão
-    return redirect(url_for('gerador', form_type='plano'))
+    # Redireciona para a função dashboard com o módulo plano ativo
+    return redirect(url_for('dashboard', form_type='plano'))
 
+# Aceita tanto o acesso por /gerador quanto por /dashboard para não quebrar links antigos
 @app.route('/gerador', methods=['GET', 'POST'])
-def gerador():
-    # Captura qual aba o usuário clicou (via URL GET ou via input oculto do formulário POST)
+@app.route('/dashboard', methods=['GET', 'POST'])
+def dashboard(): # Mudamos o nome da função de 'gerador' para 'dashboard' para corrigir o HTML
+    # Captura qual aba o usuário clicou
     form_type = request.args.get('form_type') or request.form.get('form_type') or 'plano'
     
-    # Proteção caso venha um tipo inválido na URL
     if form_type not in MODULOS:
         form_type = 'plano'
         
@@ -39,14 +40,14 @@ def gerador():
     bncc = ""
     
     if request.method == 'POST':
-        # Captura os dados enviados pelo formulário do painel esquerdo
+        # Captura os dados enviados pelo formulário
         tema = request.form.get('tema', '').strip()
         disciplina = request.form.get('disciplina', '').strip()
         ano = request.form.get('ano', '').strip()
         bncc = request.form.get('bncc', '').strip()
         
         if tema:
-            # Envia para a inteligência artificial processar de acordo com o módulo escolhido
+            # Envia para a inteligência artificial
             conteudo = gerar_conteudo_educacional(
                 tipo_modulo=config_modulo['nome'],
                 disciplina=disciplina if disciplina else "Geral",
@@ -58,7 +59,7 @@ def gerador():
             conteudo = "Por favor, defina um Tema Principal antes de solicitar a geração do material."
 
     return render_template(
-        'dashboard.html', # Certifique-se de que o seu arquivo HTML na pasta templates tem este nome exato
+        'dashboard.html',
         form_type=form_type,
         config=config_modulo,
         conteudo=conteudo,
@@ -71,6 +72,5 @@ def gerador():
     )
 
 if __name__ == '__main__':
-    # Configuração necessária para rodar localmente ou bindar na porta do Render automaticamente
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
