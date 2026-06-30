@@ -112,6 +112,25 @@ def gerador():
                 "5. ESTRATÉGIA DE AVALIAÇÃO (Como verificar se aprenderam de forma formativa)."
             )
         },
+        'bimestral': {
+            'nome': 'Planejamento Bimestral SEMED', 
+            'icone': 'fa-calendar-check', 
+            'cor': '#fd7e14', 
+            'diretriz': (
+                "Gere um Planejamento de Curso Bimestral corporativo completo, baseado rigorosamente no modelo padrão institucional da Secretaria Municipal de Educação (SEMED) de Presidente Dutra - MA. "
+                "⚠️ AVISO CRÍTICO: NÃO GERE UM PLANO DE AULA INDIVIDUAL OU DIÁRIO. O escopo deve abranger o bimestre inteiro e conter obrigatoriamente as seguintes partes organizadas:\n"
+                "1. COMPETÊNCIAS GERAIS DA EDUCAÇÃO BÁSICA: Enumere de forma adaptada as macro-competências da BNCC focadas nas necessidades do bimestre.\n"
+                "2. COMPETÊNCIAS ESPECÍFICAS DO COMPONENTE: Detalhe as competências exclusivas para a disciplina e ano informados.\n"
+                "3. UNIDADES TEMÁTICAS: Mapeie as grandes áreas organizacionais da BNCC aplicadas ao período.\n"
+                "4. OBJETOS DE CONHECIMENTO: Apresente os conteúdos e conceitos detalhados explicitando sua respectiva unidade organizacional no formato 'UNIDADE: Nome da Unidade / Ano'.\n"
+                "5. HABILIDADES: Indique os códigos alfanuméricos oficiais da BNCC (ex: EF06MA04, EF06MA05) seguidos rigorosamente de suas descrições completas e desdobramentos regionais.\n"
+                "6. SUGESTÕES METODOLÓGICAS: Proponha estratégias de ensino de médio prazo, abordagens práticas contextualizadas, uso de tecnologias didáticas ou materiais concretos aplicados ao cronograma do bimestre.\n"
+                "7. AVALIAÇÃO: Detalhe os critérios e instrumentos de nota (avaliação bimestral, participação, trabalhos, devolução de cadernos de exercícios).\n"
+                "8. RECURSOS: Enumere a infraestrutura material necessária (jogos, materiais impressos, cartazes, mídias digitais).\n"
+                "9. REFERÊNCIAS: Inclua obrigatoriamente referências normativas locais, com destaque para o 'Documento Curricular do Território Maranhense (SEDUC-MA)' e livros didáticos contemporâneos da área.\n"
+                "10. OBSERVAÇÕES PERTINENTES: Espaço para indicação de sequências didáticas especiais, projetos interdisciplinares (ex: Clubes de Letramento) ou complementos curriculares específicos."
+            )
+        },
         'atividades': {
             'nome': 'Banco de Atividades Práticas', 
             'icone': 'fa-list-check', 
