@@ -1,11 +1,13 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for
+
+# Importa o serviço de IA configurado com a nova biblioteca do Google
 from ai_service import gerar_conteudo_educacional
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# Dicionário de configuração dos módulos Premium que alimenta o painel visual
+# Mapas de configuração visual de cada módulo premium do sistema
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'cor': '#4e73df', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'cor': '#fd7e14', 'icone': 'fa-calendar-check'},
@@ -18,14 +20,14 @@ MODULOS = {
 
 @app.route('/')
 def index():
-    # Redireciona para a função dashboard com o módulo plano ativo
+    # Redireciona a raiz diretamente para o dashboard padrão
     return redirect(url_for('dashboard', form_type='plano'))
 
-# Aceita tanto o acesso por /gerador quanto por /dashboard para não quebrar links antigos
-@app.route('/gerador', methods=['GET', 'POST'])
-@app.route('/dashboard', methods=['GET', 'POST'])
-def dashboard(): # Mudamos o nome da função de 'gerador' para 'dashboard' para corrigir o HTML
-    # Captura qual aba o usuário clicou
+def executar_logica_painel():
+    """
+    Função centralizada que processa os formulários e faz a chamada ao Gemini.
+    Evita duplicação de código e serve os dois endpoints simultaneamente.
+    """
     form_type = request.args.get('form_type') or request.form.get('form_type') or 'plano'
     
     if form_type not in MODULOS:
@@ -40,14 +42,12 @@ def dashboard(): # Mudamos o nome da função de 'gerador' para 'dashboard' para
     bncc = ""
     
     if request.method == 'POST':
-        # Captura os dados enviados pelo formulário
         tema = request.form.get('tema', '').strip()
         disciplina = request.form.get('disciplina', '').strip()
         ano = request.form.get('ano', '').strip()
         bncc = request.form.get('bncc', '').strip()
         
         if tema:
-            # Envia para a inteligência artificial
             conteudo = gerar_conteudo_educacional(
                 tipo_modulo=config_modulo['nome'],
                 disciplina=disciplina if disciplina else "Geral",
@@ -70,6 +70,16 @@ def dashboard(): # Mudamos o nome da função de 'gerador' para 'dashboard' para
         name="Samuel Araújo Sousa",
         school="Fábrica de Software"
     )
+
+# Endpoint 1: Atende a linha 23 do base.html (url_for('dashboard'))
+@app.route('/dashboard', methods=['GET', 'POST'])
+def dashboard():
+    return executar_logica_painel()
+
+# Endpoint 2: Atende a linha 27 do base.html (url_for('gerador'))
+@app.route('/gerador', methods=['GET', 'POST'])
+def gerador():
+    return executar_logica_painel()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
