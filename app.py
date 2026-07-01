@@ -1,12 +1,38 @@
 import os
+import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session
 
 # Importa o serviço de IA configurado com a nova biblioteca do Google
 from ai_service import gerar_conteudo_educacional
 
 app = Flask(__name__)
-# Chave secreta obrigatória para gerir sessões de login de forma segura
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
+
+# Banco de Dados: Função para inicializar as tabelas necessárias
+def init_db():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            escola TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            senha TEXT NOT NULL
+        )
+    ''')
+    # Garante que o acesso do desenvolvedor Samuel sempre existirá por padrão
+    cursor.execute("SELECT * FROM usuarios WHERE email = 'samuel.ssousa1506@gmail.com'")
+    if not cursor.fetchone():
+        cursor.execute('''
+            INSERT INTO usuarios (nome, school, email, senha) 
+            VALUES ('Samuel Araújo Sousa', 'Fábrica de Software', 'samuel.ssousa1506@gmail.com', '123456')
+        ''')
+    conn.commit()
+    conn.close()
+
+# Executa a inicialização do banco ao rodar o app
+init_db()
 
 # Mapas de configuração visual de cada módulo do sistema
 MODULOS = {
@@ -21,39 +47,69 @@ MODULOS = {
 
 @app.route('/')
 def index():
-    # Se NÃO estiver logado, vai para a tela de login
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    # Se estiver logado, vai direto para o painel
     return redirect(url_for('dashboard', form_type='plano'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     erro = None
+    sucesso = request.args.get('sucesso')
+    
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
         
-        # Validação simples com as suas credenciais
-        if email == "samuel.ssousa1506@gmail.com" and password == "123456":
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT nome, escola, senha FROM usuarios WHERE email = ?", (email,))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user and user[2] == password:
             session['logged_in'] = True
             session['user_email'] = email
+            session['user_name'] = user[0]   # Guarda o nome real de quem logou
+            session['user_school'] = user[1] # Guarda a escola real de quem logou
             return redirect(url_for('index'))
         else:
             erro = "E-mail ou senha incorretos."
             
-    return render_template('login.html', erro=erro)
+    return render_template('login.html', erro=erro, sucesso=sucesso)
+
+@app.route('/cadastro', methods=['GET', 'POST'])
+def cadastro():
+    erro = None
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        escola = request.form.get('escola', '').strip()
+        email = request.form.get('email', '').strip()
+        senha = request.form.get('senha', '').strip()
+        
+        if nome and escola and email and senha:
+            try:
+                conn = sqlite3.connect('database.db')
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO usuarios (nome, escola, email, senha)
+                    VALUES (?, ?, ?, ?)
+                ''', (nome, escola, email, senha))
+                conn.commit()
+                conn.close()
+                # Redireciona para o login exibindo mensagem de sucesso
+                return redirect(url_for('login', sucesso="Conta criada com sucesso! Entre abaixo."))
+            except sqlite3.IntegrityError:
+                erro = "Este e-mail já está cadastrado no sistema."
+        else:
+            erro = "Por favor, preencha todos os campos."
+            
+    return render_template('cadastro.html', erro=erro)
 
 def executar_logica_painel():
-    """
-    Função centralizada que processa os formulários e faz a chamada ao Gemini.
-    """
-    # Bloqueio de segurança: impede acesso direto via URL sem login
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
     form_type = request.args.get('form_type') or request.form.get('form_type') or 'plano'
-    
     if form_type not in MODULOS:
         form_type = 'plano'
         
@@ -92,8 +148,8 @@ def executar_logica_painel():
         ano=ano,
         bncc=bncc,
         app_name="Professor IA",
-        name="Samuel Araújo Sousa",
-        school="Fábrica de Software"
+        name=session.get('user_name'),     # Exibe dinamicamente o nome do professor logado
+        school=session.get('user_school')  # Exibe dinamicamente a escola do professor logado
     )
 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -110,7 +166,6 @@ def banco():
 
 @app.route('/logout')
 def logout():
-    # Limpa a sessão e desloga o utilizador completamente
     session.clear()
     return redirect(url_for('login'))
 

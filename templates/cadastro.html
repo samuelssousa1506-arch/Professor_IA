@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Professor IA</title>
+    <title>Cadastro - Professor IA</title>
     
     <!-- Bootstrap 5 & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -25,16 +25,16 @@
             margin: 0;
             padding: 20px;
         }
-        .login-card {
+        .register-card {
             background: #ffffff;
             padding: 40px;
             border-radius: 16px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             width: 100%;
-            max-width: 420px;
+            max-width: 460px;
         }
         .brand-logo {
-            font-size: 2.8rem;
+            font-size: 2.5rem;
             color: #6366f1;
             text-align: center;
             margin-bottom: 8px;
@@ -43,26 +43,25 @@
             font-weight: 700;
             color: #1e293b;
             text-align: center;
-            margin-bottom: 8px;
-            font-size: 1.6rem;
-            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+            font-size: 1.5rem;
         }
         .brand-subtitle {
             text-align: center;
             color: #64748b;
-            font-size: 0.9rem;
-            margin-bottom: 32px;
+            font-size: 0.85rem;
+            margin-bottom: 28px;
         }
         .form-label {
             font-weight: 500;
             color: #334155;
-            font-size: 0.9rem;
-            margin-bottom: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
         }
         .form-control {
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            padding: 12px 14px;
+            padding: 10px 14px;
             font-size: 0.95rem;
         }
         .form-control:focus {
@@ -70,7 +69,7 @@
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
             outline: none;
         }
-        .btn-login {
+        .btn-register {
             background-color: #6366f1;
             border: none;
             color: white;
@@ -81,7 +80,7 @@
             margin-top: 10px;
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
-        .btn-login:hover {
+        .btn-register:hover {
             background-color: #4f46e5;
         }
         .alert {
@@ -91,32 +90,31 @@
             margin-bottom: 20px;
             border: none;
         }
-        .signup-link {
+        .login-link {
             text-align: center;
             margin-top: 24px;
             font-size: 0.9rem;
             color: #64748b;
         }
-        .signup-link a {
+        .login-link a {
             color: #6366f1;
             text-decoration: none;
             font-weight: 600;
         }
-        .signup-link a:hover {
+        .login-link a:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
-    <div class="login-card">
+    <div class="register-card">
         <div class="brand-logo">
-            <i class="fa-solid fa-graduation-cap"></i>
+            <i class="fa-solid fa-user-plus"></i>
         </div>
-        <div class="brand-name">Professor IA</div>
-        <div class="brand-subtitle">Entre para gerir os seus planejamentos</div>
+        <div class="brand-name">Criar Conta de Professor</div>
+        <div class="brand-subtitle">Preencha os campos abaixo para liberar seu acesso</div>
         
-        <!-- Alertas de Erro ou Sucesso -->
         {% if erro %}
         <div class="alert alert-danger d-flex align-items-center" role="alert">
             <i class="fa-solid fa-circle-exclamation me-2"></i>
@@ -124,27 +122,28 @@
         </div>
         {% endif %}
 
-        {% if sucesso %}
-        <div class="alert alert-success d-flex align-items-center" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i>
-            <div>{{ sucesso }}</div>
-        </div>
-        {% endif %}
-
-        <form action="{{ url_for('login') }}" method="POST">
+        <form action="{{ url_for('cadastro') }}" method="POST">
             <div class="mb-3">
-                <label for="email" class="form-label">E-mail de Acesso</label>
-                <input type="email" class="form-control" id="email" name="email" placeholder="nome@exemplo.com" required>
+                <label for="nome" class="form-label">Nome Completo</label>
+                <input type="text" class="form-control" id="nome" name="nome" placeholder="Ex: Samuel Araújo Sousa" required>
+            </div>
+            <div class="mb-3">
+                <label for="escola" class="form-label">Nome da Escola / Instituição</label>
+                <input type="text" class="form-control" id="escola" name="escola" placeholder="Ex: Fábrica de Software" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail Corporativo ou Pessoal</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="seuemail@exemplo.com" required>
             </div>
             <div class="mb-4">
-                <label for="password" class="form-label">Senha</label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="••••••••" required>
+                <label for="senha" class="form-label">Defina uma Senha</label>
+                <input type="password" class="form-control" id="senha" name="senha" placeholder="Mínimo 6 caracteres" required>
             </div>
-            <button type="submit" class="btn-login">Entrar no Sistema</button>
+            <button type="submit" class="btn-register">Finalizar Cadastro</button>
         </form>
 
-        <div class="signup-link">
-            Não tem uma conta? <a href="{{ url_for('cadastro') }}">Cadastre-se aqui</a>
+        <div class="login-link">
+            Já possui acesso? <a href="{{ url_for('login') }}">Fazer Login</a>
         </div>
     </div>
 
