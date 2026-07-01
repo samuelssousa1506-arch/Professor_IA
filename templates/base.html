@@ -1,82 +1,307 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professor IA - Planejamento Inteligente</title>
-    <link href="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css](https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css)" rel="stylesheet">
-    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css)" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>{{ app_name if app_name else "Professor IA" }}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Reset de Tipografia Premium */
+        body {
+            font-family: 'Inter', sans-serif !important;
+            background-color: #f8fafc !important; /* Fundo cinza-claro suave, descansa os olhos */
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Estrutura Principal do Painel */
+        .app-container {
+            display: flex;
+            width: 100%;
+            align-items: stretch;
+        }
+
+        /* Sidebar Elegante e Escura (Padrão Apple/SaaS) */
+        .sidebar {
+            min-width: 280px;
+            max-width: 280px;
+            background: #0f172a !important; /* Azul ardósia profundo, super profissional */
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+            z-index: 99;
+        }
+
+        /* Topo da Sidebar (Logótipo / Nome) */
+        .sidebar-brand {
+            padding: 24px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #1e293b;
+            color: #f8fafc !important;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-brand i {
+            color: #6366f1; /* Ícone roxo/azul tecnológico */
+            font-size: 1.4rem;
+        }
+
+        /* Links da Barra Lateral */
+        .nav-menu {
+            padding: 20px 0;
+            flex-grow: 1;
+            list-style: none;
+            margin: 0;
+        }
+
+        .nav-item-heading {
+            padding: 10px 24px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .sidebar .nav-link {
+            color: #94a3b8 !important;
+            font-weight: 500;
+            padding: 12px 20px;
+            margin: 4px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        /* Link Ativo ou Hover na Sidebar */
+        .sidebar .nav-item.active .nav-link,
+        .sidebar .nav-link:hover {
+            background-color: #1e293b !important;
+            color: #38bdf8 !important; /* Azul ciano brilhante para destaque */
+        }
+
+        .sidebar .nav-link i {
+            color: inherit !important;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Rodapé da Sidebar (Informações do Utilizador) */
+        .sidebar-footer {
+            padding: 20px;
+            background: #1e293b;
+            border-top: 1px solid #0f172a;
+        }
+
+        .user-info {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 12px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #f8fafc;
+            display: block;
+        }
+
+        .btn-logout {
+            color: #ef4444 !important;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-logout:hover {
+            opacity: 0.85;
+        }
+
+        /* Área de Conteúdo à Direita */
+        .main-content {
+            flex-grow: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Topbar de Navegação Superior Interna */
+        .topbar {
+            background: #ffffff;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .content-body {
+            padding: 40px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        /* Cards Estilo Glassmorphism / Clean */
+        .card {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.03) !important;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            padding: 18px 24px !important;
+        }
+
+        /* Campos de Formulário Modernos */
+        .form-control, .form-select {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            padding: 10px 14px !important;
+            font-size: 0.95rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #6366f1 !important; /* Roxo/Azul tecnológico ao focar */
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+        }
+
+        /* Botões de Ação Principais */
+        .btn-primary {
+            background-color: #6366f1 !important;
+            border-color: #6366f1 !important;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #4f46e5 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Área do Conteúdo Gerado pela IA */
+        .resultado-ia {
+            background-color: #f1f5f9;
+            border-left: 5px solid #6366f1;
+            border-radius: 8px;
+            padding: 24px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #334155;
+        }
+    </style>
+    {% block head %}{% endblock %}
 </head>
 <body>
 
-    <div class="wrapper">
-        <nav id="sidebar" class="btn-print-hide">
-            <div class="sidebar-header text-center">
-                <div class="mb-2"><i class="fa-solid fa-graduation-cap fa-2x text-info"></i></div>
-                <h5>Professor IA</h5>
-                <small class="text-muted">{{ session['school_name'] }}</small>
-            </div>
-
-            <ul class="list-unstyled components">
-                <li class="{% if request.path == '/dashboard' %}active{% endif %}">
-                    <a href="{{ url_for('dashboard') }}"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+    <div class="app-container">
+        <nav class="sidebar">
+            <a href="{{ url_for('index') }}" class="sidebar-brand">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>{{ app_name if app_name else "Professor IA" }}</span>
+            </a>
+            
+            <ul class="nav-menu">
+                <li class="nav-item-heading">Módulos de Planejamento</li>
+                
+                <li class="nav-item {% if form_type == 'plano' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('dashboard', form_type='plano') }}">
+                        <i class="fa-solid fa-book"></i> Plano de Aula
+                    </a>
                 </li>
                 
-                <p>Módulos de IA</p>
-                <li><a href="{{ url_for('gerador', form_type='plano') }}"><i class="fa-solid fa-book"></i> Plano de Aula</a></li>
-                <li><a href="{{ url_for('gerador', form_type='atividade') }}"><i class="fa-solid fa-pencil"></i> Criar Atividades</a></li>
-                <li><a href="{{ url_for('gerador', form_type='avaliacao') }}"><i class="fa-solid fa-file-pen"></i> Criar Avaliações</a></li>
-                <li><a href="{{ url_for('gerador', form_type='relatorio') }}"><i class="fa-solid fa-address-card"></i> Relatórios</a></li>
-                <li><a href="{{ url_for('gerador', form_type='adaptacao') }}"><i class="fa-solid fa-wheelchair-move"></i> Inclusão/Adaptação</a></li>
-                <li><a href="{{ url_for('gerador', form_type='projeto') }}"><i class="fa-solid fa-diagram-project"></i> Projetos</a></li>
-                
-                <p>Gestão</p>
-                <li class="{% if request.path == '/banco' %}active{% endif %}">
-                    <a href="{{ url_for('banco') }}"><i class="fa-solid fa-folder-open"></i> Banco de Materiais</a>
+                <li class="nav-item {% if form_type == 'bimestral' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('dashboard', form_type='bimestral') }}">
+                        <i class="fa-solid fa-calendar-check"></i> Bimestral
+                    </a>
                 </li>
-                <li class="mt-5">
-                    <a href="{{ url_for('logout') }}" class="text-danger"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+                
+                <li class="nav-item {% if form_type == 'atividades' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('banco') }}">
+                        <i class="fa-solid fa-list-check"></i> Banco de Atividades
+                    </a>
+                </li>
+                
+                <li class="nav-item {% if form_type == 'avaliacoes' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('dashboard', form_type='avaliacoes') }}">
+                        <i class="fa-solid fa-file-signature"></i> Gerador de Provas
+                    </a>
+                </li>
+                
+                <li class="nav-item {% if form_type == 'relatorios' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('dashboard', form_type='relatorios') }}">
+                        <i class="fa-solid fa-chart-line"></i> Relatórios
+                    </a>
+                </li>
+                
+                <li class="nav-item {% if form_type == 'inclusao' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('dashboard', form_type='inclusao') }}">
+                        <i class="fa-solid fa-hands-asl-interpreting"></i> Inclusão / AEE
+                    </a>
+                </li>
+                
+                <li class="nav-item {% if form_type == 'projetos' %}active{% endif %}">
+                    <a class="nav-link" href="{{ url_for('dashboard', form_type='projetos') }}">
+                        <i class="fa-solid fa-diagram-project"></i> Projetos
+                    </a>
                 </li>
             </ul>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span class="user-name">{{ name if name else "Samuel Araújo Sousa" }}</span>
+                    <span>{{ school if school else "Fábrica de Software" }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair do Sistema
+                </a>
+            </div>
         </nav>
 
-        <div id="content">
-            <nav class="navbar navbar-expand-lg navbar-light bg-white px-4 py-2 rounded shadow-sm mb-4 btn-print-hide">
-                <div class="container-fluid">
-                    <span class="navbar-text fw-bold text-primary">
-                        <i class="fa-solid fa-user-tie me-2"></i> Prof. {{ session['user_name'] }}
-                    </span>
-                    <div class="ms-auto d-flex align-items-center">
-                        <div class="border border-secondary px-3 py-1 rounded text-secondary bg-light fw-bold" style="font-size: 0.85rem;">
-                            <i class="fa-solid fa-school me-1"></i> {{ session['school_name'] }}
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-by-dismiss="alert" aria-label="Close"></button>
-                  </div>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
-
-            {% block content %}{% endblock %}
+        <div class="main-content">
+            <header class="topbar">
+                <h5 class="m-0 font-weight-bold text-secondary" style="font-size: 1.05rem;">
+                    Painel de Controle &raquo; <span class="text-dark">{{ config.nome if config else "Geral" }}</span>
+                </h5>
+            </header>
+            
+            <main class="content-body">
+                {% block content %}{% endblock %}
+            </main>
         </div>
     </div>
 
-    <script src="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js](https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js)"></script>
-<footer style="text-align: center; padding: 20px; margin-top: 50px; border-top: 1px solid #e0e0e0; color: #555; font-size: 14px; font-family: Arial, sans-serif;">
-        <p style="margin: 5px 0;">Desenvolvido por <strong>Samuel Araújo Sousa</strong></p>
-        <p style="margin: 5px 0;">
-            📞 <strong>Telefone:</strong> (99) 98131-6820 &nbsp;|&nbsp; 
-            ✉️ <strong>E-mail:</strong> <a href="mailto:samuel.ssousa1506@gmail.com" style="color: #007bff; text-decoration: none;">samuel.ssousa1506@gmail.com</a>
-        </p>
-    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
