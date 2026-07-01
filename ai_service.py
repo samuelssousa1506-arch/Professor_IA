@@ -1,47 +1,61 @@
 import os
-from google import genai
-from dotenv import load_dotenv
 
-load_dotenv()
+# Tenta importar a biblioteca nova ou a antiga do Google de forma segura
+try:
+    from google import genai
+    USE_NEW_SDK = True
+except ImportError:
+    import google.generativeai as genai
+    USE_NEW_SDK = False
 
 def gerar_conteudo_educacional(tipo_modulo, disciplina, ano, tema, bncc):
-    """
-    Comunica com o Gemini-2.5-Flash utilizando o SDK moderno do Google (google-genai)
-    e molda o comportamento da IA com base no módulo ativo no painel.
-    """
-    client = genai.Client()
+    # Procura a chave nas variáveis de ambiente do servidor
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     
-    prompt = f"""
-    Atue como um Consultor Pedagógico Sênior e Especialista em Alinhamento Curricular da BNCC.
-    Sua tarefa é redigir um documento técnico de alto nível pedagógico do tipo: {tipo_modulo}.
-    
-    Metadados de Contexto:
-    - Componente Curricular: {disciplina}
-    - Segmento de Ensino: {ano}
-    - Objeto de Estudo / Tema Central: {tema}
-    - Códigos e Habilidades de Referência BNCC: {bncc}
-    
-    Instruções específicas de Escrita para o módulo {tipo_modulo}:
-    - Se for 'Plano de Aula': Forneça objetivos conceituais/procedimentais, metodologia detalhada dividida em momentos (introdução, desenvolvimento, fechamento), recursos didáticos e estratégias de avaliação.
-    - Se for 'Planejamento Bimestral': Estruture a distribuição do tema ao longo de 8 semanas, definindo cronogramas de conteúdos, competências específicas trabalhadas no período e metodologias de verificação continuada.
-    - Se for 'Banco de Atividades': Crie uma lista com exercícios diversificados (questões contextualizadas de múltipla escolha e questões discursivas) acompanhadas de seus respectivos gabaritos justificados.
-    - Se for 'Gerador de Provas': Desenvolva uma avaliação formal e estruturada contendo cabeçalho institucional, instruções de aplicação, critérios de pontuação e questões categorizadas por níveis de complexidade taxonômica (fácil, média, difícil).
-    - Se for 'Relatórios Pedagógicos': Monte um modelo detalhado de parecer descritivo de desempenho escolar, mapeando evolução cognitiva, pontos de atenção e intervenções necessárias baseadas no aprendizado desse tema.
-    - Se for 'Plano de Inclusão / AEE': Desenvolva adaptações curriculares precisas para alunos com necessidades específicas (PCD/Altas Habilidades), propondo flexibilização de tempo, recursos assistivos e metodologias ativas direcionadas.
-    - Se for 'Projetos Interdisciplinares': Idealize um escopo de projeto integrando este tema a outras duas áreas do conhecimento, definindo a problemática motivadora, produto final esperado e rubricas de avaliação coletiva.
-
-    Diretrizes de Formatação Estritas do Layout (Cruciais para renderização HTML):
-    1. Para qualquer título de seção principal, inicie a linha exatamente com o prefixo: SECAO: Nome do Título
-    2. Para qualquer subtítulo ou subseção, inicie a linha exatamente com o prefixo: SUBSECAO: Nome do Subtítulo
-    3. Utilize '---' isolado em uma linha para demarcar separações visuais de blocos ou quebras de páginas pedagógicas.
-    4. ATENÇÃO: Nunca envie formatações brutas de Markdown como hashtags (#) ou asteriscos (*) para aplicar negritos. Retorne o texto limpo, pois o JavaScript cuidará da estilização.
-    """
+    # Se não encontrar a chave, avisa diretamente na tela em vez de quebrar
+    if not api_key:
+        return """
+        <div class="alert alert-warning mt-3">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            <strong>Chave API Não Configurada:</strong> A variável <code>GEMINI_API_KEY</code> não foi encontrada no Render. 
+            Por favor, adicione-a no menu 'Environment' do seu painel do Render.
+        </div>
+        """
     
     try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
-        return response.text
+        # Monta um prompt detalhado e estruturado para o Gemini
+        prompt = f"""
+        Você é um especialista em educação de alto nível.
+        Gere um conteúdo de excelência para o módulo '{tipo_modulo}', focado na disciplina de '{disciplina}' para o '{ano}'.
+        Tema Principal / Objeto de Estudo: {tema}
+        Diretrizes e Alinhamento com a BNCC: {bncc}
+        
+        Regras de Formatação Obrigatórias:
+        1. Responda estruturando o texto APENAS em HTML elegante (use <p>, <ul>, <li>, <strong>, <h5>, e tabelas <table> se necessário).
+        2. NÃO inclua as marcações de bloco de código como ```html no início ou ``` no final. Retorne o HTML limpo.
+        3. Seja extremamente detalhado, profundo e prático para o uso do professor em sala de aula.
+        """
+        
+        if USE_NEW_SDK:
+            # Executa usando a nova biblioteca do Google
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt
+            )
+            return response.text if response.text else "O modelo retornou uma resposta vazia."
+        else:
+            # Executa usando a biblioteca clássica (fallback)
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            return response.text if response.text else "O modelo retornou uma resposta vazia."
+            
     except Exception as e:
-        return f"Falha crítica na API do Gemini: {str(e)}"
+        # Se der qualquer erro na API, exibe a mensagem detalhada na tela para diagnóstico
+        return f"""
+        <div class="alert alert-danger mt-3">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>
+            <strong>Erro na comunicação com o Gemini AI:</strong> {str(e)}
+        </div>
+        """
