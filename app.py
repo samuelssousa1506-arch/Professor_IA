@@ -7,7 +7,7 @@ from ai_service import gerar_conteudo_educacional
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# Mapas de configuração visual de cada módulo premium do sistema
+# Mapas de configuração visual de cada módulo do sistema
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'cor': '#4e73df', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'cor': '#fd7e14', 'icone': 'fa-calendar-check'},
@@ -20,13 +20,12 @@ MODULOS = {
 
 @app.route('/')
 def index():
-    # Redireciona a raiz diretamente para o dashboard padrão
+    # Como não há tela de login, a raiz do site joga direto para o planejamento
     return redirect(url_for('dashboard', form_type='plano'))
 
 def executar_logica_painel():
     """
     Função centralizada que processa os formulários e faz a chamada ao Gemini.
-    Evita duplicação de código e serve os endpoints simultaneamente.
     """
     form_type = request.args.get('form_type') or request.form.get('form_type') or 'plano'
     
@@ -67,6 +66,7 @@ def executar_logica_painel():
         disciplina=disciplina,
         ano=ano,
         bncc=bncc,
+        app_name="Professor IA",
         name="Samuel Araújo Sousa",
         school="Fábrica de Software"
     )
@@ -81,15 +81,15 @@ def dashboard():
 def gerador():
     return executar_logica_painel()
 
-# Endpoint 3: Atende a linha 36 do base.html (Banco de Materiais)
+# Endpoint 3: Evita o erro BuildError da linha 36 do base.html
 @app.route('/banco')
 def banco():
     return redirect(url_for('dashboard', form_type='atividades'))
 
-# Endpoint 4: CORREÇÃO DO NOVO ERRO - Atende a linha 39 do base.html (Botão Sair)
+# Endpoint 4: Evita o erro BuildError da linha 39 do base.html
 @app.route('/logout')
 def logout():
-    session.clear()  # Limpa os dados salvos na sessão do navegador
+    session.clear()
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
