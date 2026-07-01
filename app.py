@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from ai_service import gerar_conteudo_educacional
 
 app = Flask(__name__)
+# Chave secreta obrigatória para gerir sessões de login de forma segura
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
 # Mapas de configuração visual de cada módulo do sistema
@@ -20,13 +21,37 @@ MODULOS = {
 
 @app.route('/')
 def index():
-    # Como não há tela de login, a raiz do site joga direto para o planejamento
+    # Se NÃO estiver logado, vai para a tela de login
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    # Se estiver logado, vai direto para o painel
     return redirect(url_for('dashboard', form_type='plano'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    erro = None
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        # Validação simples com as suas credenciais
+        if email == "samuel.ssousa1506@gmail.com" and password == "123456":
+            session['logged_in'] = True
+            session['user_email'] = email
+            return redirect(url_for('index'))
+        else:
+            erro = "E-mail ou senha incorretos."
+            
+    return render_template('login.html', erro=erro)
 
 def executar_logica_painel():
     """
     Função centralizada que processa os formulários e faz a chamada ao Gemini.
     """
+    # Bloqueio de segurança: impede acesso direto via URL sem login
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
     form_type = request.args.get('form_type') or request.form.get('form_type') or 'plano'
     
     if form_type not in MODULOS:
@@ -71,26 +96,23 @@ def executar_logica_painel():
         school="Fábrica de Software"
     )
 
-# Endpoint 1: Atende a linha 23 do base.html
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     return executar_logica_painel()
 
-# Endpoint 2: Atende a linha 27 do base.html
 @app.route('/gerador', methods=['GET', 'POST'])
 def gerador():
     return executar_logica_painel()
 
-# Endpoint 3: Evita o erro BuildError da linha 36 do base.html
 @app.route('/banco')
 def banco():
     return redirect(url_for('dashboard', form_type='atividades'))
 
-# Endpoint 4: Evita o erro BuildError da linha 39 do base.html
 @app.route('/logout')
 def logout():
+    # Limpa a sessão e desloga o utilizador completamente
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
