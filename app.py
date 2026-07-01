@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 try:
     from ai_service import gerar_conteudo_educacional
 except ImportError:
-    # Fallback pedagógico estruturado caso precise testar localmente sem a IA ativa
+    # Fallback pedagógico estruturado caso precise testar localmente
     def gerar_conteudo_educacional(**kwargs):
         if kwargs.get('tipo_modulo') == 'Gerador de Provas':
             return """

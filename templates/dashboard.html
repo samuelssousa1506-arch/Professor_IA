@@ -60,7 +60,6 @@
         border-radius: 16px;
         padding: 45px;
         position: relative;
-        padding-bottom: 80px; /* Margem para o rodapé estável */
     }
 
     /* Cabeçalho de Prova Compacto e Limpo */
@@ -102,7 +101,7 @@
     .rodape-academico {
         border-top: 1px solid #e2e8f0;
         padding-top: 15px;
-        margin-top: 40px;
+        margin-top: 50px;
         font-size: 0.78rem;
         color: #64748b;
         line-height: 1.5;
@@ -113,7 +112,6 @@
         body, .container-fluid, .row, .col-lg-8 { background: #ffffff !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
         .paper-canvas { border: none !important; box-shadow: none !important; padding: 0 !important; }
         .cabecalho-escola-box { border: 1.5px solid #000000 !important; }
-        .rodape-academico { position: absolute; bottom: 10px; width: 100%; border-top: 1px solid #000000; color: #000000; }
     }
 </style>
 {% endblock %}
@@ -122,6 +120,7 @@
 <div class="container-fluid py-4 px-3 px-xl-5">
     <div class="row g-4">
         
+        <!-- LATERAL ESQUERDA (NO-PRINT) -->
         <div class="col-12 col-lg-4 d-flex flex-column gap-4 no-print">
             <div class="card card-painel">
                 <div class="card-header-premium text-dark d-flex align-items-center gap-2">
@@ -203,6 +202,7 @@
             </div>
         </div>
 
+        <!-- VISUALIZAÇÃO DA FOLHA DE SAÍDA (DIREITA) -->
         <div class="col-12 col-lg-8">
             <div class="card card-painel h-100">
                 <div class="card-header-premium bg-white d-flex justify-content-between align-items-center py-3 no-print">
@@ -215,6 +215,7 @@
                 <div class="card-body bg-light p-3 p-xl-4">
                     <div class="paper-canvas">
                         
+                        <!-- CABEÇALHO COMPACTO EXCLUSIVO DE AVALIAÇÕES -->
                         {% if form_type == 'avaliacoes' %}
                         <div class="cabecalho-escola-box mb-4">
                             <div class="text-center border-bottom border-dark pb-1 mb-2">
@@ -231,6 +232,7 @@
                         </div>
                         <h4 class="text-center fw-bold my-3 text-uppercase text-dark" style="font-size: 1.1rem; letter-spacing: 0.5px;">AVALIAÇÃO BIMESTRAL DE {{ disciplina | upper }}</h4>
                         
+                        <!-- CABEÇALHO LIMPO PARA OS OUTROS MÓDULOS -->
                         {% else %}
                         <div class="border-bottom pb-3 mb-4">
                             <h2 class="fw-bold text-dark mb-1" style="font-size: 1.8rem; letter-spacing: -0.5px;">{{ tema if tema else "Estrutura Pedagógica Institucional" }}</h2>
@@ -242,6 +244,7 @@
                         </div>
                         {% endif %}
 
+                        <!-- CONTEÚDO PRINCIPAL DA IA -->
                         <div class="output-html-dinamico">
                             {% if conteudo %}
                                 {{ conteudo|safe }}
@@ -254,7 +257,9 @@
                             {% endif %}
                         </div>
 
-                        <div class="rodape-academico">
+                        <!-- MODIFICAÇÃO EXECUTADA: CLASSE 'no-print' ADICIONADA -->
+                        <!-- RODAPÉ ACADÊMICO EXIBIDO APENAS NO SITE (SOME NO PDF/IMPRESSÃO) -->
+                        <div class="rodape-academico no-print">
                             <div class="d-flex justify-content-between flex-wrap gap-2">
                                 <div>Este programa não possui fins lucrativos. Trata-se de um trabalho estritamente acadêmico.</div>
                                 <div class="text-md-end fw-semibold">Desenvolvedor: Samuel Araújo Sousa | Tel: (99) 99197-1901 | samuel.ssousa1506@gmail.com</div>
