@@ -5,18 +5,21 @@ from flask import Flask, render_template, request, redirect, url_for, session
 try:
     from ai_service import gerar_conteudo_educacional
 except ImportError:
-    # Fallback pedagógico estruturado caso precise testar localmente
+    # Fallback pedagógico configurado exatamente com o padrão estrutural do teu PDF
     def gerar_conteudo_educacional(**kwargs):
         if kwargs.get('tipo_modulo') == 'Gerador de Provas':
             return """
-            <p><strong>1. Resolva a seguinte operação matemática e marque a resposta correta: 125 + 350. (EF04MA03)</strong></p>
-            <p>a) 465<br>b) 475<br>c) 485<br>d) 495</p>
+            <p><strong>01. (EF09MA02) O número &pi; é usado em situações geométricas como, por exemplo, no cálculo do comprimento de uma circunferência. Seu valor aproximado é 3,141592... Portanto, podemos afirmar que ele é um número:</strong></p>
+            <p>a) natural.<br>b) inteiro.<br>c) racional.<br>d) irracional.</p>
             <br>
-            <p><strong>2. Escreva com as suas palavras como podemos identificar uma figura simétrica. (EF04MA19)</strong></p>
-            <div class="linha-resposta"></div>
-            <div class="linha-resposta"></div>
-            <div class="linha-resposta"></div>
-            <div class="linha-resposta"></div>
+            <p><strong>02. (EF09MA04) O Brasil possui uma população estimada de 203 milhões de habitantes, segundo o IBGE. Em notação científica, escrevemos este número como:</strong></p>
+            <p>a) 203 x 10<sup>7</sup><br>b) 2,03 x 10<sup>7</sup><br>c) 2,03 x 10<sup>-8</sup><br>d) 2,03 x 10<sup>8</sup></p>
+            <br>
+            <p><strong>03. (EF09MA03) Um conjunto habitacional possui 6 prédios. Cada prédio tem 6 andares, e cada andar, 6 apartamentos. O número total de apartamentos é representado por:</strong></p>
+            <p>a) 6<sup>3</sup><br>b) 6<sup>4</sup><br>c) 6<sup>5</sup><br>d) 6<sup>6</sup></p>
+            <br>
+            <p><strong>04. (EF09MA02) Indique qual alternativa a seguir apresenta um número classificado como irracional:</strong></p>
+            <p>a) &radic;400<br>b) &radic;144<br>c) &radic;196<br>d) &radic;250</p>
             """
         return "<h3>Conteúdo gerado para o tema: " + kwargs.get('tema', '') + "</h3>"
 
@@ -84,7 +87,7 @@ def login():
             return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
-    return render_template('login.html', erro=erro, sucesso=sucesso)
+    return render_template('login.html', erro=erro,致sucesso=sucesso)
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
