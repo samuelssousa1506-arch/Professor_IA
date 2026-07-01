@@ -1,14 +1,11 @@
 import os
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session
-
-# Importa o serviço de IA configurado com a nova biblioteca do Google
 from ai_service import gerar_conteudo_educacional
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# Banco de Dados: Função para inicializar as tabelas necessárias
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -21,20 +18,18 @@ def init_db():
             senha TEXT NOT NULL
         )
     ''')
-    # Garante que o acesso do desenvolvedor Samuel sempre existirá por padrão
-    cursor.execute("SELECT * FROM usuarios WHERE email = 'samuel.ssousa1506@gmail.com'")
+    # Conta mestre de teste para o Samuel (Sempre recriada se não existir)
+    cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
             INSERT INTO usuarios (nome, escola, email, senha) 
-            VALUES ('Samuel Araújo Sousa', 'Fábrica de Software', 'samuel.ssousa1506@gmail.com', '123456')
+            VALUES ('Samuel Araújo Sousa', 'Escola Municipal de Teste', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
     conn.close()
 
-# Executa a inicialização do banco ao rodar o app
 init_db()
 
-# Mapas de configuração visual de cada módulo do sistema
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'cor': '#4e73df', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'cor': '#fd7e14', 'icone': 'fa-calendar-check'},
@@ -57,24 +52,32 @@ def login():
     sucesso = request.args.get('sucesso')
     
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        # SOLUÇÃO: Procura tanto por 'password' quanto por 'senha' para evitar incompatibilidade com o HTML
-        password = request.form.get('password') or request.form.get('senha') or ''
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('senha') or request.form.get('password') or ''
         password = password.strip()
+        
+        # LOG DE DIAGNÓSTICO (Aparece no painel de Logs do Render)
+        print(f"[DIAGNÓSTICO LOGIN] Tentativa de login com Email: '{email}' | Senha recebida possui tamanho: {len(password)}")
         
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT nome, escola, senha FROM usuarios WHERE email = ?", (email,))
+        cursor.execute("SELECT nome, escola, senha FROM usuarios WHERE LOWER(email) = ?", (email,))
         user = cursor.fetchone()
         conn.close()
         
-        if user and str(user[2]).strip() == password:
-            session['logged_in'] = True
-            session['user_email'] = email
-            session['user_name'] = user[0]   
-            session['user_school'] = user[1] 
-            return redirect(url_for('index'))
+        if user:
+            senha_banco = str(user[2]).strip()
+            if senha_banco == password:
+                session['logged_in'] = True
+                session['user_email'] = email
+                session['user_name'] = user[0]   
+                session['user_school'] = user[1] 
+                return redirect(url_for('index'))
+            else:
+                print(f"[DIAGNÓSTICO] Usuário encontrado, mas senha não confere.")
+                erro = "E-mail ou senha incorretos."
         else:
+            print(f"[DIAGNÓSTICO] Nenhum usuário encontrado com o e-mail: {email}")
             erro = "E-mail ou senha incorretos."
             
     return render_template('login.html', erro=erro, sucesso=sucesso)
@@ -85,10 +88,11 @@ def cadastro():
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
         escola = request.form.get('escola', '').strip()
-        email = request.form.get('email', '').strip()
-        # SOLUÇÃO: Procura tanto por 'senha' quanto por 'password' no formulário de cadastro
+        email = request.form.get('email', '').strip().lower()
         senha = request.form.get('senha') or request.form.get('password') or ''
         senha = senha.strip()
+        
+        print(f"[DIAGNÓSTICO CADASTRO] Recebido Nome: '{nome}', Escola: '{escola}', Email: '{email}'")
         
         if nome and escola and email and senha:
             try:
@@ -100,11 +104,13 @@ def cadastro():
                 ''', (nome, escola, email, senha))
                 conn.commit()
                 conn.close()
+                print("[DIAGNÓSTICO CADASTRO] Conta criada no banco de dados com sucesso!")
                 return redirect(url_for('login', sucesso="Conta criada com sucesso! Entre abaixo."))
             except sqlite3.IntegrityError:
+                print("[DIAGNÓSTICO CADASTRO] Falha: E-mail já existente.")
                 erro = "Este e-mail já está cadastrado no sistema."
         else:
-            erro = "Por favor, preencha todos os campos."
+            erro = "Por favor, preencha todos os campos corretamente."
             
     return render_template('cadastro.html', erro=erro)
 
