@@ -18,12 +18,11 @@ def init_db():
             senha TEXT NOT NULL
         )
     ''')
-    # Conta mestre de teste para o Samuel (Sempre recriada se não existir)
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
             INSERT INTO usuarios (nome, escola, email, senha) 
-            VALUES ('Samuel Araújo Sousa', 'Escola Municipal de Teste', 'samuel.ssousa1506@gmail.com', '123456')
+            VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
     conn.close()
@@ -53,11 +52,7 @@ def login():
     
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
-        password = request.form.get('senha') or request.form.get('password') or ''
-        password = password.strip()
-        
-        # LOG DE DIAGNÓSTICO (Aparece no painel de Logs do Render)
-        print(f"[DIAGNÓSTICO LOGIN] Tentativa de login com Email: '{email}' | Senha recebida possui tamanho: {len(password)}")
+        password = request.form.get('senha', '').strip()
         
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
@@ -65,19 +60,13 @@ def login():
         user = cursor.fetchone()
         conn.close()
         
-        if user:
-            senha_banco = str(user[2]).strip()
-            if senha_banco == password:
-                session['logged_in'] = True
-                session['user_email'] = email
-                session['user_name'] = user[0]   
-                session['user_school'] = user[1] 
-                return redirect(url_for('index'))
-            else:
-                print(f"[DIAGNÓSTICO] Usuário encontrado, mas senha não confere.")
-                erro = "E-mail ou senha incorretos."
+        if user and str(user[2]).strip() == password:
+            session['logged_in'] = True
+            session['user_email'] = email
+            session['user_name'] = user[0]   
+            session['user_school'] = user[1] 
+            return redirect(url_for('index'))
         else:
-            print(f"[DIAGNÓSTICO] Nenhum usuário encontrado com o e-mail: {email}")
             erro = "E-mail ou senha incorretos."
             
     return render_template('login.html', erro=erro, sucesso=sucesso)
@@ -89,10 +78,7 @@ def cadastro():
         nome = request.form.get('nome', '').strip()
         escola = request.form.get('escola', '').strip()
         email = request.form.get('email', '').strip().lower()
-        senha = request.form.get('senha') or request.form.get('password') or ''
-        senha = senha.strip()
-        
-        print(f"[DIAGNÓSTICO CADASTRO] Recebido Nome: '{nome}', Escola: '{escola}', Email: '{email}'")
+        senha = request.form.get('senha', '').strip()
         
         if nome and escola and email and senha:
             try:
@@ -104,13 +90,11 @@ def cadastro():
                 ''', (nome, escola, email, senha))
                 conn.commit()
                 conn.close()
-                print("[DIAGNÓSTICO CADASTRO] Conta criada no banco de dados com sucesso!")
                 return redirect(url_for('login', sucesso="Conta criada com sucesso! Entre abaixo."))
             except sqlite3.IntegrityError:
-                print("[DIAGNÓSTICO CADASTRO] Falha: E-mail já existente.")
                 erro = "Este e-mail já está cadastrado no sistema."
         else:
-            erro = "Por favor, preencha todos os campos corretamente."
+            erro = "Por favor, preencha todos os campos."
             
     return render_template('cadastro.html', erro=erro)
 
@@ -129,6 +113,9 @@ def executar_logica_painel():
     disciplina = ""
     ano = ""
     bncc = ""
+    tipo_prova = ""
+    qtd_questoes = ""
+    nivel = ""
     
     if request.method == 'POST':
         tema = request.form.get('tema', '').strip()
@@ -136,16 +123,23 @@ def executar_logica_painel():
         ano = request.form.get('ano', '').strip()
         bncc = request.form.get('bncc', '').strip()
         
+        tipo_prova = request.form.get('tipo_prova', '').strip()
+        qtd_questoes = request.form.get('qtd_questoes', '').strip()
+        nivel = request.form.get('nivel', '').strip()
+        
         if tema:
             conteudo = gerar_conteudo_educacional(
                 tipo_modulo=config_modulo['nome'],
                 disciplina=disciplina if disciplina else "Geral",
                 ano=ano if ano else "Segmento Geral",
                 tema=tema,
-                bncc=bncc if bncc else "Diretrizes gerais da BNCC"
+                bncc=bncc if bncc else "Diretrizes gerais da BNCC",
+                tipo_prova=tipo_prova,
+                qtd_questoes=qtd_questoes,
+                nivel=nivel
             )
         else:
-            conteudo = "Por favor, defina um Tema Principal antes de solicitar a geração do material."
+            conteudo = "Por favor, defina um Tema Principal antes de solicitar a geração."
 
     return render_template(
         'dashboard.html',
@@ -156,6 +150,9 @@ def executar_logica_painel():
         disciplina=disciplina,
         ano=ano,
         bncc=bncc,
+        tipo_prova=tipo_prova,
+        qtd_questoes=qtd_questoes,
+        nivel=nivel,
         app_name="Professor IA",
         name=session.get('user_name'),     
         school=session.get('user_school')  

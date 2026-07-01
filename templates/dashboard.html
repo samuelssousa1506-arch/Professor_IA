@@ -2,162 +2,44 @@
 
 {% block head %}
 <style>
-    /* 💻 ESTILOS GERAIS (DESKTOP E BASE) */
-    .section-title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #fff;
-    }
+    .section-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; }
+    .card-header-custom { padding: 14px 20px; border-radius: 14px 14px 0 0 !important; }
+    .modulo-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #475569; text-decoration: none; font-weight: 500; border-radius: 8px; margin-bottom: 6px; transition: all 0.2s ease; }
+    .modulo-link:hover { background-color: #f1f5f9; color: #1e293b; }
+    .modulo-link.active { background-color: #4f46e5 !important; color: #ffffff !important; }
+    .modulo-link i { width: 20px; text-align: center; font-size: 1.05rem; }
     
-    .card-header-custom {
-        padding: 14px 20px;
-        border-radius: 14px 14px 0 0 !important;
-    }
+    /* Folha de Papel Física simulada */
+    .document-paper { background: #ffffff; min-height: 750px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); padding: 40px; position: relative; }
+    .doc-header-title { font-size: 2.2rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
+    .meta-label { font-size: 0.8rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
+    .meta-value { font-size: 0.95rem; color: #1e293b; font-weight: 500; }
+    .bncc-box { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 4px; margin-top: 20px; margin-bottom: 24px; }
+    
+    .ai-output-content { font-size: 1.05rem; line-height: 1.7; color: #334155; }
+    .ai-output-content h3, .ai-output-content h4, .ai-output-content h5 { color: #0f172a; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
+    .ai-output-content ul, .ai-output-content ol { padding-left: 20px; margin-bottom: 16px; }
 
-    .modulo-link {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        color: #475569;
-        text-decoration: none;
-        font-weight: 500;
-        border-radius: 8px;
-        margin-bottom: 6px;
-        transition: all 0.2s ease;
-    }
-    .modulo-link:hover {
-        background-color: #f1f5f9;
-        color: #1e293b;
-    }
-    .modulo-link.active {
-        background-color: #4f46e5 !important;
-        color: #ffffff !important;
-    }
-    .modulo-link i {
-        width: 20px;
-        text-align: center;
-        font-size: 1.05rem;
-    }
+    /* Customizações Fixas do Cabeçalho de Prova Escolar */
+    .cabecalho-prova-container { border: 2px solid #000000 !important; border-radius: 6px; padding: 18px; color: #000000 !important; background-color: #ffffff; }
+    .linha-preenchimento { border-bottom: 1px solid #000000 !important; height: 24px; }
 
-    /* Card da Folha de Papel */
-    .document-paper {
-        background: #ffffff;
-        min-height: 750px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        padding: 40px;
-        position: relative;
-    }
-
-    .doc-header-title {
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #0f172a;
-        line-height: 1.2;
-    }
-
-    .meta-label {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        color: #64748b;
-        font-weight: 600;
-    }
-
-    .meta-value {
-        font-size: 0.95rem;
-        color: #1e293b;
-        font-weight: 500;
-    }
-
-    .bncc-box {
-        background-color: #eff6ff;
-        border-left: 4px solid #3b82f6;
-        padding: 16px;
-        border-radius: 4px;
-        margin-top: 20px;
-        margin-bottom: 24px;
-    }
-
-    .ai-output-content {
-        font-size: 1.05rem;
-        line-height: 1.7;
-        color: #334155;
-    }
-    .ai-output-content h3, .ai-output-content h4, .ai-output-content h5 {
-        color: #0f172a;
-        font-weight: 700;
-        margin-top: 24px;
-        margin-bottom: 12px;
-    }
-    .ai-output-content ul, .ai-output-content ol {
-        padding-left: 20px;
-        margin-bottom: 16px;
-    }
-
-    /* 📱 ADAPTAÇÕES EXCLUSIVAS PARA CELULAR (Telas menores que 992px) */
     @media (max-width: 991.98px) {
-        .container-fluid {
-            padding: 10px !important;
-        }
-        
-        /* Ajusta o espaçamento interno da folha do documento para não esmagar o texto */
-        .document-paper {
-            padding: 20px 15px;
-            min-height: auto;
-        }
-
-        /* Reduz proporcionalmente os títulos grandes no mobile */
-        .doc-header-title {
-            font-size: 1.6rem;
-        }
-
-        /* Melhora o espaçamento dos metadados do cabeçalho que agora quebram em blocos */
-        .meta-box-mobile {
-            margin-top: 15px;
-            border-top: 1px dashed #e2e8f0;
-            padding-top: 15px;
-        }
-
-        /* Garante que tabelas geradas pela IA criem barra de rolagem e não quebrem a tela */
-        .ai-output-content table {
-            display: block;
-            width: 100% !important;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
+        .container-fluid { padding: 10px !important; }
+        .document-paper { padding: 20px 15px; min-height: auto; }
+        .doc-header-title { font-size: 1.6rem; }
+        .meta-box-mobile { margin-top: 15px; border-top: 1px dashed #e2e8f0; padding-top: 15px; }
+        .ai-output-content table { display: block; width: 100% !important; overflow-x: auto; }
     }
 
-    /* 🖨️ ENGINE DE IMPRESSÃO */
     @media print {
-        body, .app-container, .main-content, .content-body {
-            background: #ffffff !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-        .sidebar, .topbar, .app-footer, .no-print, .card-header-custom, .btn {
-            display: none !important;
-        }
-        .col-md-4, .col-lg-4 {
-            display: none !important;
-        }
-        .col-md-8, .col-lg-8 {
-            width: 100% !important;
-            max-width: 100% !important;
-            flex: 0 0 100% !important;
-        }
-        .card {
-            border: none !important;
-            box-shadow: none !important;
-        }
-        .document-paper {
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-        }
+        body, .app-container, .main-content, .content-body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; }
+        .sidebar, .topbar, .app-footer, .no-print, .card-header-custom, .btn { display: none !important; }
+        .col-md-4, .col-lg-4 { display: none !important; }
+        .col-md-8, .col-lg-8 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+        .card { border: none !important; box-shadow: none !important; }
+        .document-paper { border: none !important; box-shadow: none !important; padding: 0 !important; }
+        .cabecalho-prova-container { border: 2px solid #000000 !important; color: #000000 !important; }
     }
 </style>
 {% endblock %}
@@ -166,10 +48,8 @@
 <div class="container-fluid p-3 p-md-4">
     <div class="row g-4">
         
-        <!-- COLUNA ESQUERDA: Parâmetros e Módulos (No celular fica no topo, antes do documento) -->
         <div class="col-12 col-lg-4 d-flex flex-column gap-4 no-print">
             
-            <!-- Card: Módulos do Sistema -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header-custom bg-dark text-white d-flex align-items-center gap-2">
                     <i class="fa-solid fa-cubes"></i>
@@ -200,7 +80,6 @@
                 </div>
             </div>
 
-            <!-- Card: Formulário de Escopo -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header-custom text-white d-flex align-items-center gap-2" style="background-color: #4f46e5;">
                     <i class="fa-solid fa-sliders"></i>
@@ -211,8 +90,8 @@
                         <input type="hidden" name="form_type" value="{{ form_type }}">
                         
                         <div class="mb-3">
-                            <label class="form-label text-secondary small fw-bold">TEMA PRINCIPAL / OBJETO DE ESTUDO</label>
-                            <input type="text" class="form-control" name="tema" value="{{ tema }}" placeholder="Ex: Frações, Verbos, Segunda Guerra" required>
+                            <label class="form-label text-secondary small fw-bold">CONTEÚDO / OBJETO DE ESTUDO</label>
+                            <input type="text" class="form-control" name="tema" value="{{ tema }}" placeholder="Ex: Frações, Verbo, Segunda Guerra" required>
                         </div>
 
                         <div class="mb-3">
@@ -225,13 +104,42 @@
                             <input type="text" class="form-control" name="ano" value="{{ ano }}" placeholder="Ex: 5º ano, 3º ano Ensino Médio">
                         </div>
 
+                        {% if form_type == 'avaliacoes' %}
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">TIPO DE PROVA</label>
+                            <select class="form-select" name="tipo_prova">
+                                <option value="Mista" {% if tipo_prova == 'Mista' or not tipo_prova %}selected{% endif %}>Mista (Objetiva e Subjetiva)</option>
+                                <option value="Objetiva" {% if tipo_prova == 'Objetiva' %}selected{% endif %}>Objetiva (Múltipla Escolha)</option>
+                                <option value="Subjetiva" {% if tipo_prova == 'Subjetiva' %}selected{% endif %}>Subjetiva (Questões Abertas)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">QUANTIDADE DE QUESTÕES</label>
+                            <select class="form-select" name="qtd_questoes">
+                                <option value="5" {% if qtd_questoes == '5' %}selected{% endif %}>5 Questões</option>
+                                <option value="10" {% if qtd_questoes == '10' or not qtd_questoes %}selected{% endif %}>10 Questões</option>
+                                <option value="15" {% if qtd_questoes == '15' %}selected{% endif %}>15 Questões</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">NÍVEL DE DIFICULDADE</label>
+                            <select class="form-select" name="nivel">
+                                <option value="Médio" {% if nivel == 'Médio' or not nivel %}selected{% endif %}>Médio</option>
+                                <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
+                                <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
                         <div class="mb-4">
                             <label class="form-label text-secondary small fw-bold">DIRETRIZES DA BNCC (OPCIONAL)</label>
-                            <textarea class="form-control" name="bncc" rows="3" placeholder="Insira códigos de habilidades ou competências específicas da BNCC (Ex: EF05LP05)">{{ bncc }}</textarea>
+                            <textarea class="form-control" name="bncc" rows="2" placeholder="Insira códigos de habilidades específicas (Ex: EF05LP05)">{{ bncc }}</textarea>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2.5 d-flex align-items-center justify-content-center gap-2 fw-semibold">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Conteúdo com IA
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Documento com IA
                         </button>
                     </form>
                 </div>
@@ -239,7 +147,6 @@
 
         </div>
 
-        <!-- COLUNA DIREITA: Visualização do Documento -->
         <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -253,8 +160,56 @@
                 </div>
                 
                 <div class="card-body bg-light p-2 p-md-4">
-                    <!-- Folha de Papel Formatada -->
                     <div class="document-paper">
+                        
+                        {% if form_type == 'avaliacoes' %}
+                        <div class="cabecalho-prova-container mb-4">
+                            <div class="text-center border-bottom border-dark pb-2 mb-3">
+                                <h4 class="fw-bold m-0 text-uppercase text-dark" style="letter-spacing: 1.5px; font-size: 1.2rem;">{{ school if school else "NOME DA INSTITUIÇÃO DE ENSINO" }}</h4>
+                                <span class="fw-bold text-secondary text-uppercase" style="font-size: 0.75rem;">Avaliação de Desempenho Escolar</span>
+                            </div>
+                            <div class="row g-3 small fw-bold text-dark">
+                                <div class="col-12 col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-nowrap">PROFESSOR(A):</span>
+                                        <span class="fw-normal border-bottom flex-grow-1 text-dark pb-1">Prof. {{ name if name else "Não logado" }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-nowrap">DISCIPLINA:</span>
+                                        <span class="fw-normal border-bottom flex-grow-1 text-dark pb-1">{{ disciplina if disciplina else "Geral" }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-nowrap">ANO/TURMA:</span>
+                                        <span class="fw-normal border-bottom flex-grow-1 text-dark pb-1">{{ ano if ano else "Geral" }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mt-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-nowrap">ALUNO(A):</span>
+                                        <div class="linha-preenchimento flex-grow-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 mt-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-nowrap">DATA:</span>
+                                        <div class="linha-preenchimento flex-grow-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3 mt-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 text-nowrap">NOTA:</span>
+                                        <div class="linha-preenchimento flex-grow-1" style="max-width: 70px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <h3 class="text-center fw-bold my-4 text-uppercase text-dark" style="font-size: 1.35rem;">AVALIAÇÃO DE {{ tema }}</h3>
+                        
+                        {% else %}
                         <div class="row align-items-start border-bottom pb-4 mb-4">
                             <div class="col-12 col-md-7">
                                 <h1 class="doc-header-title text-break">{{ tema if tema else "Objeto de Estudo" }}</h1>
@@ -278,8 +233,8 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
 
-                        <!-- Box de Alinhamento Base da BNCC -->
                         <div class="bncc-box">
                             <div class="fw-bold text-primary mb-1">
                                 <i class="fa-solid fa-bookmark me-1"></i> Alinhamento de Diretrizes BNCC
@@ -293,7 +248,6 @@
                             </small>
                         </div>
 
-                        <!-- CONTEÚDO GERADO DA IA -->
                         <div class="ai-output-content mt-4">
                             {% if conteudo %}
                                 {{ conteudo|safe }}
@@ -301,7 +255,7 @@
                                 <div class="text-center py-5 text-muted no-print">
                                     <i class="fa-solid fa-brain d-block mb-3" style="font-size: 3rem; color: #cbd5e1;"></i>
                                     <h5>Aguardando comando de geração...</h5>
-                                    <p class="small px-2">Preencha os Parâmetros do Escopo e clique em <strong>Gerar Conteúdo com IA</strong> para criar seu documento customizado.</p>
+                                    <p class="small px-2">Preencha os Parâmetros do Escopo e clique em <strong>Gerar Documento com IA</strong> para criar seu documento.</p>
                                 </div>
                             {% endif %}
                         </div>
