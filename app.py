@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 
 # Importa o serviço de IA configurado com a nova biblioteca do Google
 from ai_service import gerar_conteudo_educacional
@@ -81,11 +81,16 @@ def dashboard():
 def gerador():
     return executar_logica_painel()
 
-# Endpoint 3: CORREÇÃO DO ERRO - Atende a linha 36 do base.html (Banco de Materiais)
+# Endpoint 3: Atende a linha 36 do base.html (Banco de Materiais)
 @app.route('/banco')
 def banco():
-    # Redireciona dinamicamente para a aba de Banco de Atividades sem quebrar o layout
     return redirect(url_for('dashboard', form_type='atividades'))
+
+# Endpoint 4: CORREÇÃO DO NOVO ERRO - Atende a linha 39 do base.html (Botão Sair)
+@app.route('/logout')
+def logout():
+    session.clear()  # Limpa os dados salvos na sessão do navegador
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
