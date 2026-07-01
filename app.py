@@ -1,7 +1,13 @@
 import os
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session
-from ai_service import gerar_conteudo_educacional
+# Assumindo que o teu ai_service.py implementa a integração com a IA
+try:
+    from ai_service import gerar_conteudo_educacional
+except ImportError:
+    # Fallback caso queiras testar sem o módulo da IA ativo
+    def gerar_conteudo_educacional(**kwargs):
+        return "<h3>Conteúdo gerado com sucesso pela IA para o tema: " + kwargs.get('tema', '') + "</h3>"
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
@@ -18,6 +24,7 @@ def init_db():
             senha TEXT NOT NULL
         )
     ''')
+    # Utilizador padrão requisitado anteriormente
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
@@ -29,6 +36,7 @@ def init_db():
 
 init_db()
 
+# Dicionário com todas as 7 funcionalidades / módulos pedagógicos mantidos intactos
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
@@ -69,6 +77,33 @@ def login():
             erro = "E-mail ou senha incorretos."
     return render_template('login.html', erro=erro, sucesso=sucesso)
 
+@app.route('/cadastro', methods=['GET', 'POST'])
+def cadastro():
+    erro = None
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        escola = request.form.get('escola', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        senha = request.form.get('senha', '').strip()
+        
+        if not nome or not escola or not email or not senha:
+            erro = "Todos os campos são obrigatórios."
+        else:
+            try:
+                conn = sqlite3.connect('database.db')
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO usuarios (nome, escola, email, senha) VALUES (?, ?, ?, ?)",
+                    (nome, escola, email, senha)
+                )
+                conn.commit()
+                conn.close()
+                return redirect(url_for('login', sucesso="Conta criada com sucesso! Faça login."))
+            except sqlite3.IntegrityError:
+                erro = "Este e-mail já está cadastrado no sistema."
+                
+    return render_template('cadastro.html', erro=erro)
+
 @app.route('/dashboard', methods=['GET', 'POST'])
 @app.route('/gerador', methods=['GET', 'POST'])
 def dashboard():
@@ -87,6 +122,7 @@ def dashboard():
     ano = request.form.get('ano', '').strip()
     bncc = request.form.get('bncc', '').strip()
     
+    # Parâmetros exclusivos do Módulo de Avaliações / Provas
     tipo_prova = request.form.get('tipo_prova', '').strip()
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()

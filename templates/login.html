@@ -4,46 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Professor IA</title>
-    <link href="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css](https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css)" rel="stylesheet">
-    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; }
-        .card-login { width: 100%; max-width: 420px; border: none; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        body {
+            background-color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-login {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            padding: 32px;
+        }
     </style>
 </head>
 <body>
-    <div class="card card-login p-4 bg-white">
+    <div class="card-login">
         <div class="text-center mb-4">
-            <div class="bg-primary text-white d-inline-block p-3 rounded-circle mb-3">
-                <i class="fa-solid fa-graduation-cap fa-2x"></i>
-            </div>
-            <h4 class="fw-bold text-dark">Professor IA</h4>
-            <p class="text-secondary small">Planejamentos escolares com Inteligência Artificial</p>
+            <h3 class="fw-bold text-dark m-0">Professor <span class="text-primary">IA</span></h3>
+            <p class="text-muted small mt-1">Insira as suas credenciais para aceder ao painel</p>
         </div>
-
+        
         {% if erro %}
-            <div class="alert alert-danger small p-2 text-center"><i class="fa-solid fa-circle-exclamation me-2"></i>{{ erro }}</div>
+            <div class="alert alert-danger small py-2 px-3 rounded-3" role="alert">{{ erro }}</div>
         {% endif %}
         {% if sucesso %}
-            <div class="alert alert-success small p-2 text-center"><i class="fa-solid fa-circle-check me-2"></i>{{ sucesso }}</div>
+            <div class="alert alert-success small py-2 px-3 rounded-3" role="alert">{{ sucesso }}</div>
         {% endif %}
 
         <form action="{{ url_for('login') }}" method="POST">
             <div class="mb-3">
-                <label class="form-label text-secondary small fw-bold">E-MAIL</label>
-                <input type="email" class="form-control py-2" name="email" placeholder="samuel.ssousa1506@gmail.com" required>
+                <label class="form-label small fw-bold text-secondary">E-MAIL INSTITUCIONAL</label>
+                <input type="email" class="form-control" name="email" placeholder="nome@exemplo.com" required>
             </div>
             <div class="mb-4">
-                <label class="form-label text-secondary small fw-bold">SENHA</label>
-                <input type="password" class="form-control py-2" name="senha" placeholder="••••••••" required>
+                <label class="form-label small fw-bold text-secondary">PALAVRA-PASSE</label>
+                <input type="password" class="form-control" name="senha" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">Entrar no Sistema</button>
+            <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none;">Aceder ao Painel</button>
         </form>
-
-        <div class="text-center border-top pt-3 mt-2">
-            <span class="text-secondary small">Não tem uma conta?</span>
-            <a href="{{ url_for('cadastro') }}" class="small fw-bold text-decoration-none ms-1">Cadastre-se aqui</a>
-        </div>
+        
+        <p class="text-center small text-muted mt-4 mb-0">
+            Não tem uma conta? <a href="{{ url_for('cadastro') }}" class="fw-bold text-decoration-none">Registe-se aqui</a>
+        </p>
     </div>
 </body>
 </html>
