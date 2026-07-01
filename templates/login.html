@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; p: 15px; }
+        body { background-color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px; }
         .card-login { width: 100%; max-width: 420px; border: none; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
     </style>
 </head>
@@ -18,7 +18,7 @@
                 <i class="fa-solid fa-graduation-cap fa-2x"></i>
             </div>
             <h4 class="fw-bold text-dark">Professor IA</h4>
-            <p class="text-secondary small">Planeamentos escolares com Inteligência Artificial</p>
+            <p class="text-secondary small">Planejamentos escolares com Inteligência Artificial</p>
         </div>
 
         {% if erro %}
@@ -31,7 +31,7 @@
         <form action="{{ url_for('login') }}" method="POST">
             <div class="mb-3">
                 <label class="form-label text-secondary small fw-bold">E-MAIL</label>
-                <input type="email" class="form-control py-2" name="email" placeholder="seuemail@escola.com" required>
+                <input type="email" class="form-control py-2" name="email" placeholder="samuel.ssousa1506@gmail.com" required>
             </div>
             <div class="mb-4">
                 <label class="form-label text-secondary small fw-bold">SENHA</label>
