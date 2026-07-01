@@ -24,7 +24,6 @@ def init_db():
     # Garante que o acesso do desenvolvedor Samuel sempre existirá por padrão
     cursor.execute("SELECT * FROM usuarios WHERE email = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
-        # CORRIGIDO: Mudado 'school' para 'escola' para bater com a tabela acima
         cursor.execute('''
             INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'Fábrica de Software', 'samuel.ssousa1506@gmail.com', '123456')
@@ -59,7 +58,9 @@ def login():
     
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
-        password = request.form.get('password', '').strip()
+        # SOLUÇÃO: Procura tanto por 'password' quanto por 'senha' para evitar incompatibilidade com o HTML
+        password = request.form.get('password') or request.form.get('senha') or ''
+        password = password.strip()
         
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
@@ -67,7 +68,7 @@ def login():
         user = cursor.fetchone()
         conn.close()
         
-        if user and user[2] == password:
+        if user and str(user[2]).strip() == password:
             session['logged_in'] = True
             session['user_email'] = email
             session['user_name'] = user[0]   
@@ -85,7 +86,9 @@ def cadastro():
         nome = request.form.get('nome', '').strip()
         escola = request.form.get('escola', '').strip()
         email = request.form.get('email', '').strip()
-        senha = request.form.get('senha', '').strip()
+        # SOLUÇÃO: Procura tanto por 'senha' quanto por 'password' no formulário de cadastro
+        senha = request.form.get('senha') or request.form.get('password') or ''
+        senha = senha.strip()
         
         if nome and escola and email and senha:
             try:
