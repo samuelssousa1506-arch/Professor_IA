@@ -30,13 +30,13 @@ def init_db():
 init_db()
 
 MODULOS = {
-    'plano': {'nome': 'Plano de Aula', 'cor': '#4e73df', 'icone': 'fa-book'},
-    'bimestral': {'nome': 'Planejamento Bimestral', 'cor': '#fd7e14', 'icone': 'fa-calendar-check'},
-    'atividades': {'nome': 'Banco de Atividades', 'cor': '#1cc88a', 'icone': 'fa-list-check'},
-    'avaliacoes': {'nome': 'Gerador de Provas', 'cor': '#36b9cc', 'icone': 'fa-file-signature'},
-    'relatorios': {'nome': 'Relatórios Pedagógicos', 'cor': '#f6c23e', 'icone': 'fa-chart-line'},
-    'inclusao': {'nome': 'Plano de Inclusão / AEE', 'cor': '#e74a3b', 'icone': 'fa-hands-asl-interpreting'},
-    'projetos': {'nome': 'Projetos Interdisciplinares', 'cor': '#6f42c1', 'icone': 'fa-diagram-project'}
+    'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
+    'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
+    'atividades': {'nome': 'Banco de Atividades', 'icone': 'fa-list-check'},
+    'avaliacoes': {'nome': 'Gerador de Provas', 'icone': 'fa-file-signature'},
+    'relatorios': {'nome': 'Relatórios Pedagógicos', 'icone': 'fa-chart-line'},
+    'inclusao': {'nome': 'Plano de Inclusão / AEE', 'icone': 'fa-hands-asl-interpreting'},
+    'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'}
 }
 
 @app.route('/')
@@ -49,7 +49,6 @@ def index():
 def login():
     erro = None
     sucesso = request.args.get('sucesso')
-    
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('senha', '').strip()
@@ -68,35 +67,7 @@ def login():
             return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
-            
     return render_template('login.html', erro=erro, sucesso=sucesso)
-
-@app.route('/cadastro', methods=['GET', 'POST'])
-def cadastro():
-    erro = None
-    if request.method == 'POST':
-        nome = request.form.get('nome', '').strip()
-        escola = request.form.get('escola', '').strip()
-        email = request.form.get('email', '').strip().lower()
-        senha = request.form.get('senha', '').strip()
-        
-        if nome and escola and email and senha:
-            try:
-                conn = sqlite3.connect('database.db')
-                cursor = conn.cursor()
-                cursor.execute('''
-                    INSERT INTO usuarios (nome, escola, email, senha)
-                    VALUES (?, ?, ?, ?)
-                ''', (nome, escola, email, senha))
-                conn.commit()
-                conn.close()
-                return redirect(url_for('login', sucesso="Conta criada com sucesso!"))
-            except sqlite3.IntegrityError:
-                erro = "Este e-mail já está cadastrado."
-        else:
-            erro = "Preencha todos os campos."
-            
-    return render_template('cadastro.html', erro=erro)
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @app.route('/gerador', methods=['GET', 'POST'])
@@ -109,8 +80,8 @@ def dashboard():
         form_type = 'plano'
         
     config_modulo = MODULOS[form_type]
-    
     conteudo = ""
+    
     tema = request.form.get('tema', '').strip()
     disciplina = request.form.get('disciplina', '').strip()
     ano = request.form.get('ano', '').strip()
@@ -146,7 +117,7 @@ def dashboard():
         nivel=nivel,
         app_name="Professor IA",
         name=session.get('user_name', 'Professor'),     
-        school=session.get('user_school', 'Escola não informada')  
+        school=session.get('user_school', 'Instituição de Ensino')  
     )
 
 @app.route('/logout')

@@ -4,22 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ app_name | default('Professor IA') }}{% endblock %}</title>
-    <link href="[https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css](https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css)" rel="stylesheet">
-    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        .topbar { background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        @media print { .no-print { display: none !important; } }
+        :root {
+            --bg-principal: #f8fafc;
+            --cor-primaria: #4f46e5;
+            --cor-primaria-hover: #4338ca;
+            --texto-escuro: #0f172a;
+            --texto-mutado: #64748b;
+            --borda-suave: #e2e8f0;
+        }
+        
+        body { 
+            background-color: var(--bg-principal); 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--texto-escuro);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .navbar-premium {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--borda-suave);
+            padding: 16px 32px;
+        }
+
+        .brand-text {
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+            color: var(--texto-escuro);
+            text-decoration: none;
+        }
+
+        .user-badge {
+            background-color: #f1f5f9;
+            padding: 8px 16px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .btn-sair {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        @media print { 
+            .no-print { display: none !important; } 
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar topbar no-print py-2 px-4 mb-1">
+    <nav class="navbar navbar-premium no-print">
         <div class="container-fluid d-flex justify-content-between align-items-center">
-            <span class="navbar-brand fw-bold text-primary m-0"><i class="fa-solid fa-graduation-cap me-2"></i>Professor IA</span>
+            <a href="/" class="brand-text d-flex align-items-center gap-2">
+                <div class="d-inline-flex p-2 bg-primary text-white rounded-3" style="background: linear-gradient(135deg, #6366f1, #4f46e5) !important;">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <span>Professor <span class="text-primary" style="color: var(--cor-primaria) !important;">IA</span></span>
+            </a>
             <div class="d-flex align-items-center gap-3">
-                <span class="small text-secondary fw-semibold d-none d-sm-inline"><i class="fa-regular fa-user me-1"></i>{{ name }}</span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm fw-semibold py-1 px-3"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i>Sair</a>
+                <div class="user-badge d-none d-sm-inline">
+                    <i class="fa-regular fa-user me-2 text-primary"></i>{{ name }}
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sair">
+                    <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Sair
+                </a>
             </div>
         </div>
     </nav>
