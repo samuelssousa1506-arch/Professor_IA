@@ -17,10 +17,11 @@
         /* Reset de Tipografia Premium */
         body {
             font-family: 'Inter', sans-serif !important;
-            background-color: #f8fafc !important; /* Fundo cinza-claro suave, descansa os olhos */
+            background-color: #f8fafc !important; /* Fundo cinza-claro suave */
             color: #1e293b;
             min-height: 100vh;
             display: flex;
+            margin: 0;
         }
 
         /* Estrutura Principal do Painel */
@@ -30,11 +31,11 @@
             align-items: stretch;
         }
 
-        /* Sidebar Elegante e Escura (Padrão Apple/SaaS) */
+        /* Sidebar Elegante e Escura */
         .sidebar {
             min-width: 280px;
             max-width: 280px;
-            background: #0f172a !important; /* Azul ardósia profundo, super profissional */
+            background: #0f172a !important; /* Azul ardósia profundo */
             color: #ffffff;
             display: flex;
             flex-direction: column;
@@ -42,7 +43,7 @@
             z-index: 99;
         }
 
-        /* Topo da Sidebar (Logótipo / Nome) */
+        /* Topo da Sidebar (Nome) */
         .sidebar-brand {
             padding: 24px;
             font-size: 1.25rem;
@@ -57,7 +58,7 @@
         }
 
         .sidebar-brand i {
-            color: #6366f1; /* Ícone roxo/azul tecnológico */
+            color: #6366f1;
             font-size: 1.4rem;
         }
 
@@ -91,11 +92,10 @@
             text-decoration: none;
         }
 
-        /* Link Ativo ou Hover na Sidebar */
         .sidebar .nav-item.active .nav-link,
         .sidebar .nav-link:hover {
             background-color: #1e293b !important;
-            color: #38bdf8 !important; /* Azul ciano brilhante para destaque */
+            color: #38bdf8 !important;
         }
 
         .sidebar .nav-link i {
@@ -105,7 +105,7 @@
             text-align: center;
         }
 
-        /* Rodapé da Sidebar (Informações do Utilizador) */
+        /* Rodapé da Sidebar */
         .sidebar-footer {
             padding: 20px;
             background: #1e293b;
@@ -132,11 +132,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: opacity 0.2s;
-        }
-
-        .btn-logout:hover {
-            opacity: 0.85;
         }
 
         /* Área de Conteúdo à Direita */
@@ -145,9 +140,10 @@
             min-width: 0;
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
         }
 
-        /* Topbar de Navegação Superior Interna */
+        /* Topbar */
         .topbar {
             background: #ffffff;
             height: 70px;
@@ -160,64 +156,45 @@
         .content-body {
             padding: 40px;
             flex-grow: 1;
-            overflow-y: auto;
         }
 
-        /* Cards Estilo Glassmorphism / Clean */
+        /* Rodapé Exclusivo do Desenvolvedor */
+        .app-footer {
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 40px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .app-footer a {
+            color: #64748b;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .app-footer a:hover {
+            color: #6366f1;
+        }
+
+        /* Elementos dos Cards e Form */
         .card {
             border: 1px solid #e2e8f0 !important;
             border-radius: 14px !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.03) !important;
-            background: #ffffff;
-            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02) !important;
         }
 
-        .card-header {
-            background-color: #ffffff !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            padding: 18px 24px !important;
-        }
-
-        /* Campos de Formulário Modernos */
         .form-control, .form-select {
             border: 1px solid #cbd5e1 !important;
             border-radius: 8px !important;
             padding: 10px 14px !important;
-            font-size: 0.95rem;
-            transition: all 0.2s ease-in-out;
         }
 
-        .form-control:focus, .form-select:focus {
-            border-color: #6366f1 !important; /* Roxo/Azul tecnológico ao focar */
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
-        }
-
-        /* Botões de Ação Principais */
         .btn-primary {
             background-color: #6366f1 !important;
             border-color: #6366f1 !important;
             font-weight: 600;
-            padding: 10px 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary:hover {
-            background-color: #4f46e5 !important;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
-        }
-
-        /* Área do Conteúdo Gerado pela IA */
-        .resultado-ia {
-            background-color: #f1f5f9;
-            border-left: 5px solid #6366f1;
-            border-radius: 8px;
-            padding: 24px;
-            font-size: 1.05rem;
-            line-height: 1.7;
-            color: #334155;
         }
     </style>
     {% block head %}{% endblock %}
@@ -233,43 +210,36 @@
             
             <ul class="nav-menu">
                 <li class="nav-item-heading">Módulos de Planejamento</li>
-                
                 <li class="nav-item {% if form_type == 'plano' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('dashboard', form_type='plano') }}">
                         <i class="fa-solid fa-book"></i> Plano de Aula
                     </a>
                 </li>
-                
                 <li class="nav-item {% if form_type == 'bimestral' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('dashboard', form_type='bimestral') }}">
                         <i class="fa-solid fa-calendar-check"></i> Bimestral
                     </a>
                 </li>
-                
                 <li class="nav-item {% if form_type == 'atividades' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('banco') }}">
                         <i class="fa-solid fa-list-check"></i> Banco de Atividades
                     </a>
                 </li>
-                
                 <li class="nav-item {% if form_type == 'avaliacoes' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('dashboard', form_type='avaliacoes') }}">
                         <i class="fa-solid fa-file-signature"></i> Gerador de Provas
                     </a>
                 </li>
-                
                 <li class="nav-item {% if form_type == 'relatorios' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('dashboard', form_type='relatorios') }}">
                         <i class="fa-solid fa-chart-line"></i> Relatórios
                     </a>
                 </li>
-                
                 <li class="nav-item {% if form_type == 'inclusao' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('dashboard', form_type='inclusao') }}">
                         <i class="fa-solid fa-hands-asl-interpreting"></i> Inclusão / AEE
                     </a>
                 </li>
-                
                 <li class="nav-item {% if form_type == 'projetos' %}active{% endif %}">
                     <a class="nav-link" href="{{ url_for('dashboard', form_type='projetos') }}">
                         <i class="fa-solid fa-diagram-project"></i> Projetos
@@ -298,6 +268,23 @@
             <main class="content-body">
                 {% block content %}{% endblock %}
             </main>
+
+            <footer class="app-footer d-flex flex-wrap justify-content-between align-items-center">
+                <div>
+                    <i class="fa-solid fa-code text-primary me-1"></i> 
+                    Desenvolvido por: <strong>Samuel Araújo Sousa</strong>
+                </div>
+                <div class="d-flex gap-4">
+                    <span>
+                        <i class="fa-solid fa-phone text-success me-1"></i> 
+                        Telefone: <a href="https://wa.me/5599991971901" target="_blank">(99) 99197-1901</a>
+                    </span>
+                    <span>
+                        <i class="fa-solid fa-envelope text-danger me-1"></i> 
+                        Email: <a href="mailto:samuel.ssousa1506@gmail.com">samuel.ssousa1506@gmail.com</a>
+                    </span>
+                </div>
+            </footer>
         </div>
     </div>
 
