@@ -65,7 +65,7 @@ def login():
             session['user_email'] = email
             session['user_name'] = user[0]   
             session['user_school'] = user[1] 
-            return redirect(url_for('index'))
+            return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
             
@@ -90,15 +90,17 @@ def cadastro():
                 ''', (nome, escola, email, senha))
                 conn.commit()
                 conn.close()
-                return redirect(url_for('login', sucesso="Conta criada com sucesso! Entre abaixo."))
+                return redirect(url_for('login', sucesso="Conta criada com sucesso!"))
             except sqlite3.IntegrityError:
-                erro = "Este e-mail já está cadastrado no sistema."
+                erro = "Este e-mail já está cadastrado."
         else:
-            erro = "Por favor, preencha todos os campos."
+            erro = "Preencha todos os campos."
             
     return render_template('cadastro.html', erro=erro)
 
-def executar_logica_painel():
+@app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/gerador', methods=['GET', 'POST'])
+def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
 
@@ -109,37 +111,26 @@ def executar_logica_painel():
     config_modulo = MODULOS[form_type]
     
     conteudo = ""
-    tema = ""
-    disciplina = ""
-    ano = ""
-    bncc = ""
-    tipo_prova = ""
-    qtd_questoes = ""
-    nivel = ""
+    tema = request.form.get('tema', '').strip()
+    disciplina = request.form.get('disciplina', '').strip()
+    ano = request.form.get('ano', '').strip()
+    bncc = request.form.get('bncc', '').strip()
     
-    if request.method == 'POST':
-        tema = request.form.get('tema', '').strip()
-        disciplina = request.form.get('disciplina', '').strip()
-        ano = request.form.get('ano', '').strip()
-        bncc = request.form.get('bncc', '').strip()
-        
-        tipo_prova = request.form.get('tipo_prova', '').strip()
-        qtd_questoes = request.form.get('qtd_questoes', '').strip()
-        nivel = request.form.get('nivel', '').strip()
-        
-        if tema:
-            conteudo = gerar_conteudo_educacional(
-                tipo_modulo=config_modulo['nome'],
-                disciplina=disciplina if disciplina else "Geral",
-                ano=ano if ano else "Segmento Geral",
-                tema=tema,
-                bncc=bncc if bncc else "Diretrizes gerais da BNCC",
-                tipo_prova=tipo_prova,
-                qtd_questoes=qtd_questoes,
-                nivel=nivel
-            )
-        else:
-            conteudo = "Por favor, defina um Tema Principal antes de solicitar a geração."
+    tipo_prova = request.form.get('tipo_prova', '').strip()
+    qtd_questoes = request.form.get('qtd_questoes', '').strip()
+    nivel = request.form.get('nivel', '').strip()
+    
+    if request.method == 'POST' and tema:
+        conteudo = gerar_conteudo_educacional(
+            tipo_modulo=config_modulo['nome'],
+            disciplina=disciplina if disciplina else "Geral",
+            ano=ano if ano else "Segmento Geral",
+            tema=tema,
+            bncc=bncc if bncc else "Diretrizes gerais da BNCC",
+            tipo_prova=tipo_prova,
+            qtd_questoes=qtd_questoes,
+            nivel=nivel
+        )
 
     return render_template(
         'dashboard.html',
@@ -154,21 +145,9 @@ def executar_logica_painel():
         qtd_questoes=qtd_questoes,
         nivel=nivel,
         app_name="Professor IA",
-        name=session.get('user_name'),     
-        school=session.get('user_school')  
+        name=session.get('user_name', 'Professor'),     
+        school=session.get('user_school', 'Escola não informada')  
     )
-
-@app.route('/dashboard', methods=['GET', 'POST'])
-def dashboard():
-    return executar_logica_painel()
-
-@app.route('/gerador', methods=['GET', 'POST'])
-def gerador():
-    return executar_logica_painel()
-
-@app.route('/banco')
-def banco():
-    return redirect(url_for('dashboard', form_type='atividades'))
 
 @app.route('/logout')
 def logout():
@@ -176,5 +155,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)

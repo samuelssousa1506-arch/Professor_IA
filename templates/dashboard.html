@@ -3,66 +3,42 @@
 {% block head %}
 <style>
     .section-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; }
-    .card-header-custom { padding: 14px 20px; border-radius: 14px 14px 0 0 !important; }
+    .card-header-custom { padding: 14px 20px; border-radius: 12px 12px 0 0 !important; }
     .modulo-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #475569; text-decoration: none; font-weight: 500; border-radius: 8px; margin-bottom: 6px; transition: all 0.2s ease; }
     .modulo-link:hover { background-color: #f1f5f9; color: #1e293b; }
     .modulo-link.active { background-color: #4f46e5 !important; color: #ffffff !important; }
-    .modulo-link i { width: 20px; text-align: center; font-size: 1.05rem; }
     
-    /* Folha de Papel Física simulada */
-    .document-paper { background: #ffffff; min-height: 750px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); padding: 40px; position: relative; }
-    .doc-header-title { font-size: 2.2rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
-    .meta-label { font-size: 0.8rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
-    .meta-value { font-size: 0.95rem; color: #1e293b; font-weight: 500; }
-    .bncc-box { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 4px; margin-top: 20px; margin-bottom: 24px; }
-    
-    .ai-output-content { font-size: 1.05rem; line-height: 1.7; color: #334155; }
-    .ai-output-content h3, .ai-output-content h4, .ai-output-content h5 { color: #0f172a; font-weight: 700; margin-top: 24px; margin-bottom: 12px; }
-    .ai-output-content ul, .ai-output-content ol { padding-left: 20px; margin-bottom: 16px; }
-
-    /* Customizações Fixas do Cabeçalho de Prova Escolar */
-    .cabecalho-prova-container { border: 2px solid #000000 !important; border-radius: 6px; padding: 18px; color: #000000 !important; background-color: #ffffff; }
+    .document-paper { background: #ffffff; min-height: 750px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); padding: 40px; }
+    .cabecalho-prova-container { border: 2px solid #000000 !important; border-radius: 6px; padding: 18px; color: #000000; }
     .linha-preenchimento { border-bottom: 1px solid #000000 !important; height: 24px; }
-
-    @media (max-width: 991.98px) {
-        .container-fluid { padding: 10px !important; }
-        .document-paper { padding: 20px 15px; min-height: auto; }
-        .doc-header-title { font-size: 1.6rem; }
-        .meta-box-mobile { margin-top: 15px; border-top: 1px dashed #e2e8f0; padding-top: 15px; }
-        .ai-output-content table { display: block; width: 100% !important; overflow-x: auto; }
-    }
+    .bncc-box { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 4px; margin-bottom: 24px; }
 
     @media print {
-        body, .app-container, .main-content, .content-body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; }
-        .sidebar, .topbar, .app-footer, .no-print, .card-header-custom, .btn { display: none !important; }
-        .col-md-4, .col-lg-4 { display: none !important; }
-        .col-md-8, .col-lg-8 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
-        .card { border: none !important; box-shadow: none !important; }
-        .document-paper { border: none !important; box-shadow: none !important; padding: 0 !important; }
-        .cabecalho-prova-container { border: 2px solid #000000 !important; color: #000000 !important; }
+        .no-print { display: none !important; }
+        .col-lg-8 { width: 100% !important; }
+        .document-paper { border: none !important; padding: 0 !important; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-3 p-md-4">
+<div class="container-fluid py-4 px-3 px-md-4">
     <div class="row g-4">
         
         <div class="col-12 col-lg-4 d-flex flex-column gap-4 no-print">
             
             <div class="card border-0 shadow-sm">
-                <div class="card-header-custom bg-dark text-white d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-cubes"></i>
-                    <span class="section-title">Módulos do Sistema</span>
+                <div class="card-header-custom bg-dark text-white">
+                    <span class="section-title"><i class="fa-solid fa-cubes me-2"></i>Módulos do Sistema</span>
                 </div>
-                <div class="card-body p-2 p-md-3">
+                <div class="card-body p-2">
                     <a href="{{ url_for('dashboard', form_type='plano') }}" class="modulo-link {% if form_type == 'plano' %}active{% endif %}">
                         <i class="fa-solid fa-book"></i> Plano de Aula
                     </a>
                     <a href="{{ url_for('dashboard', form_type='bimestral') }}" class="modulo-link {% if form_type == 'bimestral' %}active{% endif %}">
                         <i class="fa-solid fa-calendar-check"></i> Planejamento Bimestral
                     </a>
-                    <a href="{{ url_for('banco') }}" class="modulo-link {% if form_type == 'atividades' %}active{% endif %}">
+                    <a href="{{ url_for('dashboard', form_type='atividades') }}" class="modulo-link {% if form_type == 'atividades' %}active{% endif %}">
                         <i class="fa-solid fa-list-check"></i> Banco de Atividades
                     </a>
                     <a href="{{ url_for('dashboard', form_type='avaliacoes') }}" class="modulo-link {% if form_type == 'avaliacoes' %}active{% endif %}">
@@ -81,34 +57,33 @@
             </div>
 
             <div class="card border-0 shadow-sm">
-                <div class="card-header-custom text-white d-flex align-items-center gap-2" style="background-color: #4f46e5;">
-                    <i class="fa-solid fa-sliders"></i>
-                    <span class="section-title">Parâmetros do Escopo</span>
+                <div class="card-header-custom text-white" style="background-color: #4f46e5;">
+                    <span class="section-title"><i class="fa-solid fa-sliders me-2"></i>Parâmetros do Escopo</span>
                 </div>
                 <div class="card-body p-3 p-md-4">
                     <form action="{{ url_for('dashboard', form_type=form_type) }}" method="POST">
                         <input type="hidden" name="form_type" value="{{ form_type }}">
                         
                         <div class="mb-3">
-                            <label class="form-label text-secondary small fw-bold">CONTEÚDO / OBJETO DE ESTUDO</label>
-                            <input type="text" class="form-control" name="tema" value="{{ tema }}" placeholder="Ex: Frações, Verbo, Segunda Guerra" required>
+                            <label class="form-label text-secondary small fw-bold">TEMA PRINCIPAL / OBJETO DE ESTUDO</label>
+                            <input type="text" class="form-control" name="tema" value="{{ tema }}" placeholder="Ex: Verbo, Frações" required>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-bold">DISCIPLINA</label>
-                            <input type="text" class="form-control" name="disciplina" value="{{ disciplina }}" placeholder="Ex: Português, Matemática">
+                            <input type="text" class="form-control" name="disciplina" value="{{ disciplina }}" placeholder="Ex: Português">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-bold">ANO / TURMA</label>
-                            <input type="text" class="form-control" name="ano" value="{{ ano }}" placeholder="Ex: 5º ano, 3º ano Ensino Médio">
+                            <input type="text" class="form-control" name="ano" value="{{ ano }}" placeholder="Ex: 5º ano">
                         </div>
 
                         {% if form_type == 'avaliacoes' %}
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-bold">TIPO DE PROVA</label>
                             <select class="form-select" name="tipo_prova">
-                                <option value="Mista" {% if tipo_prova == 'Mista' or not tipo_prova %}selected{% endif %}>Mista (Objetiva e Subjetiva)</option>
+                                <option value="Mista" {% if tipo_prova == 'Mista' %}selected{% endif %}>Mista (Objetiva e Subjetiva)</option>
                                 <option value="Objetiva" {% if tipo_prova == 'Objetiva' %}selected{% endif %}>Objetiva (Múltipla Escolha)</option>
                                 <option value="Subjetiva" {% if tipo_prova == 'Subjetiva' %}selected{% endif %}>Subjetiva (Questões Abertas)</option>
                             </select>
@@ -126,7 +101,7 @@
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-bold">NÍVEL DE DIFICULDADE</label>
                             <select class="form-select" name="nivel">
-                                <option value="Médio" {% if nivel == 'Médio' or not nivel %}selected{% endif %}>Médio</option>
+                                <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
                                 <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
                                 <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
                             </select>
@@ -135,11 +110,11 @@
 
                         <div class="mb-4">
                             <label class="form-label text-secondary small fw-bold">DIRETRIZES DA BNCC (OPCIONAL)</label>
-                            <textarea class="form-control" name="bncc" rows="2" placeholder="Insira códigos de habilidades específicas (Ex: EF05LP05)">{{ bncc }}</textarea>
+                            <textarea class="form-control" name="bncc" rows="2" placeholder="Ex: EF05LP05">{{ bncc }}</textarea>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-2.5 d-flex align-items-center justify-content-center gap-2 fw-semibold">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Documento com IA
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                            <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Gerar Documento com IA
                         </button>
                     </form>
                 </div>
@@ -149,113 +124,61 @@
 
         <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2 text-secondary fw-semibold">
-                        <i class="fa-regular fa-file-lines"></i>
-                        <span>Documento Oficial de Saída</span>
-                    </div>
-                    <button onclick="window.print();" class="btn btn-dark btn-sm px-3 py-2 fw-semibold no-print d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-center">
-                        <i class="fa-solid fa-print"></i> Imprimir / Gerar PDF
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <span class="text-secondary fw-semibold"><i class="fa-regular fa-file-lines me-2"></i>Documento Oficial de Saída</span>
+                    <button onclick="window.print();" class="btn btn-dark btn-sm px-3 py-2 fw-semibold no-print">
+                        <i class="fa-solid fa-print me-2"></i>Imprimir / Gerar PDF
                     </button>
                 </div>
                 
-                <div class="card-body bg-light p-2 p-md-4">
+                <div class="card-body bg-light p-3 p-md-4">
                     <div class="document-paper">
                         
                         {% if form_type == 'avaliacoes' %}
                         <div class="cabecalho-prova-container mb-4">
-                            <div class="text-center border-bottom border-dark pb-2 mb-3">
-                                <h4 class="fw-bold m-0 text-uppercase text-dark" style="letter-spacing: 1.5px; font-size: 1.2rem;">{{ school if school else "NOME DA INSTITUIÇÃO DE ENSINO" }}</h4>
-                                <span class="fw-bold text-secondary text-uppercase" style="font-size: 0.75rem;">Avaliação de Desempenho Escolar</span>
+                            <div class="text-center border-bottom pb-2 mb-3">
+                                <h5 class="fw-bold m-0 text-uppercase">{{ school }}</h5>
+                                <small class="text-secondary fw-bold">AVALIAÇÃO DE DESEMPENHO ESCOLAR</small>
                             </div>
-                            <div class="row g-3 small fw-bold text-dark">
-                                <div class="col-12 col-md-6">
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 text-nowrap">PROFESSOR(A):</span>
-                                        <span class="fw-normal border-bottom flex-grow-1 text-dark pb-1">Prof. {{ name if name else "Não logado" }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 text-nowrap">DISCIPLINA:</span>
-                                        <span class="fw-normal border-bottom flex-grow-1 text-dark pb-1">{{ disciplina if disciplina else "Geral" }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 text-nowrap">ANO/TURMA:</span>
-                                        <span class="fw-normal border-bottom flex-grow-1 text-dark pb-1">{{ ano if ano else "Geral" }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6 mt-md-4">
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 text-nowrap">ALUNO(A):</span>
-                                        <div class="linha-preenchimento flex-grow-1"></div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3 mt-md-4">
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 text-nowrap">DATA:</span>
-                                        <div class="linha-preenchimento flex-grow-1"></div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-md-3 mt-md-4">
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 text-nowrap">NOTA:</span>
-                                        <div class="linha-preenchimento flex-grow-1" style="max-width: 70px;"></div>
-                                    </div>
-                                </div>
+                            <div class="row g-2 small fw-bold">
+                                <div class="col-6">PROFESSOR(A): <span class="fw-normal border-bottom d-inline-block w-75">Prof. {{ name }}</span></div>
+                                <div class="col-3">DISCIPLINA: <span class="fw-normal border-bottom d-inline-block w-50">{{ disciplina if disciplina else "Geral" }}</span></div>
+                                <div class="col-3">ANO/TURMA: <span class="fw-normal border-bottom d-inline-block w-50">{{ ano if ano else "Geral" }}</span></div>
+                                <div class="col-6 mt-3">ALUNO(A): <div class="linha-preenchimento d-inline-block w-75"></div></div>
+                                <div class="col-3 mt-3">DATA: <div class="linha-preenchimento d-inline-block w-50"></div></div>
+                                <div class="col-3 mt-3">NOTA: <div class="linha-preenchimento d-inline-block w-50"></div></div>
                             </div>
                         </div>
-                        <h3 class="text-center fw-bold my-4 text-uppercase text-dark" style="font-size: 1.35rem;">AVALIAÇÃO DE {{ tema }}</h3>
                         
                         {% else %}
-                        <div class="row align-items-start border-bottom pb-4 mb-4">
-                            <div class="col-12 col-md-7">
-                                <h1 class="doc-header-title text-break">{{ tema if tema else "Objeto de Estudo" }}</h1>
-                                <div class="mt-3">
-                                    <div class="meta-label">Instituição de Ensino</div>
-                                    <div class="meta-value text-wrap">{{ school if school else "Não informada" }}</div>
-                                </div>
+                        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4 flex-wrap gap-3">
+                            <div>
+                                <h1 class="fw-bold text-dark mb-1" style="font-size: 2rem;">{{ tema if tema else "Objeto de Estudo" }}</h1>
+                                <div class="text-secondary small fw-bold"><i class="fa-solid fa-school me-1"></i>{{ school }}</div>
                             </div>
-                            <div class="col-12 col-md-5 text-md-end meta-box-mobile">
-                                <div>
-                                    <span class="meta-label">Docente:</span>
-                                    <div class="meta-value">Prof. {{ name if name else "Não logado" }}</div>
-                                </div>
-                                <div class="mt-2">
-                                    <span class="meta-label">Componente Curricular:</span>
-                                    <div class="meta-value">{{ disciplina if disciplina else "Geral" }}</div>
-                                </div>
-                                <div class="mt-2">
-                                    <span class="meta-label">Segmento / Turma:</span>
-                                    <div class="meta-value">{{ ano if ano else "Geral" }}</div>
-                                </div>
+                            <div class="text-md-end small fw-bold text-secondary">
+                                <div>Docente: <span class="text-dark">Prof. {{ name }}</span></div>
+                                <div>Componente: <span class="text-dark">{{ disciplina if disciplina else "Geral" }}</span></div>
+                                <div>Segmento: <span class="text-dark">{{ ano if ano else "Geral" }}</span></div>
                             </div>
                         </div>
                         {% endif %}
 
                         <div class="bncc-box">
-                            <div class="fw-bold text-primary mb-1">
-                                <i class="fa-solid fa-bookmark me-1"></i> Alinhamento de Diretrizes BNCC
-                            </div>
-                            <small class="text-secondary d-block text-break">
-                                {% if bncc %}
-                                    <strong>Competências Alvo:</strong> {{ bncc }}
-                                {% else %}
-                                    Conteúdo curricular estruturado em conformidade com as competências e habilidades da Base Nacional Comum Curricular.
-                                {% endif %}
+                            <div class="fw-bold text-primary small mb-1"><i class="fa-solid fa-bookmark me-1"></i> Diretrizes da BNCC</div>
+                            <small class="text-muted d-block">
+                                {% if bncc %}{{ bncc }}{% else %}Conteúdo alinhado com as competências gerais da Base Nacional Comum Curricular.{% endif %}
                             </small>
                         </div>
 
-                        <div class="ai-output-content mt-4">
+                        <div class="ai-output-content text-dark mt-3">
                             {% if conteudo %}
                                 {{ conteudo|safe }}
                             {% else %}
                                 <div class="text-center py-5 text-muted no-print">
-                                    <i class="fa-solid fa-brain d-block mb-3" style="font-size: 3rem; color: #cbd5e1;"></i>
-                                    <h5>Aguardando comando de geração...</h5>
-                                    <p class="small px-2">Preencha os Parâmetros do Escopo e clique em <strong>Gerar Documento com IA</strong> para criar seu documento.</p>
+                                    <i class="fa-solid fa-brain d-block mb-3 text-light-secondary" style="font-size: 2.5rem;"></i>
+                                    <h6>Aguardando comando de geração...</h6>
+                                    <p class="small">Escolha as opções e clique no botão para criar o documento.</p>
                                 </div>
                             {% endif %}
                         </div>
