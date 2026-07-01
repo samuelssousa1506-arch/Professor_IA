@@ -24,8 +24,9 @@ def init_db():
     # Garante que o acesso do desenvolvedor Samuel sempre existirá por padrão
     cursor.execute("SELECT * FROM usuarios WHERE email = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
+        # CORRIGIDO: Mudado 'school' para 'escola' para bater com a tabela acima
         cursor.execute('''
-            INSERT INTO usuarios (nome, school, email, senha) 
+            INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'Fábrica de Software', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
@@ -69,8 +70,8 @@ def login():
         if user and user[2] == password:
             session['logged_in'] = True
             session['user_email'] = email
-            session['user_name'] = user[0]   # Guarda o nome real de quem logou
-            session['user_school'] = user[1] # Guarda a escola real de quem logou
+            session['user_name'] = user[0]   
+            session['user_school'] = user[1] 
             return redirect(url_for('index'))
         else:
             erro = "E-mail ou senha incorretos."
@@ -96,7 +97,6 @@ def cadastro():
                 ''', (nome, escola, email, senha))
                 conn.commit()
                 conn.close()
-                # Redireciona para o login exibindo mensagem de sucesso
                 return redirect(url_for('login', sucesso="Conta criada com sucesso! Entre abaixo."))
             except sqlite3.IntegrityError:
                 erro = "Este e-mail já está cadastrado no sistema."
@@ -148,8 +148,8 @@ def executar_logica_painel():
         ano=ano,
         bncc=bncc,
         app_name="Professor IA",
-        name=session.get('user_name'),     # Exibe dinamicamente o nome do professor logado
-        school=session.get('user_school')  # Exibe dinamicamente a escola do professor logado
+        name=session.get('user_name'),     
+        school=session.get('user_school')  
     )
 
 @app.route('/dashboard', methods=['GET', 'POST'])
