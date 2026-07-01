@@ -3,42 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Professor IA</title>
+    <title>Acesso - Professor IA</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8fafc;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
         .card-login {
             border: none;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
             width: 100%;
-            max-width: 420px;
+            max-width: 410px;
             background: #ffffff;
-            padding: 32px;
+            padding: 35px;
+        }
+        .dev-footer {
+            margin-top: 30px;
+            font-size: 0.78rem;
+            color: #64748b;
+            text-align: center;
+            max-width: 500px;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
     <div class="card-login">
         <div class="text-center mb-4">
-            <h3 class="fw-bold text-dark m-0">Professor <span class="text-primary">IA</span></h3>
-            <p class="text-muted small mt-1">Insira as suas credenciais para aceder ao painel</p>
+            <h3 class="fw-bold text-dark m-0">Professor <span class="text-primary" style="color: #4f46e5 !important;">IA</span></h3>
+            <p class="text-muted small mt-1">Insira suas credenciais para acessar o painel</p>
         </div>
         
-        {% if erro %}
-            <div class="alert alert-danger small py-2 px-3 rounded-3" role="alert">{{ erro }}</div>
-        {% endif %}
-        {% if sucesso %}
-            <div class="alert alert-success small py-2 px-3 rounded-3" role="alert">{{ sucesso }}</div>
-        {% endif %}
+        {% if erro %}<div class="alert alert-danger small py-2 px-3 rounded-3">{{ erro }}</div>{% endif %}
+        {% if sucesso %}<div class="alert alert-success small py-2 px-3 rounded-3">{{ sucesso }}</div>{% endif %}
 
         <form action="{{ url_for('login') }}" method="POST">
             <div class="mb-3">
@@ -46,15 +52,20 @@
                 <input type="email" class="form-control" name="email" placeholder="nome@exemplo.com" required>
             </div>
             <div class="mb-4">
-                <label class="form-label small fw-bold text-secondary">PALAVRA-PASSE</label>
+                <label class="form-label small fw-bold text-secondary">SENHA</label>
                 <input type="password" class="form-control" name="senha" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none;">Aceder ao Painel</button>
+            <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold border-0" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">Entrar no Sistema</button>
         </form>
         
         <p class="text-center small text-muted mt-4 mb-0">
-            Não tem uma conta? <a href="{{ url_for('cadastro') }}" class="fw-bold text-decoration-none">Registe-se aqui</a>
+            Não tem uma conta? <a href="{{ url_for('cadastro') }}" class="fw-bold text-decoration-none">Cadastre-se aqui</a>
         </p>
+    </div>
+
+    <div class="dev-footer">
+        <div><strong>Desenvolvedor:</strong> Samuel Araújo Sousa | <strong>Contato:</strong> (99) 99197-1901 | samuel.ssousa1506@gmail.com</div>
+        <div class="mt-1 opacity-75">Trabalho acadêmico sem fins lucrativos. Sugestões de melhoria ou erros técnicos são bem-vindos.</div>
     </div>
 </body>
 </html>

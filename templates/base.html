@@ -28,7 +28,7 @@
         .navbar-premium {
             background-color: #ffffff;
             border-bottom: 1px solid var(--borda-suave);
-            padding: 16px 32px;
+            padding: 14px 32px;
         }
 
         .brand-text {
@@ -46,14 +46,6 @@
             font-size: 0.85rem;
             font-weight: 600;
             color: #334155;
-        }
-
-        .btn-sair {
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 10px;
-            transition: all 0.2s ease;
         }
 
         @media print { 
@@ -75,7 +67,7 @@
                 <div class="user-badge d-none d-sm-inline">
                     <i class="fa-regular fa-user me-2 text-primary"></i>{{ name }}
                 </div>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sair">
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm fw-bold px-3 py-2 rounded-3">
                     <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Sair
                 </a>
             </div>

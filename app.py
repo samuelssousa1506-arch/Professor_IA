@@ -1,13 +1,24 @@
 import os
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session
-# Assumindo que o teu ai_service.py implementa a integração com a IA
+
 try:
     from ai_service import gerar_conteudo_educacional
 except ImportError:
-    # Fallback caso queiras testar sem o módulo da IA ativo
+    # Fallback pedagógico estruturado caso precise testar localmente sem a IA ativa
     def gerar_conteudo_educacional(**kwargs):
-        return "<h3>Conteúdo gerado com sucesso pela IA para o tema: " + kwargs.get('tema', '') + "</h3>"
+        if kwargs.get('tipo_modulo') == 'Gerador de Provas':
+            return """
+            <p><strong>1. Resolva a seguinte operação matemática e marque a resposta correta: 125 + 350. (EF04MA03)</strong></p>
+            <p>a) 465<br>b) 475<br>c) 485<br>d) 495</p>
+            <br>
+            <p><strong>2. Escreva com as suas palavras como podemos identificar uma figura simétrica. (EF04MA19)</strong></p>
+            <div class="linha-resposta"></div>
+            <div class="linha-resposta"></div>
+            <div class="linha-resposta"></div>
+            <div class="linha-resposta"></div>
+            """
+        return "<h3>Conteúdo gerado para o tema: " + kwargs.get('tema', '') + "</h3>"
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
@@ -24,7 +35,6 @@ def init_db():
             senha TEXT NOT NULL
         )
     ''')
-    # Utilizador padrão requisitado anteriormente
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
@@ -36,7 +46,6 @@ def init_db():
 
 init_db()
 
-# Dicionário com todas as 7 funcionalidades / módulos pedagógicos mantidos intactos
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
@@ -122,7 +131,6 @@ def dashboard():
     ano = request.form.get('ano', '').strip()
     bncc = request.form.get('bncc', '').strip()
     
-    # Parâmetros exclusivos do Módulo de Avaliações / Provas
     tipo_prova = request.form.get('tipo_prova', '').strip()
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()
@@ -133,7 +141,7 @@ def dashboard():
             disciplina=disciplina if disciplina else "Geral",
             ano=ano if ano else "Segmento Geral",
             tema=tema,
-            bncc=bncc if bncc else "Diretrizes gerais da BNCC",
+            bncc=bncc if bncc else "",
             tipo_prova=tipo_prova,
             qtd_questoes=qtd_questoes,
             nivel=nivel
@@ -145,7 +153,7 @@ def dashboard():
         config=config_modulo,
         conteudo=conteudo,
         tema=tema,
-        disciplina=disciplina,
+        disciplina=disciplina if disciplina else "Componente Curricular",
         ano=ano,
         bncc=bncc,
         tipo_prova=tipo_prova,

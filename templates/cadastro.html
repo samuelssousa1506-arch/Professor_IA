@@ -10,19 +10,20 @@
         body {
             background-color: #f8fafc;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
         .card-cadastro {
             border: none;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
             width: 100%;
-            max-width: 450px;
+            max-width: 440px;
             background: #ffffff;
-            padding: 32px;
+            padding: 35px;
         }
     </style>
 </head>
@@ -30,12 +31,10 @@
     <div class="card-cadastro">
         <div class="text-center mb-4">
             <h3 class="fw-bold text-dark m-0">Criar Conta</h3>
-            <p class="text-muted small mt-1">Registe a sua instituição e comece a poupar tempo com IA</p>
+            <p class="text-muted small mt-1">Cadastre seus dados institucionais para acesso completo</p>
         </div>
         
-        {% if erro %}
-            <div class="alert alert-danger small py-2 px-3 rounded-3" role="alert">{{ erro }}</div>
-        {% endif %}
+        {% if erro %}<div class="alert alert-danger small py-2 px-3 rounded-3">{{ erro }}</div>{% endif %}
 
         <form action="{{ url_for('cadastro') }}" method="POST">
             <div class="mb-3">
@@ -43,18 +42,18 @@
                 <input type="text" class="form-control" name="nome" placeholder="Ex: Samuel Araújo Sousa" required>
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold text-secondary">NOME DA ESCOLA / UNIDADE ESCOLAR</label>
+                <label class="form-label small fw-bold text-secondary">UNIDADE ESCOLAR / ESCOLA</label>
                 <input type="text" class="form-control" name="escola" placeholder="Ex: U.E. Prof. João Martins Neto" required>
             </div>
             <div class="mb-3">
                 <label class="form-label small fw-bold text-secondary">E-MAIL</label>
-                <input type="email" class="form-control" name="email" placeholder="professor@escola.com" required>
+                <input type="email" class="form-control" name="email" placeholder="nome@escola.com" required>
             </div>
             <div class="mb-4">
-                <label class="form-label small fw-bold text-secondary">PALAVRA-PASSE</label>
+                <label class="form-label small fw-bold text-secondary">SENHA</label>
                 <input type="password" class="form-control" name="senha" placeholder="Mínimo 6 caracteres" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold" style="background: linear-gradient(135deg, #10b981, #059669); border: none;">Concluir Registo</button>
+            <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold border-0" style="background: linear-gradient(135deg, #10b981, #059669);">Concluir Cadastro</button>
         </form>
         
         <p class="text-center small text-muted mt-4 mb-0">
