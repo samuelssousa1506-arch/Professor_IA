@@ -1,19 +1,9 @@
-import os
-import sqlite3
-import requests
-from flask import Flask, render_template, request, redirect, url_for, session
-
-app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
-
-# 1. MAPEAMENTO DE CHAVE GEMINI (Bypass de Segurança do GitHub)
+# 1. MAPEAMENTO DE CHAVE GEMINI (Seguro e definitivo)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 if not GEMINI_API_KEY:
-    # Sua nova chave dividida estrategicamente para passar pela barreira do GitHub
-    p1 = "AQ.Ab8RN6KatQBDp_X6PM3fB4aHyA4ucGr"
-    p2 = "WW1IYA0iji1iaHNvpkQ"
-    GEMINI_API_KEY = p1 + p2
+    # Deixe vazio aqui para o GitHub não monitorar nada!
+    GEMINI_API_KEY = ""
 
 # Dicionário unificado de módulos sincronizado com o dashboard.html
 MODULOS = {
