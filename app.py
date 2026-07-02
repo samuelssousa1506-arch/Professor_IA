@@ -4,12 +4,13 @@ import requests
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
+# Chave secreta para gerenciar as sessões dos usuários logados
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# 1. MAPEAMENTO DA CHAVE GEMINI
+# 1. MAPEAMENTO DA CHAVE GEMINI (Puxa direto do painel do Render)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
-# Dicionário de módulos unificado
+# Dicionário de módulos unificado e sincronizado com o dashboard.html
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
@@ -22,6 +23,7 @@ MODULOS = {
 }
 
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
+    """Retorna uma estrutura visual amigável em caso de erro externo na API"""
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
     <p>O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> corretamente no painel do Render.</p>
@@ -40,7 +42,24 @@ def executar_geracao_ia(**kwargs):
     nivel = kwargs.get('nivel', 'Médio')
 
     if not GEMINI_API_KEY:
-        return obter_fallback_pedagogico(tipo_modulo, tema, "A chave GEMINI_API_KEY está vazia ou ausente no painel do Render.")
+        return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
+
+    # -----------------------------------------------------------------
+    # LIMPEZA ESTRETA DA CHAVE CONTRA MÁSCARAS DE LINK OU COLCHETES
+    # -----------------------------------------------------------------
+    chave_limpa = GEMINI_API_KEY
+    
+    # Se a string contiver parênteses (ex: formato markdown de links), pega apenas a parte final
+    if "(" in chave_limpa and ")" in chave_limpa:
+        chave_limpa = chave_limpa.split(")")[-1]
+        
+    # Remove colchetes, aspas e espaçamentos laterais que corrompem o Connection Adapter do requests
+    chave_limpa = chave_limpa.replace("[", "").replace("]", "").replace("'", "").replace('"', '').strip()
+    
+    # Isola o token caso o texto 'key=' tenha sido colado por engano junto
+    if "key=" in chave_limpa:
+        chave_limpa = chave_limpa.split("key=")[-1]
+    # -----------------------------------------------------------------
 
     # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
     if tipo_modulo == 'Tira-Dúvidas com IA':
@@ -74,8 +93,8 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. ENDPOINT DA API DO GEMINI
-    url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
+    # 3. MONTAGEM DA REQUISIÇÃO HTTP (Utilizando a Chave Sanitizada)
+    url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
@@ -98,7 +117,7 @@ def executar_geracao_ia(**kwargs):
         return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexao fisica: {str(e)}")
 
 # =====================================================================
-# INICIALIZAÇÃO DO BANCO DE DADOS (SQLite)
+# INICIALIZAÇÃO DO BANCO DE DADOS LOCAL (SQLite)
 # =====================================================================
 def init_db():
     conn = sqlite3.connect('database.db')
@@ -124,7 +143,7 @@ def init_db():
 init_db()
 
 # =====================================================================
-# ROTAS FLASK
+# GERENCIAMENTO DE ROTAS FLASK
 # =====================================================================
 @app.route('/')
 def index():
@@ -177,9 +196,9 @@ def cadastro():
                 )
                 conn.commit()
                 conn.close()
-                return redirect(url_for('login', sucesso="Conta criada com sucesso! Faca login."))
+                return redirect(url_for('login', sucesso="Conta criada com sucesso! Faça login."))
             except sqlite3.IntegrityError:
-                erro = "Este e-mail ja esta cadastrado no sistema."
+                erro = "Este e-mail já está cadastrado no sistema."
     return render_template('cadastro.html', erro=erro)
 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -228,8 +247,8 @@ def dashboard():
         qtd_questoes=qtd_questoes,
         nivel=nivel,
         app_name="Professor IA",
-        name=session.get('user_name', 'Samuel Araujo Sousa'),     
-        school=session.get('user_school', 'U.E. Prof. Joao Martins Neto')  
+        name=session.get('user_name', 'Samuel Araújo Sousa'),     
+        school=session.get('user_school', 'U.E. Prof. João Martins Neto')  
     )
 
 @app.route('/logout')
@@ -238,4 +257,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+    # Porta dinâmica para compatibilidade com o ambiente Render
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
