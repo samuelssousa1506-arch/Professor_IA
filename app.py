@@ -43,25 +43,19 @@ def executar_geracao_ia(**kwargs):
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
 
-    # -----------------------------------------------------------------
-    # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
-    # -----------------------------------------------------------------
-    # O padrão procura pela sequência que começa com AIza ou AQ e pega apenas caracteres válidos de chave
+    # Extração cirúrgica da chave com Regex
     match = re.search(r'(AIzaSy[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9_-]+)', GEMINI_API_KEY)
-    
     if match:
         chave_limpa = match.group(1).strip()
     else:
-        # Fallback caso a regex não isole (remove manualmente caracteres de link comuns)
         chave_limpa = GEMINI_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', '')
         if "key=" in chave_limpa:
             chave_limpa = chave_limpa.split("key=")[-1]
         if ")" in chave_limpa:
             chave_limpa = chave_limpa.split(")")[-1]
         chave_limpa = chave_limpa.strip()
-    # -----------------------------------------------------------------
 
-    # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
+    # Construção do Prompt Pedagógico
     if tipo_modulo == 'Tira-Dúvidas com IA':
         prompt = f"""
         Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
@@ -93,8 +87,8 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={chave_limpa}"
+    # ATUALIZADO: Usando o modelo atualizado gemini-2.5-flash
+    url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=){chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
@@ -133,6 +127,7 @@ def init_db():
     ''')
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
+        # CORRIGIDO: Nome correto da coluna 'escola'
         cursor.execute('''
             INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
