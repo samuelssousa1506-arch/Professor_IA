@@ -1,40 +1,256 @@
-<form action="{{ url_for('dashboard', form_type=form_type) }}" method="POST">
-    <input type="hidden" name="form_type" value="{{ form_type }}">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }} - Painel</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome para os Ícones da Barra -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <div class="mb-1">
-        <label class="form-label-premium">
-            {% if form_type == 'duvidas' %}
-                SUA PERGUNTA OU DÚVIDA PEDAGÓGICA / LEGISLATIVA
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .sidebar {
+            background-color: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            min-height: 100vh;
+        }
+        .nav-link-premium {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #64748b;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav-link-premium:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .nav-link-premium.active {
+            background-color: #eef2ff;
+            color: #4f46e5;
+        }
+        .nav-link-premium i {
+            width: 1.25rem;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+        .form-label-premium {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            color: #475569;
+            margin-top: 0.75rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .form-control-premium {
+            border-radius: 0.375rem;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+        .form-control-premium:focus {
+            border-color: #a5b4fc;
+            box-shadow: 0 0 0 0.25rem rgba(165, 180, 252, 0.25);
+        }
+        .preview-container {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05);
+            min-height: 70vh;
+        }
+        .linha-resposta {
+            border-bottom: 1px dotted #94a3b8;
+            margin-top: 1.5rem;
+            height: 1px;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .sidebar { display: none !important; }
+            .preview-container { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            body { background-color: #fff; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- BARRA LATERAL DE RECURSOS (Navegação) -->
+        <div class="col-md-3 col-lg-2 sidebar p-3 no-print">
+            <div class="d-flex align-items-center mb-4 px-2">
+                <i class="fa-solid fa-graduation-cap text-primary fs-3 me-2"></i>
+                <h5 class="fw-bold m-0" style="color: #4f46e5;">{{ app_name }}</h5>
+            </div>
+            
+            <p class="text-muted small fw-bold uppercase px-2 mb-2" style="font-size: 0.7rem;">Módulos do Sistema</p>
+            <nav class="nav flex-column">
+                <a class="nav-link-premium {% if form_type == 'plano' %}active{% endif %}" href="{{ url_for('dashboard', form_type='plano') }}">
+                    <i class="fa-solid fa-book"></i> Plano de Aula
+                </a>
+                <a class="nav-link-premium {% if form_type == 'bimestral' %}active{% endif %}" href="{{ url_for('dashboard', form_type='bimestral') }}">
+                    <i class="fa-solid fa-calendar-check"></i> Plan. Bimestral
+                </a>
+                <a class="nav-link-premium {% if form_type == 'atividades' %}active{% endif %}" href="{{ url_for('dashboard', form_type='atividades') }}">
+                    <i class="fa-solid fa-list-check"></i> Banco de Atividades
+                </a>
+                <a class="nav-link-premium {% if form_type == 'avaliacoes' %}active{% endif %}" href="{{ url_for('dashboard', form_type='avaliacoes') }}">
+                    <i class="fa-solid fa-file-signature"></i> Gerador de Provas
+                </a>
+                <a class="nav-link-premium {% if form_type == 'duvidas' %}active{% endif %}" href="{{ url_for('dashboard', form_type='duvidas') }}">
+                    <i class="fa-solid fa-circle-question"></i> Tira-Dúvidas IA
+                </a>
+                <a class="nav-link-premium {% if form_type == 'relatorios' %}active{% endif %}" href="{{ url_for('dashboard', form_type='relatorios') }}">
+                    <i class="fa-solid fa-chart-line"></i> Relatórios
+                </a>
+                <a class="nav-link-premium {% if form_type == 'inclusao' %}active{% endif %}" href="{{ url_for('dashboard', form_type='inclusao') }}">
+                    <i class="fa-solid fa-hands-asl-interpreting"></i> Plano AEE
+                </a>
+                <a class="nav-link-premium {% if form_type == 'projetos' %}active{% endif %}" href="{{ url_for('dashboard', form_type='projetos') }}">
+                    <i class="fa-solid fa-diagram-project"></i> Projetos
+                </a>
+            </nav>
+            
+            <hr class="my-4">
+            <div class="px-2 small text-muted mb-3">
+                <p class="mb-0 fw-bold text-dark">{{ name }}</p>
+                <p class="mb-0 text-truncate" style="font-size: 0.8rem;">{{ school }}</p>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm w-100">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Sair do Sistema
+            </a>
+        </div>
+
+        <!-- FORMULÁRIO DE ENTRADA (Centro-Esquerda) -->
+        <div class="col-md-4 col-lg-3 p-4 bg-white border-end no-print" style="min-height: 100vh;">
+            <div class="mb-4">
+                <span class="badge bg-indigo-soft text-indigo mb-2" style="background-color: #e0e7ff; color: #4338ca; padding: 0.4rem 0.6rem; font-weight: 600;">
+                    <i class="fa-solid {{ config.icone }} me-1"></i> {{ config.nome }}
+                </span>
+                <h4 class="fw-bold text-dark">Configurar Parâmetros</h4>
+            </div>
+
+            <form action="{{ url_for('dashboard', form_type=form_type) }}" method="POST">
+                <input type="hidden" name="form_type" value="{{ form_type }}">
+                
+                <div class="mb-2">
+                    <label class="form-label-premium">
+                        {% if form_type == 'duvidas' %}
+                            SUA PERGUNTA OU CONSULTA PEDAGÓGICA
+                        {% else %}
+                            CONTEÚDO / OBJETO DE ESTUDO
+                        {% endif %}
+                    </label>
+                    <textarea class="form-control form-control-premium" name="tema" rows="4" placeholder="{% if form_type == 'duvidas' %}Ex: O que diz a LDB sobre a progressividade escolar? Como aplicar o DCTMA neste tema?{% else %}Ex: Equações de 2º Grau, Sintaxe, Revolução Francesa...{% endif %}" required>{{ tema }}</textarea>
+                </div>
+
+                {% if form_type != 'duvidas' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">DISCIPLINA / COMPONENTE</label>
+                    <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina if disciplina != 'Componente Curricular' else '' }}" placeholder="Ex: Matemática, História">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label-premium">ANO / TURMA</label>
+                    <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 9º Ano, 3ª Série E.M.">
+                </div>
+                {% endif %}
+
+                {% if form_type == 'avaliacoes' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">FORMATO DAS QUESTÕES</label>
+                    <select class="form-select form-control-premium" name="tipo_prova">
+                        <option value="Mista" {% if tipo_prova == 'Mista' %}selected{% endif %}>Mista (Múltipla Escolha e Discursivas)</option>
+                        <option value="Apenas Objetivas" {% if tipo_prova == 'Apenas Objetivas' %}selected{% endif %}>Apenas Objetivas (A a D)</option>
+                        <option value="Apenas Subjetivas" {% if tipo_prova == 'Apenas Subjetivas' %}selected{% endif %}>Apenas Subjetivas (Discursivas)</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label-premium">QUANTIDADE DE QUESTÕES</label>
+                    <select class="form-select form-control-premium" name="qtd_questoes">
+                        <option value="5" {% if qtd_questoes == '5' %}selected{% endif %}>05 Questões</option>
+                        <option value="10" {% if qtd_questoes == '10' %}selected{% endif %}>10 Questões</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label-premium">NÍVEL DE DIFICULDADE</label>
+                    <select class="form-select form-control-premium" name="nivel">
+                        <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
+                        <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
+                        <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                {% if form_type != 'duvidas' %}
+                <div class="mb-3">
+                    <label class="form-label-premium">CÓDIGO DA BNCC (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="bncc" value="{{ bncc }}" placeholder="Ex: EF09MA02, EF15LP01">
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none;">
+                    <i class="fa-solid fa-wand-magic-sparkles me-2"></i> {% if form_type == 'duvidas' %}Consultar Expert IA{% else %}Gerar com Inteligência Artificial{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <!-- ÁREA DE VISUALIZAÇÃO E IMPRESSÃO (Direita) -->
+        <div class="col-md-5 col-lg-7 p-4">
+            {% if conteudo %}
+            <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+                <h5 class="fw-bold m-0 text-muted"><i class="fa-solid fa-eye me-1"></i> Visualização Prévia do Documento</h5>
+                <button onclick="window.print();" class="btn btn-success fw-bold px-3 shadow-sm">
+                    <i class="fa-solid fa-print me-1"></i> Imprimir / Salvar PDF
+                </button>
+            </div>
+            
+            <div class="preview-container">
+                <!-- Cabeçalho Escolar Oficial automático para Impressão -->
+                <div class="text-center mb-4 pb-3 border-bottom d-none d-print-block">
+                    <h4 class="fw-bold mb-1">{{ school }}</h4>
+                    <p class="text-muted small mb-0">Avaliação/Documentação Pedagógica Oficial • Professor: {{ name }}</p>
+                    <div class="row mt-4 text-start small">
+                        <div class="col-6"><strong>ESTUDANTE:</strong> ____________________________________________________</div>
+                        <div class="col-3"><strong>TURMA:</strong> _____________</div>
+                        <div class="col-3"><strong>DATA:</strong> ____/____/______</div>
+                    </div>
+                </div>
+
+                <!-- Conteúdo real injetado vindo da IA -->
+                <div class="conteudo-pedagogico-real">
+                    {{ conteudo|safe }}
+                </div>
+            </div>
             {% else %}
-                CONTEÚDO / OBJETO DE ESTUDO
+            <div class="d-flex flex-column align-items-center justify-content-center text-center no-print" style="min-height: 70vh; border: 2px dashed #cbd5e1; border-radius: 0.5rem; background-color: #ffffff; padding: 2rem;">
+                <i class="fa-solid fa-feather-pointed text-muted mb-3" style="font-size: 3.5rem;"></i>
+                <h5 class="fw-bold text-secondary">Aguardando Parâmetros</h5>
+                <p class="text-muted small max-w-xs" style="max-width: 320px;">Preencha o formulário ao lado e clique no botão mágico para ver a mágica estruturada acontecer aqui na folha oficial.</p>
+            </div>
             {% endif %}
-        </label>
-        <textarea class="form-control form-control-premium" name="tema" rows="3" placeholder="{% if form_type == 'duvidas' %}Ex: O que a LDB diz sobre a progressão continuada? Como alinhar o DCTMA ao planejamento?{% else %}Ex: Frações, Verbo, Segunda Guerra{% endif %}" required>{{ tema }}</textarea>
+        </div>
+
     </div>
+</div>
 
-    {% if form_type != 'duvidas' %}
-    <div class="mb-1">
-        <label class="form-label-premium">DISCIPLINA</label>
-        <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina if disciplina != 'Componente Curricular' else '' }}" placeholder="Ex: Português, Matemática">
-    </div>
-
-    <div class="mb-1">
-        <label class="form-label-premium">ANO / TURMA</label>
-        <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 5º ano, 3º ano Ensino Médio">
-    </div>
-    {% endif %}
-
-    {% if form_type == 'avaliacoes' %}
-    {% endif %}
-
-    {% if form_type != 'duvidas' %}
-    <div class="mb-3">
-        <label class="form-label-premium">DIRETRIZES DA BNCC (OPCIONAL)</label>
-        <input type="text" class="form-control form-control-premium" name="bncc" value="{{ bncc }}" placeholder="Insira códigos de habilidades">
-    </div>
-    {% endif %}
-
-    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold border-0 shadow-sm" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
-        <i class="fa-solid fa-wand-magic-sparkles me-2"></i>{% if form_type == 'duvidas' %}Consultar Especialista IA{% else %}Gerar Documento com IA{% endif %}
-    </button>
-</form>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
