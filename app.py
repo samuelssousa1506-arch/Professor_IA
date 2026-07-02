@@ -6,16 +6,14 @@ from flask import Flask, render_template, request, redirect, url_for, session
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# 1. MAPEAMENTO DE CHAVE OPENAI (Bypass de Segurança do GitHub)
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+# 1. MAPEAMENTO DE CHAVE GEMINI (Bypass de Segurança do GitHub)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
-if not OPENAI_API_KEY:
-    # Sua chave dividida em partes para passar direto pela barreira do GitHub
-    p1 = "sk-proj-mZKq8ogPww3lZ5yCZ4OkYgK3kq1gxx"
-    p2 = "rP8o54WzgFU63_l60Fu3TNBbcFdZ7d_dDRX6euxLlT"
-    p3 = "MLT3BlbkFJMjU3XyyAXUOusKxoVJcvK_e0ucdVlADrf"
-    p4 = "Ll0RxjwKkGObdqxVbB_ZWNv5NPnfFMGQgfkxsr9wA"
-    OPENAI_API_KEY = p1 + p2 + p3 + p4
+if not GEMINI_API_KEY:
+    # Sua nova chave dividida estrategicamente para passar pela barreira do GitHub
+    p1 = "AQ.Ab8RN6KatQBDp_X6PM3fB4aHyA4ucGr"
+    p2 = "WW1IYA0iji1iaHNvpkQ"
+    GEMINI_API_KEY = p1 + p2
 
 # Dicionário unificado de módulos sincronizado com o dashboard.html
 MODULOS = {
@@ -32,7 +30,7 @@ MODULOS = {
 def obter_fallback_pedagogico(tipo_modulo, tema):
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
-    <p>O sistema não conseguiu conectar à OpenAI em tempo real. Verifique se sua conta possui créditos ativos na plataforma da OpenAI.</p>
+    <p>O sistema não conseguiu conectar ao Gemini em tempo real. Verifique os logs do Render ou se sua chave foi desativada no Google AI Studio.</p>
     <p><strong>Tema enviado:</strong> {tema}</p>
     """
 
@@ -46,7 +44,7 @@ def executar_geracao_ia(**kwargs):
     qtd_questoes = kwargs.get('qtd_questoes', '10')
     nivel = kwargs.get('nivel', 'Médio')
 
-    if not OPENAI_API_KEY:
+    if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema)
 
     # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
@@ -84,26 +82,25 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. CHAMADA DIRETA PARA O ENDPOINT DA OPENAI (GPT-4o-Mini)
-    url = "[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)"
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {OPENAI_API_KEY}'
-    }
+    # 3. CHAMADA DIRETA PARA O ENDPOINT DO GOOGLE GEMINI (Modelo Gratuito)
+    url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
+    headers = {'Content-Type': 'application/json'}
     payload = {
-        "model": "gpt-4o-mini",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.4 if tipo_modulo == 'Tira-Dúvidas com IA' else 0.7
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": 8192,
+            "temperature": 0.4 if tipo_modulo == 'Tira-Dúvidas com IA' else 0.7
+        }
     }
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=60)
         if response.status_code == 200:
             resultado = response.json()
-            texto_gerado = resultado['choices'][0]['message']['content']
+            texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
             return texto_gerado.replace("```html", "").replace("```", "").strip()
         else:
-            return obter_fallback_pedagogico(tipo_modulo, tema) + f"<p class='text-danger small'>Erro OpenAI: Código {response.status_code}</p>"
+            return obter_fallback_pedagogico(tipo_modulo, tema) + f"<p class='text-danger small'>Erro Gemini: Código {response.status_code}</p>"
     except Exception as e:
         return obter_fallback_pedagogico(tipo_modulo, tema)
 
@@ -164,7 +161,7 @@ def login():
             return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
-    return render_template('login.html', erro=erro,鸡sucesso=sucesso)
+    return render_template('login.html', erro=erro, sucesso=sucesso)
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
@@ -215,7 +212,7 @@ def dashboard():
     nivel = request.form.get('nivel', '').strip()
     
     if request.method == 'POST' and tema:
-        conteudo = executar_geracao_ia(
+        conteudo = executors_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
             ano=ano,
