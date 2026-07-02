@@ -134,6 +134,17 @@ def executar_geracao_ia(**kwargs):
             6. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
             """
         elif tipo_modulo in ('Plano de Aula', 'Planejamento Bimestral'):
+            if tipo_modulo == 'Plano de Aula':
+                prompt += """
+                SEÇÃO OBRIGATÓRIA — METODOLOGIAS E SUGESTÕES DE AULAS DIFERENCIADAS:
+                Inclua, antes da conclusão do plano, uma seção <h5>Sugestões de Aulas Diferenciadas</h5> com pelo menos 3 a 4 propostas concretas e variadas para trabalhar o tema de formas alternativas à aula expositiva tradicional, por exemplo (adapte ao tema e ano/série informados):
+                - Aula prática/experimental (uso de materiais concretos, experimentos, manipuláveis).
+                - Metodologia ativa (sala de aula invertida, aprendizagem baseada em problemas/projetos, gamificação).
+                - Atividade em grupo/colaborativa (debate, júri simulado, oficina, estudo de caso).
+                - Uso de tecnologia/recursos digitais (aplicativos, vídeos, simuladores, jogos educativos).
+                - Conexão com o cotidiano/comunidade local (saída de campo, entrevista, estudo do meio, quando aplicável ao contexto maranhense).
+                Apresente cada sugestão em formato de lista <ul><li>, com um parágrafo curto (2-3 linhas) explicando como aplicá-la e qual habilidade/competência da BNCC ela reforça.
+                """
             prompt += """
             SEÇÃO FINAL OBRIGATÓRIA — REFERÊNCIAS:
             Ao final do documento, após todo o conteúdo pedagógico, inclua uma seção <h5>Referências</h5> contendo:
