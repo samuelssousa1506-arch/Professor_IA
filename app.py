@@ -94,7 +94,7 @@ def executar_geracao_ia(**kwargs):
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
     # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
-    url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){chave_limpa}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
@@ -134,7 +134,7 @@ def init_db():
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
-            INSERT INTO usuarios (nome, school, email, senha) 
+            INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
