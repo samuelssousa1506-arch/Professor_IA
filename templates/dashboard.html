@@ -1,274 +1,40 @@
-{% extends 'base.html' %}
-
-{% block head %}
-<style>
-    .card-painel {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-        background: #ffffff;
-        margin-bottom: 20px;
-    }
-    .card-header-premium {
-        padding: 20px 24px;
-        border-bottom: 1px solid #f1f5f9;
-        font-weight: 700;
-        font-size: 1rem;
-    }
-    .modulo-nav-link {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 14px 18px;
-        color: #475569;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.95rem;
-        border-radius: 12px;
-        margin-bottom: 6px;
-        transition: all 0.2s ease-in-out;
-    }
-    .modulo-nav-link:hover {
-        background-color: #f8fafc;
-        color: #0f172a;
-        transform: translateX(4px);
-    }
-    .modulo-nav-link.active {
-        background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
-        color: #ffffff !important;
-    }
-
-    .form-label-premium {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: #64748b;
-        margin-bottom: 6px;
-        display: block;
-    }
-
-    .form-control-premium, .form-select-premium {
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 10px 14px;
-        font-size: 0.95rem;
-        width: 100%;
-        margin-bottom: 15px;
-    }
-
-    /* Tela da Folha Escolar */
-    .paper-canvas {
-        background: #ffffff;
-        min-height: 850px;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 45px;
-        position: relative;
-    }
-
-    /* Cabeçalho de Prova Compacto e Limpo */
-    .cabecalho-escola-box {
-        border: 1.5px solid #000000 !important;
-        border-radius: 6px;
-        padding: 14px 18px;
-        color: #000000 !important;
-        background: #ffffff;
-    }
+<form action="{{ url_for('dashboard', form_type=form_type) }}" method="POST">
+    <input type="hidden" name="form_type" value="{{ form_type }}">
     
-    /* Linha contínua para escrita manuscrita */
-    .linha-resposta {
-        border-bottom: 1px solid #000000 !important;
-        height: 32px;
-        margin-bottom: 4px;
-        width: 100%;
-    }
-
-    .output-html-dinamico {
-        font-size: 1.05rem;
-        line-height: 1.7;
-        color: #000000;
-    }
-
-    .output-html-dinamico strong {
-        font-weight: 700 !important;
-        display: block;
-        margin-top: 18px;
-        margin-bottom: 8px;
-    }
-    
-    .output-html-dinamico p {
-        margin-bottom: 6px;
-    }
-
-    /* Rodapé Unificado Acadêmico */
-    .rodape-academico {
-        border-top: 1px solid #e2e8f0;
-        padding-top: 15px;
-        margin-top: 50px;
-        font-size: 0.78rem;
-        color: #64748b;
-        line-height: 1.5;
-    }
-
-    @media print {
-        .no-print, .gabarito, [class*="gabarito"] { display: none !important; }
-        body, .container-fluid, .row, [class*="col-"] { background: #ffffff !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
-        .paper-canvas { border: none !important; box-shadow: none !important; padding: 0 !important; }
-        .cabecalho-escola-box { border: 1.5px solid #000000 !important; }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid py-4 px-3 px-xl-5">
-    <div class="row g-4">
-        
-        <div class="col-12 col-lg-4 no-print">
-            
-            <div class="card card-painel">
-                <div class="card-header-premium text-dark d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-layer-group text-primary"></i> Recursos Pedagógicos
-                </div>
-                <div class="card-body p-3">
-                    {% for key, val in {
-                        'plano': 'Plano de Aula', 'bimestral': 'Planejamento Bimestral', 
-                        'atividades': 'Banco de Atividades', 'avaliacoes': 'Gerador de Provas', 
-                        'relatorios': 'Relatórios Pedagógicos', 'inclusao': 'Plano de Inclusão / AEE', 
-                        'projetos': 'Projetos Interdisciplinares'
-                    }.items() %}
-                    <a href="{{ url_for('dashboard', form_type=key) }}" class="modulo-nav-link {% if form_type == key %}active{% endif %}">
-                        <i class="fa-solid {{ 'fa-book' if key=='plano' else 'fa-calendar-check' if key=='bimestral' else 'fa-list-check' if key=='atividades' else 'fa-file-signature' if key=='avaliacoes' else 'fa-chart-line' if key=='relatorios' else 'fa-hands-asl-interpreting' if key=='inclusao' else 'fa-diagram-project' }}"></i> {{ val }}
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="card card-painel">
-                <div class="card-header-premium text-dark d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-sliders text-primary"></i> Parâmetros do Escopo
-                </div>
-                <div class="card-body p-4">
-                    <form action="{{ url_for('dashboard', form_type=form_type) }}" method="POST">
-                        <input type="hidden" name="form_type" value="{{ form_type }}">
-                        
-                        <div class="mb-1">
-                            <label class="form-label-premium">CONTEÚDO / OBJETO DE ESTUDO</label>
-                            <input type="text" class="form-control form-control-premium" name="tema" value="{{ tema }}" placeholder="Ex: Frações, Verbo, Segunda Guerra" required>
-                        </div>
-
-                        <div class="mb-1">
-                            <label class="form-label-premium">DISCIPLINA</label>
-                            <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina if disciplina != 'Componente Curricular' else '' }}" placeholder="Ex: Português, Matemática" required>
-                        </div>
-
-                        <div class="mb-1">
-                            <label class="form-label-premium">ANO / TURMA</label>
-                            <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 5º ano, 3º ano Ensino Médio" required>
-                        </div>
-
-                        {% if form_type == 'avaliacoes' %}
-                        <div class="mb-1">
-                            <label class="form-label-premium">Tipo de Itens</label>
-                            <select class="form-select form-select-premium" name="tipo_prova">
-                                <option value="Mista" {% if tipo_prova == 'Mista' %}selected{% endif %}>Mista (Objetiva e Subjetiva)</option>
-                                <option value="Objetiva" {% if tipo_prova == 'Objetiva' %}selected{% endif %}>Objetiva (Múltipla Escolha)</option>
-                                <option value="Subjetiva" {% if tipo_prova == 'Subjetiva' %}selected{% endif %}>Subjetiva (Com Linhas)</option>
-                            </select>
-                        </div>
-                        <div class="mb-1">
-                            <label class="form-label-premium">Volume de Questões</label>
-                            <select class="form-select form-select-premium" name="qtd_questoes">
-                                <option value="5" {% if qtd_questoes == '5' %}selected{% endif %}>5 Questões</option>
-                                <option value="10" {% if qtd_questoes == '10' or not qtd_questoes %}selected{% endif %}>10 Questões</option>
-                            </select>
-                        </div>
-                        <div class="mb-1">
-                            <label class="form-label-premium">Nível de Rigor</label>
-                            <select class="form-select form-select-premium" name="nivel">
-                                <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
-                                <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
-                                <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
-                            </select>
-                        </div>
-                        {% endif %}
-
-                        <div class="mb-3">
-                            <label class="form-label-premium">DIRETRIZES DA BNCC (OPCIONAL)</label>
-                            <input type="text" class="form-control form-control-premium" name="bncc" value="{{ bncc }}" placeholder="Insira códigos de habilidades">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold border-0 shadow-sm" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
-                            <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Gerar Documento com IA
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-lg-8">
-            <div class="card card-painel h-100">
-                <div class="card-header-premium bg-white d-flex justify-content-between align-items-center py-3 no-print">
-                    <span class="text-secondary fw-bold small"><i class="fa-regular fa-file-lines me-2 text-primary"></i>Documento Oficial de Saída</span>
-                    <button onclick="window.print();" class="btn btn-dark btn-sm px-4 py-2 fw-bold rounded-3">
-                        <i class="fa-solid fa-print me-2"></i>Imprimir / Gerar PDF
-                    </button>
-                </div>
-                
-                <div class="card-body bg-light p-3 p-xl-4">
-                    <div class="paper-canvas">
-                        
-                        {% if form_type == 'avaliacoes' %}
-                        <div class="cabecalho-escola-box mb-4">
-                            <div class="text-center border-bottom border-dark pb-1 mb-2">
-                                <h4 class="fw-bold m-0 text-uppercase" style="font-size: 1.15rem; letter-spacing: 0.5px;">{{ school }}</h4>
-                            </div>
-                            <div class="row g-2 small fw-bold text-dark">
-                                <div class="col-6">PROFESSOR(A): <span class="fw-normal border-bottom d-inline-block pb-0" style="width: calc(100% - 110px);">{{ name }}</span></div>
-                                <div class="col-3">DISCIPLINA: <span class="fw-normal border-bottom d-inline-block pb-0" style="width: calc(100% - 90px);">{{ disciplina }}</span></div>
-                                <div class="col-3">ANO/TURMA: <span class="fw-normal border-bottom d-inline-block pb-0" style="width: calc(100% - 90px);">{{ ano }}</span></div>
-                                <div class="col-6 mt-2">ALUNO(A): <div class="border-bottom d-inline-block" style="width: calc(100% - 75px); height: 18px;"></div></div>
-                                <div class="col-3 mt-2">DATA: <div class="border-bottom d-inline-block" style="width: calc(100% - 50px); height: 18px;"></div></div>
-                                <div class="col-3 mt-2">NOTA: <div class="border-bottom d-inline-block" style="width: calc(100% - 50px); height: 18px;"></div></div>
-                            </div>
-                        </div>
-                        <h4 class="text-center fw-bold my-3 text-uppercase text-dark" style="font-size: 1.1rem; letter-spacing: 0.5px;">AVALIAÇÃO BIMESTRAL DE {{ disciplina | upper }}</h4>
-                        
-                        {% else %}
-                        <div class="border-bottom pb-3 mb-4">
-                            <h2 class="fw-bold text-dark mb-1" style="font-size: 1.8rem; letter-spacing: -0.5px;">{{ tema if tema else "Estrutura Pedagógica" }}</h2>
-                            <div class="small fw-bold text-secondary d-flex flex-wrap gap-3 mt-2">
-                                <div><i class="fa-solid fa-school me-1 text-primary"></i> {{ school }}</div>
-                                <div>Componente: <span class="text-dark">{{ disciplina }}</span></div>
-                                <div>Segmento: <span class="text-dark">{{ ano if ano else "Geral" }}</span></div>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <div class="output-html-dinamico">
-                            {% if conteudo %}
-                                {{ conteudo|safe }}
-                            {% else %}
-                                <div class="text-center py-5 text-muted no-print">
-                                    <i class="fa-solid fa-feather-pointed d-block mb-3 opacity-25" style="font-size: 2.5rem;"></i>
-                                    <h6 class="fw-bold text-dark mb-1">Aguardando Parâmetros</h6>
-                                    <p class="small text-muted mb-0">Preencha o painel operacional esquerdo e clique em "Gerar Documento com IA".</p>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="rodape-academico no-print">
-                            <div class="d-flex justify-content-between flex-wrap gap-2">
-                                <div>Este programa não possui fins lucrativos. Trata-se de um trabalho estritamente acadêmico.</div>
-                                <div class="text-md-end fw-semibold">Desenvolvedor: Samuel Araújo Sousa | Tel: (99) 99197-1901 | samuel.ssousa1506@gmail.com</div>
-                            </div>
-                            <div class="mt-1 opacity-75">Ficarei feliz em receber sugestões de melhoria ou relatos de erros técnicos. Estou inteiramente à disposição para atender.</div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <div class="mb-1">
+        <label class="form-label-premium">
+            {% if form_type == 'duvidas' %}
+                SUA PERGUNTA OU DÚVIDA PEDAGÓGICA / LEGISLATIVA
+            {% else %}
+                CONTEÚDO / OBJETO DE ESTUDO
+            {% endif %}
+        </label>
+        <textarea class="form-control form-control-premium" name="tema" rows="3" placeholder="{% if form_type == 'duvidas' %}Ex: O que a LDB diz sobre a progressão continuada? Como alinhar o DCTMA ao planejamento?{% else %}Ex: Frações, Verbo, Segunda Guerra{% endif %}" required>{{ tema }}</textarea>
     </div>
-</div>
-{% endblock %}
+
+    {% if form_type != 'duvidas' %}
+    <div class="mb-1">
+        <label class="form-label-premium">DISCIPLINA</label>
+        <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina if disciplina != 'Componente Curricular' else '' }}" placeholder="Ex: Português, Matemática">
+    </div>
+
+    <div class="mb-1">
+        <label class="form-label-premium">ANO / TURMA</label>
+        <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 5º ano, 3º ano Ensino Médio">
+    </div>
+    {% endif %}
+
+    {% if form_type == 'avaliacoes' %}
+    {% endif %}
+
+    {% if form_type != 'duvidas' %}
+    <div class="mb-3">
+        <label class="form-label-premium">DIRETRIZES DA BNCC (OPCIONAL)</label>
+        <input type="text" class="form-control form-control-premium" name="bncc" value="{{ bncc }}" placeholder="Insira códigos de habilidades">
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold border-0 shadow-sm" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+        <i class="fa-solid fa-wand-magic-sparkles me-2"></i>{% if form_type == 'duvidas' %}Consultar Especialista IA{% else %}Gerar Documento com IA{% endif %}
+    </button>
+</form>
