@@ -45,18 +45,18 @@ def executar_geracao_ia(**kwargs):
         return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
 
     # -----------------------------------------------------------------
-    # LIMPEZA ESTRETA DA CHAVE CONTRA MÁSCARAS DE LINK OU COLCHETES
+    # LIMPEZA EXTRA DA CHAVE CONTRA MÁSCARAS DE LINK OU COLCHETES
     # -----------------------------------------------------------------
     chave_limpa = GEMINI_API_KEY
     
-    # Se a string contiver parênteses (ex: formato markdown de links), pega apenas a parte final
+    # Se a string contiver parênteses (formato markdown de links do chat), isola a chave
     if "(" in chave_limpa and ")" in chave_limpa:
         chave_limpa = chave_limpa.split(")")[-1]
         
-    # Remove colchetes, aspas e espaçamentos laterais que corrompem o Connection Adapter do requests
+    # Remove colchetes, aspas e espaçamentos laterais que corrompem o requests
     chave_limpa = chave_limpa.replace("[", "").replace("]", "").replace("'", "").replace('"', '').strip()
     
-    # Isola o token caso o texto 'key=' tenha sido colado por engano junto
+    # Isola o token caso o texto 'key=' tenha sido colado junto por engano
     if "key=" in chave_limpa:
         chave_limpa = chave_limpa.split("key=")[-1]
     # -----------------------------------------------------------------
@@ -93,7 +93,7 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. MONTAGEM DA REQUISIÇÃO HTTP (Utilizando a Chave Sanitizada)
+    # 3. MONTAGEM DA REQUISIÇÃO HTTP DIRECTA para o Gemini 1.5 Flash
     url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
@@ -173,7 +173,7 @@ def login():
             return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
-    return render_template('login.html', erro=erro, sucesso=sucesso)
+    return render_template('login.html', erro=erro,鸡sucesso=sucesso)
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
@@ -223,7 +223,7 @@ def dashboard():
     nivel = request.form.get('nivel', '').strip()
     
     if request.method == 'POST' and tema:
-        conteudo = executar_geracao_ia(
+        conteudo = executing_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
             ano=ano,
@@ -257,5 +257,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    # Porta dinâmica para compatibilidade com o ambiente Render
+    # Porta dinâmica para compatibilidade total com o ambiente Render
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
