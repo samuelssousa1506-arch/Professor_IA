@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import requests
 from flask import Flask, render_template, request, redirect, url_for, session
@@ -42,15 +43,25 @@ def executar_geracao_ia(**kwargs):
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
 
-    # Limpeza estrita da chave contra formatações markdown
-    chave_limpa = GEMINI_API_KEY
-    if "(" in chave_limpa and ")" in chave_limpa:
-        chave_limpa = chave_limpa.split(")")[-1]
-    chave_limpa = chave_limpa.replace("[", "").replace("]", "").replace("'", "").replace('"', '').strip()
-    if "key=" in chave_limpa:
-        chave_limpa = chave_limpa.split("key=")[-1]
+    # -----------------------------------------------------------------
+    # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
+    # -----------------------------------------------------------------
+    # O padrão procura pela sequência que começa com AIza ou AQ e pega apenas caracteres válidos de chave
+    match = re.search(r'(AIzaSy[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9_-]+)', GEMINI_API_KEY)
+    
+    if match:
+        chave_limpa = match.group(1).strip()
+    else:
+        # Fallback caso a regex não isole (remove manualmente caracteres de link comuns)
+        chave_limpa = GEMINI_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', '')
+        if "key=" in chave_limpa:
+            chave_limpa = chave_limpa.split("key=")[-1]
+        if ")" in chave_limpa:
+            chave_limpa = chave_limpa.split(")")[-1]
+        chave_limpa = chave_limpa.strip()
+    # -----------------------------------------------------------------
 
-    # Construção do Prompt
+    # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
     if tipo_modulo == 'Tira-Dúvidas com IA':
         prompt = f"""
         Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
@@ -82,23 +93,31 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
+    # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
     url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){chave_limpa}"
+    
     headers = {'Content-Type': 'application/json'}
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=60)
+        
         if response.status_code == 200:
             resultado = response.json()
             texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
             return texto_gerado.replace("```html", "").replace("```", "").strip()
         else:
             return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}")
+            
     except Exception as e:
-        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexao fisica: {str(e)}")
+        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexão física: {str(e)}")
 
 # =====================================================================
-# BANCO DE DADOS
+# INICIALIZAÇÃO DO BANCO DE DADOS (SQLite)
 # =====================================================================
 def init_db():
     conn = sqlite3.connect('database.db')
@@ -115,7 +134,7 @@ def init_db():
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
-            INSERT INTO usuarios (nome, escola, email, senha) 
+            INSERT INTO usuarios (nome, school, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
@@ -204,7 +223,6 @@ def dashboard():
     nivel = request.form.get('nivel', '').strip()
     
     if request.method == 'POST' and tema:
-        # CORRIGIDO: Nome correto da função interna
         conteudo = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
