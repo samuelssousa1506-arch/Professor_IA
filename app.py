@@ -36,7 +36,7 @@ def obter_fallback_pedagogico(tipo_modulo, tema):
     <p><strong>Tema enviado:</strong> {tema}</p>
     """
 
-def ejecutar_geracao_ia(**kwargs):
+def executar_geracao_ia(**kwargs):
     tipo_modulo = kwargs.get('tipo_modulo', 'Banco de Atividades')
     tema = kwargs.get('tema', '')
     disciplina = kwargs.get('disciplina', 'Geral')
@@ -164,7 +164,7 @@ def login():
             return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
-    return render_template('login.html', erro=erro, sucesso=sucesso)
+    return render_template('login.html', erro=erro,鸡sucesso=sucesso)
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
