@@ -6,9 +6,13 @@ from flask import Flask, render_template, request, redirect, url_for, session
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# Recupera a chave configurada no Render
+# 1. MAPEAMENTO DE CHAVE (Configuração Segura)
+# Primeiro tenta ler a variável de ambiente do Render. Se estiver vazia, usa a sua chave real exata.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+if not GEMINI_API_KEY:
+    GEMINI_API_KEY = "AQ.Ab8RN6IYEGejPFut_s-nVlpEbgZ60Dwb8wRP_TinHahmQMIYWQ"
 
+# Dicionário unificado de módulos sincronizado com o dashboard.html
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
@@ -21,10 +25,11 @@ MODULOS = {
 }
 
 def obter_fallback_pedagogico(tipo_modulo, tema):
+    """Retorna uma estrutura básica caso ocorra algum erro crítico de conexão externa."""
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
-    <p>Não foi possível conectar à IA em tempo real. Verifique se a variável <strong>GEMINI_API_KEY</strong> está salva no Render.</p>
-    <p>Tema solicitado: {tema}</p>
+    <p>O sistema não conseguiu processar a requisição com a IA em tempo real. Verifique se a chave de API está ativa no Google AI Studio.</p>
+    <p><strong>Tema enviado:</strong> {tema}</p>
     """
 
 def executar_geracao_ia(**kwargs):
@@ -40,39 +45,49 @@ def executar_geracao_ia(**kwargs):
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema)
 
-    # Engenharia de prompt unificada
+    # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
     if tipo_modulo == 'Tira-Dúvidas com IA':
         prompt = f"""
-        Você é um Consultor Jurídico-Pedagógico especialista em Legislação Educacional Brasileira.
-        Responda com precisão sobre: BNCC, LDB (Lei 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e Constituição Federal.
+        Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
+        Responda com total precisão técnica fundamentando-se em: BNCC, LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e Seção da Educação na Constituição Federal.
         
-        Dúvida do Professor: "{tema}"
+        Dúvida ou Consulta do Professor: "{tema}"
         
-        Retorne a resposta COMPLETA em HTML limpo (usando h4, p, strong, ul, li). Não use blocos de código markdown (sem ```html).
+        Retorne a resposta completa estruturada estritamente em HTML limpo (usando h4, p, strong, ul, li). Não utilize delimitadores de código markdown (nunca use ```html).
         """
     else:
         prompt = f"""
-        Atue como um Especialista em Design Pedagógico. Gere o conteúdo completo para o documento '{tipo_modulo}'.
-        Escopo: Disciplina: {disciplina} | Ano: {ano} | Tema: {tema} | BNCC: {bncc} | Nível: {nivel}
+        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
+        Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
+        
+        DADOS DE CONFIGURAÇÃO DO ESCOPO:
+        - Componente/Disciplina: {disciplina}
+        - Ano/Série Escolar: {ano}
+        - Tema Central / Objeto de Estudo: {tema}
+        - Código de Habilidade BNCC Alvo: {bncc}
+        - Nível de Rigor Cognitivo: {nivel}
         """
         if tipo_modulo == 'Gerador de Provas':
             prompt += f"""
-            Gere exatamente {qtd_questoes} questões no formato {tipo_prova}.
-            Use numeração sequencial (01., 02.), inclua a BNCC correspondente entre parênteses e coloque o enunciado dentro de <strong>.
-            Para questões de marcar, coloque alternativas de a) até d) com quebras <br>.
-            Para discursivas, use <div class="linha-resposta"></div> para as linhas.
+            DIRETRIZES DO GERADOR DE PROVAS EXCLUSIVAS:
+            1. Você deve gerar exatamente {qtd_questoes} questões no formato de aplicação: {tipo_prova}.
+            2. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
+            3. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
+            4. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
+            5. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
+            6. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
             """
         else:
-            prompt += f"\nEstruture o documento com títulos h4, parágrafos e listas estruturadas."
+            prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # Chamada direta via API REST (Evita incompatibilidade de versão da biblioteca)
+    # 3. CHAMADA REST DIRETA VIA ENDPOINT DO GOOGLE GEMINI
     url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
     headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "maxOutputTokens": 8192,
-            "temperature": 0.5 if tipo_modulo == 'Tira-Dúvidas com IA' else 0.7
+            "temperature": 0.4 if tipo_modulo == 'Tira-Dúvidas com IA' else 0.7
         }
     }
 
@@ -81,15 +96,14 @@ def executar_geracao_ia(**kwargs):
         if response.status_code == 200:
             resultado = response.json()
             texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
-            # Limpa qualquer resíduo de markdown que a IA teime em colocar
             return texto_gerado.replace("```html", "").replace("```", "").strip()
         else:
-            return obter_fallback_pedagogico(tipo_modulo, tema) + f"<p class='text-danger'>Erro da API: Código {response.status_code}</p>"
+            return obter_fallback_pedagogico(tipo_modulo, tema) + f"<p class='text-danger small'>Código de status do endpoint: {response.status_code}</p>"
     except Exception as e:
         return obter_fallback_pedagogico(tipo_modulo, tema)
 
 # =====================================================================
-# BANCO DE DADOS E ROTAS FLASK
+# GERENCIAMENTO DE BANCO DE DADOS LOCAL (SQLite)
 # =====================================================================
 def init_db():
     conn = sqlite3.connect('database.db')
@@ -114,6 +128,9 @@ def init_db():
 
 init_db()
 
+# =====================================================================
+# ROTAS E REGRAS DO SISTEMA FLASK
+# =====================================================================
 @app.route('/')
 def index():
     if not session.get('logged_in'):
@@ -193,7 +210,7 @@ def dashboard():
     nivel = request.form.get('nivel', '').strip()
     
     if request.method == 'POST' and tema:
-        conteudo = executar_geracao_ia(
+        conteudo = payroll = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
             ano=ano,
