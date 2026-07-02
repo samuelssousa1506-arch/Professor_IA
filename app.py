@@ -94,7 +94,7 @@ def executar_geracao_ia(**kwargs):
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
     # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={chave_limpa}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
