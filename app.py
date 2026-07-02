@@ -117,8 +117,9 @@ def init_db():
     ''')
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
+        # CORRIGIDO: Alterado de 'school' para 'escola' para bater com a tabela
         cursor.execute('''
-            INSERT INTO usuarios (nome, school, email, senha) 
+            INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
