@@ -6,8 +6,8 @@ from flask import Flask, render_template, request, redirect, url_for, session
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# 1. MAPEAMENTO DE CHAVE GEMINI (Puxando direto do ambiente do Render)
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# 1. MAPEAMENTO DE CHAVE GEMINI (Puxando e limpando espaços/caracteres ocultos)
+GEMINI_API_KEY = str(os.environ.get("GEMINI_API_KEY", "")).strip().replace("[", "").replace("]", "")
 
 # Dicionário unificado de módulos sincronizado com o dashboard.html
 MODULOS = {
@@ -24,7 +24,7 @@ MODULOS = {
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
-    <p>O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> no painel do Render.</p>
+    <p>O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> corretamente no painel do Render.</p>
     <p><strong>Tema enviado:</strong> {tema}</p>
     {f'<p class="text-danger small">{erro_adicional}</p>' if erro_adicional else ''}
     """
@@ -39,7 +39,6 @@ def executar_geracao_ia(**kwargs):
     qtd_questoes = kwargs.get('qtd_questoes', '10')
     nivel = kwargs.get('nivel', 'Médio')
 
-    # Validação da chave em tempo de execução
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema, "A chave GEMINI_API_KEY está ausente no sistema.")
 
@@ -78,8 +77,12 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. CHAMADA DIRETA PARA O ENDPOINT DO GOOGLE GEMINI
+    # 3. CHAMADA DIRETA PARA O ENDPOINT DO GOOGLE GEMINI (URL Limpa e Sanitizada)
     url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
+    
+    # Força a limpeza completa de caracteres especiais da URL de requisição
+    url = url.strip().replace(" ", "").replace("[", "").replace("]", "").replace("'", "").replace('"', '')
+
     headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -117,7 +120,6 @@ def init_db():
     ''')
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
-        # CORRIGIDO: Alterado de 'school' para 'escola' para bater com a tabela
         cursor.execute('''
             INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
