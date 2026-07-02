@@ -20,7 +20,7 @@ if GEMINI_API_KEY and GEMINI_DISPONIVEL:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # =====================================================================
-# SEÇÃO PEDAGÓGICA (ANTIGO AI_SERVICE EMBUTIDO PARA EVITAR ERROS)
+# SEÇÃO PEDAGÓGICA (MÓDULO DE GERAÇÃO OTIMIZADO)
 # =====================================================================
 def obter_fallback_pedagogico(tipo_modulo, tema, disciplina, ano):
     """Fallback estruturado exatamente no padrão exigido pelo modelo PDF real."""
@@ -35,7 +35,7 @@ def obter_fallback_pedagogico(tipo_modulo, tema, disciplina, ano):
         <p><strong>03. (EF09MA03) Um determinado conjunto habitacional planejado é composto por exatamente 6 prédios residenciais. Sabendo que cada prédio tem 6 andares, e cada andar possui 6 apartamentos mapeados, indique a potência que representa o número total de apartamentos:</strong></p>
         <p>a) 6<sup>3</sup><br>b) 6<sup>4</sup><br>c) 6<sup>5</sup><br>d) 6<sup>6</sup></p>
         <br>
-        <p><strong>04. (EF09MA02) Analise as propriedades matemáticas das raízes quadradas listadas abaixo e marque a opção que representa necessariamente a raiz cujo resultado final é classificado como um Número Irracional:</strong></p>
+        <p><strong>04. (EF09MA02) Analise as propriedades matemáticas das raíces quadradas listadas abaixo e marque a opção que representa necessariamente a raiz cujo resultado final é classificado como um Número Irracional:</strong></p>
         <p>a) &radic;400<br>b) &radic;144<br>c) &radic;196<br>d) &radic;250</p>
         <br>
         <p><strong>05. (EF09MA01) Escreva com suas palavras qual a diferença prática entre o comportamento de um número racional (como uma dízima periódica) e um número irracional na reta numérica real:</strong></p>
@@ -72,11 +72,18 @@ def executar_geracao_ia(**kwargs):
         return obter_fallback_pedagogico(tipo_modulo, tema, disciplina, ano)
 
     try:
+        # Configuração do modelo expandindo o limite máximo de tokens de saída
+        configuracao = genai.types.GenerationConfig(
+            max_output_tokens=8192,  # Permite textos extremamente longos sem cortes
+            temperature=0.7
+        )
+        
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
         Atue como um Especialista em Design Pedagógico e Elaboração de Avaliações Escolares Oficiais.
-        Sua tarefa é gerar o conteúdo em HTML limpo para o módulo '{tipo_modulo}'.
+        Sua tarefa é gerar o conteúdo COMPLETO do início ao fim em HTML limpo para o módulo '{tipo_modulo}'.
+        Não pare a geração na metade e não resuma o conteúdo. Escreva todas as partes solicitadas.
         
         DADOS DO ESCOPO DO DOCUMENTO:
         - Componente Curricular / Disciplina: {disciplina}
@@ -88,24 +95,25 @@ def executar_geracao_ia(**kwargs):
 
         if tipo_modulo == 'Gerador de Provas':
             prompt += f"""
-            - Quantidade de Questões solicitadas: {qtd_questoes}
+            - Quantidade Exata de Questões solicitadas: DEVE GERAR EXATAMENTE {qtd_questoes} QUESTÕES.
             - Formato das Questões: {tipo_prova}
 
             DIRETRIZES OBRIGATÓRIAS DE FORMATAÇÃO (ESTRUTURA IDENTITÁRIA DO MODELO REAL):
-            1. Use numeração sequencial com dois dígitos seguidos de ponto para cada questão (Exemplo: 01., 02., etc).
-            2. Imediatamente após a numeração, inclua a diretriz BNCC entre parênteses. Use o código fornecido ({bncc}) ou deduza um correto caso esteja vazio. Exemplo: '01. (EF09MA02) '.
+            1. Use numeração sequencial com dois dígitos seguidos de ponto para cada questão (Exemplo: 01., 02., até chegar na questão {qtd_questoes}).
+            2. Imediatamente após a numeração, inclua a diretriz BNCC entre parênteses. Use o código fornecido ({bncc}) ou deduza um correto e real caso esteja vazio. Exemplo: '01. (EF09MA02) '.
             3. Todo o texto do enunciado da questão DEVE estar estritamente dentro da tag HTML <strong>...</strong>.
             4. Para questões Objetivas ou Mistas, posicione as alternativas de 'a)' até 'd)' alinhadas verticalmente logo abaixo do enunciado, separadas por quebras de linha (<br>).
             5. Para questões Subjetivas, adicione de 3 a 4 linhas de resposta utilizando: <div class="linha-resposta"></div>.
-            6. IMPORTANTE: Retorne diretamente o código HTML limpo das questões, sem markdown ou delimitadores ```html.
+            6. IMPORTANTE: Retorne diretamente o código HTML limpo de todas as {qtd_questoes} questões exigidas, sem markdown ou delimitadores ```html.
             """
         else:
-            prompt += """
-            Gere uma estrutura pedagógica profissional formatada em HTML limpo. Use títulos H4 estruturados, 
-            listas organizadas e parágrafos bem definidos. Sem delimitadores de markdown.
+            prompt += f"""
+            Gere um documento robusto, detalhado e completo de {tipo_modulo} sobre o tema {tema}.
+            Estruture utilizando títulos H4, listas organizadas (UL/LI) e parágrafos bem definidos. 
+            Não abrevie as seções. Retorne em HTML limpo sem delimitadores de markdown.
             """
 
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config=configuracao)
         conteudo_limpo = response.text.replace("```html", "").replace("```", "").strip()
         return conteudo_limpo
 
