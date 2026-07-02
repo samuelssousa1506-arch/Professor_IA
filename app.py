@@ -4,13 +4,12 @@ import requests
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
-# Chave secreta para gerenciar as sessões dos usuários logados
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
-# 1. MAPEAMENTO DA CHAVE GEMINI (Puxa direto do painel do Render)
+# 1. MAPEAMENTO DA CHAVE GEMINI
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
-# Dicionário de módulos perfeitamente alinhado com o seu dashboard.html
+# Dicionário de módulos unificado
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
@@ -23,7 +22,6 @@ MODULOS = {
 }
 
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
-    """Retorna uma mensagem amigável caso a IA falhe por algum motivo externo"""
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
     <p>O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> corretamente no painel do Render.</p>
@@ -41,7 +39,6 @@ def executar_geracao_ia(**kwargs):
     qtd_questoes = kwargs.get('qtd_questoes', '10')
     nivel = kwargs.get('nivel', 'Médio')
 
-    # Validação robusta da chave antes de disparar a requisição
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema, "A chave GEMINI_API_KEY está vazia ou ausente no painel do Render.")
 
@@ -50,16 +47,13 @@ def executar_geracao_ia(**kwargs):
         prompt = f"""
         Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
         Responda com total precisão técnica fundamentando-se em: BNCC, LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e Seção da Educação na Constituição Federal.
-        
         Dúvida ou Consulta do Professor: "{tema}"
-        
         Retorne a resposta completa estruturada estritamente em HTML limpo (usando h4, p, strong, ul, li). Não utilize delimitadores de código markdown (nunca use ```html).
         """
     else:
         prompt = f"""
         Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
         Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
-        
         DADOS DE CONFIGURAÇÃO DO ESCOPO:
         - Componente/Disciplina: {disciplina}
         - Ano/Série Escolar: {ano}
@@ -80,7 +74,7 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. ENDPOINT DA API DO GEMINI (Usando a versão v1beta estável e higienizada)
+    # 3. ENDPOINT DA API DO GEMINI
     url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
     
     headers = {'Content-Type': 'application/json'}
@@ -96,17 +90,15 @@ def executar_geracao_ia(**kwargs):
         if response.status_code == 200:
             resultado = response.json()
             texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
-            # Remove marcações markdown residuais que a IA possa gerar por vício
             return texto_gerado.replace("```html", "").replace("```", "").strip()
         else:
-            # Se der erro (como o 400), expõe o texto da resposta do Google para ajuste cirúrgico
             return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}")
             
     except Exception as e:
-        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexão física: {str(e)}")
+        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexao fisica: {str(e)}")
 
 # =====================================================================
-# INICIALIZAÇÃO E GERENCIAMENTO DO BANCO DE DADOS (SQLite)
+# INICIALIZAÇÃO DO BANCO DE DADOS (SQLite)
 # =====================================================================
 def init_db():
     conn = sqlite3.connect('database.db')
@@ -120,7 +112,6 @@ def init_db():
             senha TEXT NOT NULL
         )
     ''')
-    # Cadastra o usuário administrador padrão caso a tabela esteja limpa
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
@@ -130,11 +121,10 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Executa a criação das tabelas assim que o app inicia
 init_db()
 
 # =====================================================================
-# ROTAS FLASK DO ECOSSISTEMA
+# ROTAS FLASK
 # =====================================================================
 @app.route('/')
 def index():
@@ -187,9 +177,9 @@ def cadastro():
                 )
                 conn.commit()
                 conn.close()
-                return redirect(url_for('login',浓sucesso="Conta criada com sucesso! Faça login."))
+                return redirect(url_for('login', sucesso="Conta criada com sucesso! Faca login."))
             except sqlite3.IntegrityError:
-                erro = "Este e-mail já está cadastrado no sistema."
+                erro = "Este e-mail ja esta cadastrado no sistema."
     return render_template('cadastro.html', erro=erro)
 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -205,7 +195,6 @@ def dashboard():
     config_modulo = MODULOS[form_type]
     conteudo = ""
     
-    # Captura de todos os campos possíveis vindos dos formulários HTML
     tema = request.form.get('tema', '').strip()
     disciplina = request.form.get('disciplina', '').strip()
     ano = request.form.get('ano', '').strip()
@@ -214,7 +203,6 @@ def dashboard():
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()
     
-    # Executa a chamada da inteligência artificial se o usuário enviou um tema
     if request.method == 'POST' and tema:
         conteudo = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
@@ -240,8 +228,8 @@ def dashboard():
         qtd_questoes=qtd_questoes,
         nivel=nivel,
         app_name="Professor IA",
-        name=session.get('user_name', 'Samuel Araújo Sousa'),     
-        school=session.get('user_school', 'U.E. Prof. João Martins Neto')  
+        name=session.get('user_name', 'Samuel Araujo Sousa'),     
+        school=session.get('user_school', 'U.E. Prof. Joao Martins Neto')  
     )
 
 @app.route('/logout')
@@ -250,5 +238,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    # Configuração dinâmica de portas para rodar perfeitamente no Render
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
