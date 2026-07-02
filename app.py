@@ -59,7 +59,7 @@ def executar_geracao_ia(**kwargs):
         """
     else:
         prompt = f"""
-        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
+        Atue como um Specialist em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
         Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
         
         DADOS DE CONFIGURAÇÃO DO ESCOPO:
@@ -212,7 +212,8 @@ def dashboard():
     nivel = request.form.get('nivel', '').strip()
     
     if request.method == 'POST' and tema:
-        conteudo = executors_geracao_ia(
+        # CORRIGIDO: Removido o "s" incorreto de executors_geracao_ia
+        conteudo = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
             ano=ano,
