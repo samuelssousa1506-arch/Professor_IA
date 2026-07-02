@@ -7,10 +7,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
 
 # 1. MAPEAMENTO DE CHAVE (Configuração Segura)
-# Primeiro tenta ler a variável de ambiente do Render. Se estiver vazia, usa a sua chave real exata.
+# Lendo estritamente do Render para o GitHub não bloquear mais o commit
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-if not GEMINI_API_KEY:
-    GEMINI_API_KEY = "AQ.Ab8RN6IYEGejPFut_s-nVlpEbgZ60Dwb8wRP_TinHahmQMIYWQ"
 
 # Dicionário unificado de módulos sincronizado com o dashboard.html
 MODULOS = {
