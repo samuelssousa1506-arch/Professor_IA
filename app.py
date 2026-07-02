@@ -1,9 +1,13 @@
-# 1. MAPEAMENTO DE CHAVE GEMINI (Seguro e definitivo)
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+import os
+import sqlite3
+import requests
+from flask import Flask, render_template, request, redirect, url_for, session
 
-if not GEMINI_API_KEY:
-    # Deixe vazio aqui para o GitHub não monitorar nada!
-    GEMINI_API_KEY = ""
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
+
+# 1. MAPEAMENTO DE CHAVE GEMINI (Puxando direto do ambiente do Render)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 
 # Dicionário unificado de módulos sincronizado com o dashboard.html
 MODULOS = {
@@ -17,11 +21,12 @@ MODULOS = {
     'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'}
 }
 
-def obter_fallback_pedagogico(tipo_modulo, tema):
+def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
-    <p>O sistema não conseguiu conectar ao Gemini em tempo real. Verifique os logs do Render ou se sua chave foi desativada no Google AI Studio.</p>
+    <p>O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> no painel do Render.</p>
     <p><strong>Tema enviado:</strong> {tema}</p>
+    {f'<p class="text-danger small">{erro_adicional}</p>' if erro_adicional else ''}
     """
 
 def executar_geracao_ia(**kwargs):
@@ -34,8 +39,9 @@ def executar_geracao_ia(**kwargs):
     qtd_questoes = kwargs.get('qtd_questoes', '10')
     nivel = kwargs.get('nivel', 'Médio')
 
+    # Validação da chave em tempo de execução
     if not GEMINI_API_KEY:
-        return obter_fallback_pedagogico(tipo_modulo, tema)
+        return obter_fallback_pedagogico(tipo_modulo, tema, "A chave GEMINI_API_KEY está ausente no sistema.")
 
     # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
     if tipo_modulo == 'Tira-Dúvidas com IA':
@@ -49,7 +55,7 @@ def executar_geracao_ia(**kwargs):
         """
     else:
         prompt = f"""
-        Atue como um Specialist em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
+        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
         Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
         
         DADOS DE CONFIGURAÇÃO DO ESCOPO:
@@ -72,7 +78,7 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. CHAMADA DIRETA PARA O ENDPOINT DO GOOGLE GEMINI (Modelo Gratuito)
+    # 3. CHAMADA DIRETA PARA O ENDPOINT DO GOOGLE GEMINI
     url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
     headers = {'Content-Type': 'application/json'}
     payload = {
@@ -90,9 +96,9 @@ def executar_geracao_ia(**kwargs):
             texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
             return texto_gerado.replace("```html", "").replace("```", "").strip()
         else:
-            return obter_fallback_pedagogico(tipo_modulo, tema) + f"<p class='text-danger small'>Erro Gemini: Código {response.status_code}</p>"
+            return obter_fallback_pedagogico(tipo_modulo, tema, f"Erro Gemini: Código {response.status_code}")
     except Exception as e:
-        return obter_fallback_pedagogico(tipo_modulo, tema)
+        return obter_fallback_pedagogico(tipo_modulo, tema, f"Erro de Conexão: {str(e)}")
 
 # =====================================================================
 # GERENCIAMENTO DE BANCO DE DADOS LOCAL (SQLite)
@@ -112,7 +118,7 @@ def init_db():
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
         cursor.execute('''
-            INSERT INTO usuarios (nome, escola, email, senha) 
+            INSERT INTO usuarios (nome, school, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
         ''')
     conn.commit()
@@ -202,7 +208,6 @@ def dashboard():
     nivel = request.form.get('nivel', '').strip()
     
     if request.method == 'POST' and tema:
-        # CORRIGIDO: Removido o "s" incorreto de executors_geracao_ia
         conteudo = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
