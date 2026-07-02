@@ -4,12 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acesso - Professor IA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --azul-950: #0a1f3f;
+            --azul-900: #0e2a5e;
+            --azul-700: #1b4da6;
+            --azul-600: #2563eb;
+            --azul-100: #dce9fb;
+            --selo-ouro: #b3811f;
+            --tinta: #0f1f3d;
+            --tinta-suave: #52627e;
+            --borda: #dbe6f5;
+        }
         body {
-            background-color: #f8fafc;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(160deg, var(--azul-950) 0%, var(--azul-900) 38%, #f4f7fb 38%);
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -17,18 +29,88 @@
             justify-content: center;
             padding: 20px;
         }
+        .marca-topo {
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .marca-topo .icone {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+        .marca-topo h1 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .marca-topo p {
+            font-size: 0.85rem;
+            color: #bcd4ff;
+            margin-top: 4px;
+        }
         .card-login {
             border: none;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 20px 40px rgba(10, 31, 63, 0.18);
             width: 100%;
             max-width: 410px;
             background: #ffffff;
-            padding: 35px;
+            padding: 36px;
+        }
+        .card-login h3 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+        }
+        .form-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--tinta-suave);
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid var(--borda);
+            padding: 0.6rem 0.8rem;
+        }
+        .form-control:focus {
+            border-color: var(--azul-600);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+        }
+        .btn-entrar {
+            background: linear-gradient(135deg, var(--azul-700), var(--azul-600));
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            border-radius: 8px;
+            padding: 0.65rem;
+        }
+        .btn-entrar:hover { filter: brightness(1.05); color: #fff; }
+        .selo-legal {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: var(--selo-ouro);
+            background: #fdf6e8;
+            border: 1px solid #eddca4;
+            border-radius: 99px;
+            padding: 4px 12px 4px 9px;
+            margin-top: 16px;
         }
         .dev-footer {
-            margin-top: 30px;
-            font-size: 0.78rem;
+            margin-top: 24px;
+            font-size: 0.75rem;
             color: #64748b;
             text-align: center;
             max-width: 500px;
@@ -37,30 +119,40 @@
     </style>
 </head>
 <body>
+    <div class="marca-topo">
+        <div class="icone"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h1>Professor IA</h1>
+        <p>Documentos pedagógicos gerados com fundamentação legal</p>
+    </div>
+
     <div class="card-login">
         <div class="text-center mb-4">
-            <h3 class="fw-bold text-dark m-0">Professor <span class="text-primary" style="color: #4f46e5 !important;">IA</span></h3>
-            <p class="text-muted small mt-1">Insira suas credenciais para acessar o painel</p>
+            <h3 class="text-dark m-0">Acessar o Painel</h3>
+            <p class="text-muted small mt-1">Insira suas credenciais institucionais</p>
         </div>
-        
+
         {% if erro %}<div class="alert alert-danger small py-2 px-3 rounded-3">{{ erro }}</div>{% endif %}
         {% if sucesso %}<div class="alert alert-success small py-2 px-3 rounded-3">{{ sucesso }}</div>{% endif %}
 
         <form action="{{ url_for('login') }}" method="POST">
             <div class="mb-3">
-                <label class="form-label small fw-bold text-secondary">E-MAIL INSTITUCIONAL</label>
+                <label class="form-label">E-MAIL INSTITUCIONAL</label>
                 <input type="email" class="form-control" name="email" placeholder="nome@exemplo.com" required>
             </div>
             <div class="mb-4">
-                <label class="form-label small fw-bold text-secondary">SENHA</label>
+                <label class="form-label">SENHA</label>
                 <input type="password" class="form-control" name="senha" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100 py-2.5 fw-bold border-0" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">Entrar no Sistema</button>
+            <button type="submit" class="btn btn-entrar w-100">Entrar no Sistema</button>
         </form>
-        
+
         <p class="text-center small text-muted mt-4 mb-0">
-            Não tem uma conta? <a href="{{ url_for('cadastro') }}" class="fw-bold text-decoration-none">Cadastre-se aqui</a>
+            Não tem uma conta? <a href="{{ url_for('cadastro') }}" class="fw-bold text-decoration-none" style="color: var(--azul-700);">Cadastre-se aqui</a>
         </p>
+
+        <div class="text-center">
+            <span class="selo-legal"><i class="fa-solid fa-shield-halved"></i> BNCC · LDB · DCTMA</span>
+        </div>
     </div>
 
     <div class="dev-footer">

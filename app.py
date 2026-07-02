@@ -2,6 +2,7 @@ import os
 import re
 import sqlite3
 import requests
+import markdown as md
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
@@ -22,6 +23,22 @@ MODULOS = {
     'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'}
 }
 
+def sanitizar_saida_html(texto):
+    """
+    Rede de segurança: mesmo instruindo o Gemini a responder em HTML puro,
+    modelos de linguagem eventualmente retornam sintaxe Markdown (###, **, *).
+    Esta função detecta esse padrão e converte para HTML real antes de renderizar.
+    """
+    texto = texto.strip()
+
+    # Heurística: se encontrarmos marcadores clássicos de Markdown, convertemos.
+    parece_markdown = bool(re.search(r'(^|\n)#{2,6}\s|\*\*[^*]+\*\*|(^|\n)\*\s|(^|\n)-\s', texto))
+
+    if parece_markdown:
+        texto = md.markdown(texto, extensions=['tables', 'nl2br', 'sane_lists'])
+
+    return texto.strip()
+
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
@@ -39,40 +56,72 @@ def executar_geracao_ia(**kwargs):
     tipo_prova = kwargs.get('tipo_prova', 'Mista')
     qtd_questoes = kwargs.get('qtd_questoes', '10')
     nivel = kwargs.get('nivel', 'Médio')
+    nome_professor = kwargs.get('nome_professor', 'Professor(a)')
+    nome_escola = kwargs.get('nome_escola', 'Instituição de Ensino')
 
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
 
-    # Extração cirúrgica da chave com Regex
+    # -----------------------------------------------------------------
+    # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
+    # -----------------------------------------------------------------
+    # O padrão procura pela sequência que começa com AIza ou AQ e pega apenas caracteres válidos de chave
     match = re.search(r'(AIzaSy[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9_-]+)', GEMINI_API_KEY)
+    
     if match:
         chave_limpa = match.group(1).strip()
     else:
+        # Fallback caso a regex não isole (remove manualmente caracteres de link comuns)
         chave_limpa = GEMINI_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', '')
         if "key=" in chave_limpa:
             chave_limpa = chave_limpa.split("key=")[-1]
         if ")" in chave_limpa:
             chave_limpa = chave_limpa.split(")")[-1]
         chave_limpa = chave_limpa.strip()
+    # -----------------------------------------------------------------
 
-    # Construção do Prompt Pedagógico
+    # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
+    regras_formato = """
+        REGRAS OBRIGATÓRIAS DE FORMATAÇÃO DA SAÍDA:
+        - Responda ESTRITAMENTE em HTML puro e semântico (tags: h4, h5, p, strong, em, ul, ol, li, table, thead, tbody, tr, th, td, div).
+        - NUNCA utilize sintaxe Markdown (proibido: #, ##, ###, **texto**, *item*, -, ```). Se precisar de negrito use <strong>, se precisar de título use <h4>/<h5>, se precisar de lista use <ul><li>.
+        - NUNCA inclua delimitadores de bloco de código como ```html ou ```.
+        - Use <table class="tabela-bncc"> quando fizer sentido organizar habilidades BNCC, cronogramas ou critérios de avaliação em formato tabular.
+    """
     if tipo_modulo == 'Tira-Dúvidas com IA':
         prompt = f"""
         Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
-        Responda com total precisão técnica fundamentando-se em: BNCC, LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e Seção da Educação na Constituição Federal.
+        Responda com total precisão técnica fundamentando-se OBRIGATORIAMENTE em: BNCC (Base Nacional Comum Curricular), LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e, quando pertinente, na Seção da Educação da Constituição Federal.
+        Sempre que citar um desses documentos, indique de forma explícita o artigo, competência ou eixo correspondente.
         Dúvida ou Consulta do Professor: "{tema}"
-        Retorne a resposta completa estruturada estritamente em HTML limpo (usando h4, p, strong, ul, li). Não utilize delimitadores de código markdown (nunca use ```html).
+        {regras_formato}
         """
     else:
         prompt = f"""
-        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado. 
+        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
         Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
+
+        CABEÇALHO OBRIGATÓRIO DO DOCUMENTO (gere como primeiro bloco, em uma <div class="cabecalho-documento">):
+        - Instituição de Ensino: {nome_escola}
+        - Professor(a) Responsável: {nome_professor}
+        - Componente Curricular: {disciplina}
+        - Ano/Série: {ano}
+        - Data de Geração: [inserir placeholder ___/___/______ para preenchimento manual]
+
+        FUNDAMENTAÇÃO LEGAL OBRIGATÓRIA:
+        Todo o conteúdo pedagógico deve estar alinhado e referenciar explicitamente, quando aplicável:
+        1. BNCC — cite a(s) competência(s) geral(is) e a(s) habilidade(s) específica(s) trabalhada(s).
+        2. LDB (Lei nº 9.394/96) — cite o artigo pertinente aos princípios/fins da educação relacionados ao tema.
+        3. DCTMA — cite o eixo ou orientação curricular do território maranhense relacionado.
+        Inclua uma seção final <h5>Fundamentação Legal</h5> resumindo essas referências.
+
         DADOS DE CONFIGURAÇÃO DO ESCOPO:
         - Componente/Disciplina: {disciplina}
         - Ano/Série Escolar: {ano}
         - Tema Central / Objeto de Estudo: {tema}
         - Código de Habilidade BNCC Alvo: {bncc}
         - Nível de Rigor Cognitivo: {nivel}
+        {regras_formato}
         """
         if tipo_modulo == 'Gerador de Provas':
             prompt += f"""
@@ -87,8 +136,8 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # ATUALIZADO: Usando o modelo atualizado gemini-2.5-flash
-    url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=){chave_limpa}"
+    # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
@@ -103,7 +152,8 @@ def executar_geracao_ia(**kwargs):
         if response.status_code == 200:
             resultado = response.json()
             texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
-            return texto_gerado.replace("```html", "").replace("```", "").strip()
+            texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
+            return sanitizar_saida_html(texto_gerado)
         else:
             return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}")
             
@@ -127,7 +177,6 @@ def init_db():
     ''')
     cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
     if not cursor.fetchone():
-        # CORRIGIDO: Nome correto da coluna 'escola'
         cursor.execute('''
             INSERT INTO usuarios (nome, escola, email, senha) 
             VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
@@ -226,7 +275,9 @@ def dashboard():
             bncc=bncc,
             tipo_prova=tipo_prova,
             qtd_questoes=qtd_questoes,
-            nivel=nivel
+            nivel=nivel,
+            nome_professor=session.get('user_name', 'Professor(a)'),
+            nome_escola=session.get('user_school', 'Instituição de Ensino')
         )
 
     return render_template(

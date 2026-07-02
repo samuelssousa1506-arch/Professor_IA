@@ -4,52 +4,140 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ app_name | default('Professor IA') }}{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+
     <style>
         :root {
-            --bg-principal: #f8fafc;
-            --cor-primaria: #4f46e5;
-            --cor-primaria-hover: #4338ca;
-            --texto-escuro: #0f172a;
-            --texto-mutado: #64748b;
-            --borda-suave: #e2e8f0;
+            --azul-950: #0a1f3f;
+            --azul-900: #0e2a5e;
+            --azul-800: #123a7a;
+            --azul-700: #1b4da6;
+            --azul-600: #2563eb;
+            --azul-500: #3b82f6;
+            --azul-100: #dce9fb;
+            --azul-50:  #f2f6fc;
+            --selo-ouro: #b3811f;
+            --tinta: #0f1f3d;
+            --tinta-suave: #52627e;
+            --borda: #dbe6f5;
+            --fundo: #f4f7fb;
+            --branco: #ffffff;
         }
-        
-        body { 
-            background-color: var(--bg-principal); 
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: var(--texto-escuro);
+
+        body {
+            background-color: var(--fundo);
+            font-family: 'Inter', sans-serif;
+            color: var(--tinta);
             -webkit-font-smoothing: antialiased;
         }
 
+        h1, h2, h3, h4, h5, h6, .fonte-titulo {
+            font-family: 'Sora', sans-serif;
+        }
+
         .navbar-premium {
-            background-color: #ffffff;
-            border-bottom: 1px solid var(--borda-suave);
+            background: linear-gradient(135deg, var(--azul-900), var(--azul-700));
             padding: 14px 32px;
+            box-shadow: 0 2px 12px rgba(10, 31, 63, 0.15);
         }
 
         .brand-text {
+            font-family: 'Sora', sans-serif;
             font-weight: 800;
-            font-size: 1.25rem;
-            letter-spacing: -0.5px;
-            color: var(--texto-escuro);
+            font-size: 1.2rem;
+            letter-spacing: -0.3px;
+            color: #ffffff;
             text-decoration: none;
         }
 
+        .brand-icon-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        .selo-legal {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--selo-ouro);
+            background: #fdf6e8;
+            border: 1px solid #eddca4;
+            border-radius: 99px;
+            padding: 3px 10px 3px 8px;
+        }
+
         .user-badge {
-            background-color: #f1f5f9;
+            background-color: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 8px 16px;
             border-radius: 99px;
             font-size: 0.85rem;
             font-weight: 600;
-            color: #334155;
+            color: #ffffff;
         }
 
-        @media print { 
-            .no-print { display: none !important; } 
+        .btn-outline-danger {
+            --bs-btn-color: #ffffff;
+            --bs-btn-border-color: rgba(255,255,255,0.35);
+            --bs-btn-hover-bg: #dc2626;
+            --bs-btn-hover-border-color: #dc2626;
+        }
+
+        /* Usado por material.html */
+        .btn-print-hide { }
+        .editor-box {
+            background: var(--branco);
+            border: 1px solid var(--borda);
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(10, 31, 63, 0.06);
+            padding: 2.5rem;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .pedagogical-content h4 {
+            color: var(--azul-900);
+            font-weight: 700;
+            margin-top: 1.5rem;
+            border-bottom: 2px solid var(--azul-100);
+            padding-bottom: 0.4rem;
+        }
+        .pedagogical-content h5 {
+            color: var(--azul-700);
+            font-weight: 700;
+            margin-top: 1.25rem;
+        }
+        .pedagogical-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .pedagogical-content th {
+            background: var(--azul-50);
+            color: var(--azul-900);
+            font-weight: 700;
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--borda);
+        }
+        .pedagogical-content td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--borda);
+        }
+
+        @media print {
+            .no-print, .btn-print-hide { display: none !important; }
         }
     </style>
     {% block head %}{% endblock %}
@@ -58,14 +146,17 @@
     <nav class="navbar navbar-premium no-print">
         <div class="container-fluid d-flex justify-content-between align-items-center">
             <a href="/" class="brand-text d-flex align-items-center gap-2">
-                <div class="d-inline-flex p-2 bg-primary text-white rounded-3" style="background: linear-gradient(135deg, #6366f1, #4f46e5) !important;">
+                <span class="brand-icon-box">
                     <i class="fa-solid fa-graduation-cap"></i>
-                </div>
-                <span>Professor <span class="text-primary" style="color: var(--cor-primaria) !important;">IA</span></span>
+                </span>
+                <span>Professor <span style="color:#bcd4ff;">IA</span></span>
+                <span class="selo-legal d-none d-md-inline-flex ms-2">
+                    <i class="fa-solid fa-shield-halved"></i> BNCC · LDB · DCTMA
+                </span>
             </a>
             <div class="d-flex align-items-center gap-3">
                 <div class="user-badge d-none d-sm-inline">
-                    <i class="fa-regular fa-user me-2 text-primary"></i>{{ name }}
+                    <i class="fa-regular fa-user me-2"></i>{{ name }}
                 </div>
                 <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm fw-bold px-3 py-2 rounded-3">
                     <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Sair
