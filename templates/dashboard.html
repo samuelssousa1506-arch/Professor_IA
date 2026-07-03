@@ -55,11 +55,156 @@
         .conteudo-pedagogico-real .doc-secao-titulo { text-align: center; text-transform: uppercase; font-weight: 800; font-size: 0.88rem; letter-spacing: 0.03em; color: var(--tinta); background: var(--azul-50); border-top: 1px solid var(--tinta); border-bottom: 1px solid var(--tinta); padding: 0.45rem 0.5rem; margin-top: 1.75rem; margin-bottom: 0.75rem; }
         .conteudo-pedagogico-real .doc-secao-corpo { font-size: 0.88rem; line-height: 1.55; }
         .conteudo-pedagogico-real .doc-secao-corpo p { margin-bottom: 0.5rem; }
+
+        /* ================================================================
+               LAYOUT PROFISSIONAL PARA PROVAS (Visualização e Impressão)
+               ================================================================ */
+        /* Estilos para a visualização da prova */
+        .prova-profissional {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #000000;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0.2in;
+        }
+
+        .prova-profissional .cabecalho-prova {
+            text-align: center;
+            margin-bottom: 1.2rem;
+            border-bottom: 2px solid #333;
+            padding-bottom: 0.6rem;
+        }
+        .prova-profissional .cabecalho-prova h2 {
+            font-size: 16pt;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+            letter-spacing: 0.5px;
+        }
+        .prova-profissional .cabecalho-prova .info-aluno {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 11pt;
+        }
+        .prova-profissional .cabecalho-prova .info-aluno .campo {
+            display: inline-block;
+            margin: 0 0.2rem;
+        }
+        .prova-profissional .cabecalho-prova .info-aluno .linha {
+            display: inline-block;
+            border-bottom: 1px solid #000;
+            min-width: 100px;
+            margin-left: 0.3rem;
+        }
+        .prova-profissional .titulo-prova {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin: 1rem 0 1.2rem 0;
+            letter-spacing: 1px;
+        }
+        .prova-profissional .questao {
+            margin-bottom: 1.2rem;
+            padding: 0.2rem 0;
+        }
+        .prova-profissional .questao strong {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .prova-profissional .questao .alternativas {
+            margin-left: 1.5rem;
+            list-style: none;
+            padding-left: 0;
+        }
+        .prova-profissional .questao .alternativas li {
+            margin-bottom: 0.1rem;
+        }
+        .prova-profissional .linha-resposta {
+            border-bottom: 1px dotted #888;
+            margin: 0.8rem 0 1.2rem 0;
+            height: 1px;
+        }
+
+        /* Estilos para impressão */
         @media print {
+            body {
+                background: #fff !important;
+                margin: 0.5in !important;
+                padding: 0 !important;
+                font-size: 12pt;
+            }
             .no-print { display: none !important; }
             .sidebar { display: none !important; }
-            .preview-container { border: none !important; box-shadow: none !important; padding: 0 !important; }
-            body { background-color: #fff; }
+            .preview-container {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+            }
+            .prova-profissional {
+                font-size: 12pt;
+                line-height: 1.5;
+                padding: 0 !important;
+                margin: 0 auto !important;
+            }
+            .prova-profissional .cabecalho-prova {
+                border-bottom: 2px solid #000;
+                margin-bottom: 1rem;
+            }
+            .prova-profissional .titulo-prova {
+                font-size: 14pt;
+                margin: 0.8rem 0 1rem 0;
+            }
+            .prova-profissional .questao {
+                margin-bottom: 1rem;
+            }
+            .prova-profissional .questao .alternativas {
+                margin-left: 1.2rem;
+            }
+            .prova-profissional .linha-resposta {
+                margin: 0.6rem 0 1rem 0;
+            }
+            /* Cabeçalho de impressão (renderizado apenas na impressão) */
+            .cabecalho-impressao {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 1.2rem;
+                border-bottom: 2px solid #000;
+                padding-bottom: 0.5rem;
+            }
+            .cabecalho-impressao h3 {
+                font-size: 16pt;
+                font-weight: 700;
+                margin-bottom: 0.2rem;
+            }
+            .cabecalho-impressao .dados-aluno {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                margin-top: 0.3rem;
+                font-size: 11pt;
+            }
+            .cabecalho-impressao .dados-aluno .item {
+                display: inline-block;
+                margin: 0 0.3rem;
+            }
+            .cabecalho-impressao .dados-aluno .linha {
+                display: inline-block;
+                border-bottom: 1px solid #000;
+                min-width: 80px;
+                margin-left: 0.3rem;
+            }
+        }
+
+        /* Ocultar cabeçalho de impressão na tela */
+        .cabecalho-impressao {
+            display: none;
         }
     </style>
 </head>
@@ -324,26 +469,61 @@
                     </form>
                 </div>
             </div>
+
             <!-- Cabeçalho de impressão (aparece apenas na impressão) -->
-            <div class="text-center mb-4 pb-3 border-bottom d-none d-print-block">
-                {% if form_type == 'avaliacoes' %}
-                    <h4 class="fw-bold mb-1">{{ school }}</h4>
-                    <p class="mb-1"><strong>Professor(a):</strong> _________________________</p>
-                    <p class="mb-1"><strong>Disciplina:</strong> {{ disciplina if disciplina else '_____________________' }}</p>
-                    <p class="mb-1"><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
-                    <p class="mb-0"><strong>Turma:</strong> _____________    <strong>Data:</strong> ____/____/________    <strong>Nota:</strong> _______</p>
-                {% else %}
-                    <h4 class="fw-bold mb-1">{{ school }}</h4>
-                    <p class="mb-0"><strong>Professor(a):</strong> {{ name }}</p>
-                {% endif %}
-            </div>
-            <div class="preview-container">
-                <div class="conteudo-pedagogico-real">
-                    {{ conteudo|safe }}
+            <div class="cabecalho-impressao">
+                <h3>{{ school }}</h3>
+                <div class="dados-aluno">
+                    <span class="item"><strong>Professor(a):</strong> _________________________</span>
+                    <span class="item"><strong>Disciplina:</strong> {{ disciplina if disciplina else '_____________________' }}</span>
+                </div>
+                <div class="dados-aluno">
+                    <span class="item"><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</span>
+                </div>
+                <div class="dados-aluno">
+                    <span class="item"><strong>Turma:</strong> _____________</span>
+                    <span class="item"><strong>Data:</strong> ____/____/________</span>
+                    <span class="item"><strong>Nota:</strong> _______</span>
                 </div>
             </div>
 
-            <!-- EXIBIÇÃO DO GABARITO (para provas) -->
+            <!-- Conteúdo da prova com layout profissional -->
+            <div class="preview-container">
+                <div class="prova-profissional">
+                    {% if form_type == 'avaliacoes' %}
+                        <!-- Para provas, usamos o layout profissional com cabeçalho na tela também -->
+                        <div class="cabecalho-prova">
+                            <h2>{{ school }}</h2>
+                            <div class="info-aluno">
+                                <span><strong>Professor(a):</strong> _________________________</span>
+                                <span><strong>Disciplina:</strong> {{ disciplina if disciplina else '_____________________' }}</span>
+                            </div>
+                            <div class="info-aluno">
+                                <span><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</span>
+                            </div>
+                            <div class="info-aluno">
+                                <span><strong>Turma:</strong> _____________</span>
+                                <span><strong>Data:</strong> ____/____/________</span>
+                                <span><strong>Nota:</strong> _______</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Para outros documentos, cabeçalho simples -->
+                        <div style="text-align:center; margin-bottom:1.5rem;">
+                            <h3>{{ school }}</h3>
+                            <p><strong>Professor(a):</strong> {{ name }}</p>
+                            <hr style="border-top:2px solid #333;">
+                        </div>
+                    {% endif %}
+
+                    <!-- O conteúdo gerado pela IA é inserido aqui -->
+                    <div class="conteudo-pedagogico-real">
+                        {{ conteudo|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gabarito (apenas para provas) -->
             {% if form_type == 'avaliacoes' and dados_ia.gabarito %}
             <div class="mt-4 no-print">
                 <div class="card border-success">

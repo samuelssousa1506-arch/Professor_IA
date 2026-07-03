@@ -173,7 +173,7 @@ def montar_prompt_atividade(dados):
     return prompt
 
 # =====================================================================
-# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com título, dois dígitos, gabarito)
+# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com título, dois dígitos, gabarito e NEGRITO)
 # =====================================================================
 def montar_prompt_prova(dados):
     tema = dados.get('tema', '')
@@ -200,7 +200,9 @@ def montar_prompt_prova(dados):
        O título da prova deve ser: <h4 style="text-align:center;">AVALIAÇÃO BIMESTRAL DE {disciplina.upper()}</h4>
        Logo abaixo, inicie as questões imediatamente.
        Numere as questões com dois dígitos e ponto, começando em 01. (ex: 01., 02., ...).
-       Para questões objetivas, liste as alternativas EXATAMENTE assim:
+       Para cada questão, o ENUNCIADO deve estar em NEGRITO, use a tag <strong> em todo o texto da pergunta (incluindo o código BNCC, se houver). Exemplo:
+       <strong>01. (EF09MA02) Qual é o valor de ...</strong>
+       Para as alternativas, use o formato:
        a) texto da alternativa
        b) texto da alternativa
        c) texto da alternativa
@@ -229,7 +231,7 @@ def montar_prompt_prova(dados):
        - Metodologia de avaliação sugerida
     </div>
 
-    Responda em HTML puro, sem Markdown.
+    Responda em HTML puro, sem Markdown. Lembre-se: o enunciado de cada questão deve estar dentro de tags <strong>.
     """
     return prompt
 
@@ -563,7 +565,7 @@ def dashboard():
                 # Remove o gabarito do conteúdo principal (não aparece para o aluno)
                 conteudo = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo, flags=re.DOTALL)
             else:
-                dados_ia['gabarito'] = ''  # ou uma mensagem padrão
+                dados_ia['gabarito'] = ''
     
     return render_template(
         'dashboard.html',
@@ -694,7 +696,7 @@ def excluir_material(material_id):
     return redirect(url_for('biblioteca'))
 
 # =====================================================================
-# ROTA DE EXPORTAÇÃO (com remoção de gabarito e info-pedagogica para provas)
+# ROTA DE EXPORTAÇÃO (com CSS profissional para provas)
 # =====================================================================
 @app.route('/exportar', methods=['POST'])
 def exportar():
@@ -709,21 +711,19 @@ def exportar():
     # Monta o cabeçalho de acordo com o tipo
     if tipo == 'avaliacoes':
         cabecalho = f"""
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
             <h3>{session.get('user_school', '')}</h3>
             <p><strong>Professor(a):</strong> _________________________</p>
             <p><strong>Disciplina:</strong> {disciplina}</p>
             <p><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
             <p><strong>Turma:</strong> _____________    <strong>Data:</strong> ____/____/________    <strong>Nota:</strong> _______</p>
-            <hr>
         </div>
         """
     else:
         cabecalho = f"""
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
             <h3>{session.get('user_school', '')}</h3>
             <p><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
-            <hr>
         </div>
         """
     
@@ -736,17 +736,29 @@ def exportar():
         conteudo_html = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
         conteudo_html = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
     
+    # CSS profissional para o documento exportado
+    css_profissional = """
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.6; margin: 0.5in; color: #000; }
+        h4 { color: #0e2a5e; margin-top: 20px; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+        .linha-resposta { border-bottom: 1px dotted #999; margin: 15px 0; height: 0; }
+        .questao { margin-bottom: 1.2rem; }
+        .questao strong { font-weight: 700; display: block; margin-bottom: 0.2rem; }
+        .alternativas { margin-left: 1.5rem; list-style: none; padding-left: 0; }
+        .alternativas li { margin-bottom: 0.1rem; }
+        .titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 1rem 0 1.2rem 0; letter-spacing: 1px; }
+        hr { border: 0; border-top: 2px solid #000; }
+        p { margin: 0.2rem 0; }
+    </style>
+    """
+    
     html_completo = f"""
     <!DOCTYPE html>
     <html>
     <head><meta charset="UTF-8"><title>Documento Exportado</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        h4 {{ color: #0e2a5e; margin-top: 20px; }}
-        table {{ border-collapse: collapse; width: 100%; margin: 10px 0; }}
-        th, td {{ border: 1px solid #ccc; padding: 6px 10px; text-align: left; }}
-        .linha-resposta {{ border-bottom: 1px dotted #999; margin: 15px 0; height: 0; }}
-    </style>
+    {css_profissional}
     </head>
     <body>
         {cabecalho}
