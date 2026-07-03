@@ -342,6 +342,21 @@
                     {{ conteudo|safe }}
                 </div>
             </div>
+
+            <!-- EXIBIÇÃO DO GABARITO (para provas) -->
+            {% if form_type == 'avaliacoes' and dados_ia.gabarito %}
+            <div class="mt-4 no-print">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white fw-bold">
+                        <i class="fa-solid fa-check-circle me-2"></i> Gabarito do Professor
+                    </div>
+                    <div class="card-body">
+                        {{ dados_ia.gabarito|safe }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Informações Pedagógicas (apenas para provas) -->
             {% if form_type == 'avaliacoes' and dados_ia.pedagogico %}
             <div class="mt-4 no-print">
@@ -359,6 +374,7 @@
                 </div>
             </div>
             {% endif %}
+
             {% else %}
             <div class="d-flex flex-column align-items-center justify-content-center text-center no-print estado-vazio" style="min-height: 70vh; padding: 2rem;">
                 <i class="fa-solid fa-feather-pointed mb-3" style="font-size: 3.2rem; color: var(--azul-500);"></i>

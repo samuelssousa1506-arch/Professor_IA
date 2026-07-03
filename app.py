@@ -103,7 +103,10 @@ def chamar_gemini(prompt, chave):
     except Exception as e:
         return f"<!--ERRO--> {str(e)}"
 
-# ------------------- FUNÇÕES DE MONTAGEM DE PROMPTS -------------------
+# =====================================================================
+# FUNÇÕES DE MONTAGEM DE PROMPTS
+# =====================================================================
+
 def montar_prompt_plano_aula(dados):
     tema = dados.get('tema', '')
     disciplina = dados.get('disciplina', 'Geral')
@@ -131,13 +134,13 @@ def montar_prompt_plano_aula(dados):
     """
 
 def montar_prompt_bimestral(dados):
-    # (mantenha o prompt extenso que você já tinha, incluindo o marcador)
-    # Por brevidade, vou reutilizar o que estava no código original, apenas adaptando os nomes
-    # Mas para não repetir, vou deixar um resumo, mas você pode manter o original.
+    # COPIE AQUI O PROMPT ORIGINAL COMPLETO DO PLANEJAMENTO BIMESTRAL
+    # QUE ESTAVA EM app.py (na antiga função executar_geracao_ia)
+    # POR FAVOR, SUBSTITUA ESTE TEXTO PELO PROMPT COMPLETO.
     return """
-    (Copie aqui o prompt original do Planejamento Bimestral que estava em app.py)
+    ATENÇÃO: Substitua este placeholder pelo prompt completo do Planejamento Bimestral que você tinha originalmente.
     """
-    # ATENÇÃO: Substitua este retorno pelo prompt completo que você já tinha para bimestral.
+    # Exemplo: você pode pegar o texto que começa com "Atue como um Especialista em Planejamento Pedagógico Escolar..."
 
 def montar_prompt_atividade(dados):
     tema = dados.get('tema', '')
@@ -170,6 +173,9 @@ def montar_prompt_atividade(dados):
     """
     return prompt
 
+# =====================================================================
+# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com gabarito e alternativas sem duplicação)
+# =====================================================================
 def montar_prompt_prova(dados):
     tema = dados.get('tema', '')
     disciplina = dados.get('disciplina', '')
@@ -189,15 +195,30 @@ def montar_prompt_prova(dados):
     - Nível de dificuldade: {nivel}
     - Código BNCC de referência: {bncc if bncc else 'selecione os mais adequados'}
 
-    Sua resposta deve ser um HTML estruturado com duas seções:
+    Sua resposta deve ser um HTML estruturado com três seções:
 
     1. <div class="questoes">
        Gere apenas as questões, sem cabeçalho. Inicie com "01.", "02.", etc.
-       Para objetivas, use a) b) c) d).
-       Para subjetivas, insira <div class="linha-resposta"></div> três vezes.
+       Para questões objetivas, liste as alternativas EXATAMENTE assim:
+       a) texto da alternativa
+       b) texto da alternativa
+       c) texto da alternativa
+       d) texto da alternativa
+       (NUNCA repita a letra, como "a. a)" – use APENAS "a)" no início de cada linha)
+       Para questões subjetivas, insira <div class="linha-resposta"></div> três vezes após o enunciado.
     </div>
 
-    2. <div class="info-pedagogica" style="display:none;">
+    2. <div class="gabarito">
+       Inclua aqui o gabarito completo para o professor, com as respostas corretas.
+       Exemplo:
+       <h5>Gabarito</h5>
+       <p>01. A</p>
+       <p>02. C</p>
+       <p>03. B</p>
+       ...
+    </div>
+
+    3. <div class="info-pedagogica" style="display:none;">
        Inclua aqui as informações pedagógicas que não devem ser exportadas:
        - Objetivos da avaliação
        - Habilidades da BNCC trabalhadas (códigos e descrições)
@@ -299,7 +320,6 @@ def gerar_conteudo_ia(tipo_modulo, dados):
     if not chave:
         return obter_fallback_pedagogico(tipo_modulo, dados.get('tema', ''), "Chave inválida.")
     
-    # Mapeamento de tipos para funções de prompt
     prompt_map = {
         'Plano de Aula': montar_prompt_plano_aula,
         'Planejamento Bimestral': montar_prompt_bimestral,
@@ -523,14 +543,25 @@ def dashboard():
             'tipos_projeto': tipos_projeto,
         }
         conteudo = gerar_conteudo_ia(config_modulo['nome'], dados)
-        # Se for prova, extrair informações pedagógicas
+        
+        # Extração para provas: informações pedagógicas e gabarito
         if form_type == 'avaliacoes' and conteudo:
-            match = re.search(r'<div class="info-pedagogica"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
-            if match:
-                dados_ia['pedagogico'] = match.group(1)
+            # Extrai informações pedagógicas
+            match_pedagogico = re.search(r'<div class="info-pedagogica"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
+            if match_pedagogico:
+                dados_ia['pedagogico'] = match_pedagogico.group(1)
                 conteudo = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo, flags=re.DOTALL)
             else:
                 dados_ia['pedagogico'] = 'Informações pedagógicas não disponíveis.'
+            
+            # Extrai o gabarito
+            match_gabarito = re.search(r'<div class="gabarito"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
+            if match_gabarito:
+                dados_ia['gabarito'] = match_gabarito.group(1)
+                # Remove o gabarito do conteúdo principal (não aparece para o aluno)
+                conteudo = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo, flags=re.DOTALL)
+            else:
+                dados_ia['gabarito'] = ''  # ou uma mensagem padrão
     
     return render_template(
         'dashboard.html',
@@ -661,7 +692,7 @@ def excluir_material(material_id):
     return redirect(url_for('biblioteca'))
 
 # =====================================================================
-# ROTAS DE EXPORTAÇÃO
+# ROTA DE EXPORTAÇÃO (com remoção de gabarito e info-pedagogica para provas)
 # =====================================================================
 @app.route('/exportar', methods=['POST'])
 def exportar():
@@ -694,11 +725,14 @@ def exportar():
         </div>
         """
     
-    # Para provas, extrai apenas a div .questoes
+    # Para provas, extrai apenas a div .questoes e remove gabarito/info-pedagogica
     if tipo == 'avaliacoes':
         match = re.search(r'<div class="questoes">(.*?)</div>', conteudo_html, re.DOTALL)
         if match:
             conteudo_html = match.group(1)
+        # Remove qualquer vestígio de gabarito ou info-pedagogica (por segurança)
+        conteudo_html = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
+        conteudo_html = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
     
     html_completo = f"""
     <!DOCTYPE html>
@@ -724,7 +758,6 @@ def exportar():
         return send_file(io.BytesIO(pdf), as_attachment=True, download_name='documento.pdf', mimetype='application/pdf')
     else:  # docx
         doc = Document()
-        # Cabeçalho em texto
         if tipo == 'avaliacoes':
             doc.add_heading(session.get('user_school', ''), level=1)
             doc.add_paragraph('Professor(a): _________________________')
@@ -735,7 +768,6 @@ def exportar():
             doc.add_heading(session.get('user_school', ''), level=1)
             doc.add_paragraph(f'Professor(a): {session.get("user_name", "")}')
         doc.add_paragraph('')
-        # Conteúdo (como texto puro, para melhor formatação seria necessário parse)
         doc.add_paragraph(conteudo_html)
         buffer = io.BytesIO()
         doc.save(buffer)
