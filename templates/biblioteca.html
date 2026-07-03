@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+    <h3 class="fw-bold">Minha Biblioteca</h3>
+    <p class="text-muted">Materiais gerados e salvos</p>
+    {% if materiais %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Tipo</th>
+                    <th>Data</th>
+                    <th>Favorito</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mat in materiais %}
+                <tr>
+                    <td>{{ mat[1] }}</td>
+                    <td>{{ mat[2] }}</td>
+                    <td>{{ mat[3] }}</td>
+                    <td>
+                        <form action="{{ url_for('favoritar_material', material_id=mat[0]) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-outline-warning">
+                                <i class="fa-solid fa-star {% if mat[4] %}text-warning{% endif %}"></i>
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('editar_material', material_id=mat[0]) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <form action="{{ url_for('excluir_material', material_id=mat[0]) }}" method="POST" style="display:inline;" onsubmit="return confirm('Excluir este material?')">
+                            <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                        </form>
+                        <form action="{{ url_for('exportar') }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="conteudo" value="{{ mat[5] }}">
+                            <input type="hidden" name="tipo" value="{{ mat[2] }}">
+                            <button type="submit" name="formato" value="pdf" class="btn btn-sm btn-secondary">PDF</button>
+                            <button type="submit" name="formato" value="docx" class="btn btn-sm btn-secondary">Word</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>Nenhum material salvo ainda.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
         :root {
             --azul-950: #0a1f3f;
@@ -24,255 +23,38 @@
             --borda: #dbe6f5;
             --fundo: #f4f7fb;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--fundo);
-            color: var(--tinta);
-        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
         h1,h2,h3,h4,h5,h6 { font-family: 'Sora', sans-serif; }
-
-        .sidebar {
-            background-color: #ffffff;
-            border-right: 1px solid var(--borda);
-            min-height: 100vh;
-            padding: 0 !important;
-        }
-        .sidebar-brand {
-            background: linear-gradient(135deg, var(--azul-900), var(--azul-700));
-            padding: 1.5rem 1.25rem;
-            color: #fff;
-        }
-        .sidebar-brand h5 {
-            font-weight: 800;
-            margin: 0;
-            font-size: 1.05rem;
-        }
-        .sidebar-brand .icone {
-            width: 34px; height: 34px;
-            border-radius: 9px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.25);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 8px;
-        }
-        .sidebar-brand .selo-legal {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.62rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            color: #ffe9b3;
-            margin-top: 8px;
-        }
+        .sidebar { background-color: #ffffff; border-right: 1px solid var(--borda); min-height: 100vh; padding: 0 !important; }
+        .sidebar-brand { background: linear-gradient(135deg, var(--azul-900), var(--azul-700)); padding: 1.5rem 1.25rem; color: #fff; }
+        .sidebar-brand h5 { font-weight: 800; margin: 0; font-size: 1.05rem; }
+        .sidebar-brand .icone { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; }
+        .sidebar-brand .selo-legal { display: inline-flex; align-items: center; gap: 5px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.03em; color: #ffe9b3; margin-top: 8px; }
         .sidebar-body { padding: 1.25rem; }
-
-        .nav-link-premium {
-            display: flex;
-            align-items: center;
-            padding: 0.65rem 0.9rem;
-            color: var(--tinta-suave);
-            text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 0.2rem;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.15s;
-        }
-        .nav-link-premium:hover {
-            background-color: var(--azul-50);
-            color: var(--azul-900);
-        }
-        .nav-link-premium.active {
-            background-color: var(--azul-100);
-            color: var(--azul-800);
-        }
+        .nav-link-premium { display: flex; align-items: center; padding: 0.65rem 0.9rem; color: var(--tinta-suave); text-decoration: none; border-radius: 8px; margin-bottom: 0.2rem; font-weight: 600; font-size: 0.9rem; transition: all 0.15s; }
+        .nav-link-premium:hover { background-color: var(--azul-50); color: var(--azul-900); }
+        .nav-link-premium.active { background-color: var(--azul-100); color: var(--azul-800); }
         .nav-link-premium i { width: 1.2rem; margin-right: 0.7rem; }
-
-        .form-label-premium {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 700;
-            color: var(--tinta-suave);
-            margin-top: 0.75rem;
-            margin-bottom: 0.3rem;
-            display: block;
-        }
-        .form-control-premium {
-            border-radius: 8px;
-            border: 1px solid var(--borda);
-            padding: 0.55rem 0.8rem;
-            font-size: 0.9rem;
-        }
-        .form-control-premium:focus {
-            border-color: var(--azul-600);
-            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
-        }
-
-        .badge-modulo {
-            background-color: var(--azul-100);
-            color: var(--azul-800);
-            padding: 0.4rem 0.7rem;
-            font-weight: 700;
-            font-size: 0.75rem;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-gerar {
-            background: linear-gradient(135deg, var(--azul-800), var(--azul-600));
-            border: none;
-            color: #fff;
-            font-weight: 700;
-            border-radius: 10px;
-            padding: 0.85rem;
-            box-shadow: 0 6px 16px rgba(27, 77, 166, 0.25);
-        }
+        .form-label-premium { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--tinta-suave); margin-top: 0.75rem; margin-bottom: 0.3rem; display: block; }
+        .form-control-premium { border-radius: 8px; border: 1px solid var(--borda); padding: 0.55rem 0.8rem; font-size: 0.9rem; }
+        .form-control-premium:focus { border-color: var(--azul-600); box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15); }
+        .badge-modulo { background-color: var(--azul-100); color: var(--azul-800); padding: 0.4rem 0.7rem; font-weight: 700; font-size: 0.75rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-gerar { background: linear-gradient(135deg, var(--azul-800), var(--azul-600)); border: none; color: #fff; font-weight: 700; border-radius: 10px; padding: 0.85rem; box-shadow: 0 6px 16px rgba(27, 77, 166, 0.25); }
         .btn-gerar:hover { filter: brightness(1.06); color: #fff; }
-
-        .preview-container {
-            background: #ffffff;
-            border: 1px solid var(--borda);
-            border-radius: 12px;
-            padding: 2.75rem;
-            box-shadow: 0 1px 3px rgba(10,31,63,0.05);
-            min-height: 70vh;
-        }
-
-        .btn-imprimir {
-            background: var(--azul-700);
-            border: none;
-            color: #fff;
-            font-weight: 700;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(27,77,166,0.2);
-        }
+        .preview-container { background: #ffffff; border: 1px solid var(--borda); border-radius: 12px; padding: 2.75rem; box-shadow: 0 1px 3px rgba(10,31,63,0.05); min-height: 70vh; }
+        .btn-imprimir { background: var(--azul-700); border: none; color: #fff; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 10px rgba(27,77,166,0.2); }
         .btn-imprimir:hover { background: var(--azul-800); color: #fff; }
-
-        /* Cabeçalho institucional gerado pela IA */
-        .conteudo-pedagogico-real .cabecalho-documento {
-            border-left: 4px solid var(--azul-600);
-            background: var(--azul-50);
-            border-radius: 6px;
-            padding: 0.9rem 1.1rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.88rem;
-            color: var(--azul-900);
-        }
-        .conteudo-pedagogico-real h4 {
-            color: var(--azul-900);
-            font-weight: 700;
-            margin-top: 1.5rem;
-            border-bottom: 2px solid var(--azul-100);
-            padding-bottom: 0.4rem;
-        }
-        .conteudo-pedagogico-real h5 {
-            color: var(--azul-700);
-            font-weight: 700;
-            margin-top: 1.25rem;
-        }
-        .conteudo-pedagogico-real table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-            font-size: 0.92rem;
-        }
-        .conteudo-pedagogico-real th {
-            background: var(--azul-50);
-            color: var(--azul-900);
-            text-align: left;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--borda);
-        }
-        .conteudo-pedagogico-real td {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--borda);
-        }
-        .conteudo-pedagogico-real strong { color: var(--azul-900); }
-
-        /* Estrutura do documento oficial — Planejamento Bimestral */
-        .conteudo-pedagogico-real .doc-cabecalho-oficial {
-            border: 1px solid var(--tinta);
-            border-radius: 4px;
-            padding: 0.7rem 1rem;
-            margin-bottom: 1.25rem;
-            font-size: 0.82rem;
-            line-height: 1.55;
-        }
+        .letterhead-selo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; color: var(--selo-ouro); background: #fdf6e8; border: 1px solid #eddca4; border-radius: 99px; padding: 3px 10px 3px 8px; }
+        .estado-vazio { border: 2px dashed var(--borda); border-radius: 12px; background-color: #ffffff; }
+        .linha-resposta { border-bottom: 1px dotted #94a3b8; margin-top: 1.5rem; height: 1px; }
+        .conteudo-pedagogico-real .doc-cabecalho-oficial { border: 1px solid var(--tinta); border-radius: 4px; padding: 0.7rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; line-height: 1.55; }
         .conteudo-pedagogico-real .doc-cabecalho-oficial p { margin: 0; }
-        .conteudo-pedagogico-real .doc-cabecalho-oficial strong { color: var(--tinta); }
-
-        .conteudo-pedagogico-real .doc-titulo-oficial {
-            text-align: center;
-            font-weight: 800;
-            font-size: 1.4rem;
-            color: var(--tinta);
-            margin: 1.25rem 0;
-            border: none;
-        }
-
-        .conteudo-pedagogico-real .doc-metadata-oficial {
-            background: var(--azul-50);
-            border: 1px solid var(--azul-100);
-            border-radius: 6px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
-            line-height: 1.7;
-            color: var(--azul-800);
-            font-weight: 600;
-        }
+        .conteudo-pedagogico-real .doc-titulo-oficial { text-align: center; font-weight: 800; font-size: 1.4rem; color: var(--tinta); margin: 1.25rem 0; border: none; }
+        .conteudo-pedagogico-real .doc-metadata-oficial { background: var(--azul-50); border: 1px solid var(--azul-100); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; line-height: 1.7; color: var(--azul-800); font-weight: 600; }
         .conteudo-pedagogico-real .doc-metadata-oficial p { margin: 0; }
-
-        .conteudo-pedagogico-real .doc-secao-titulo {
-            text-align: center;
-            text-transform: uppercase;
-            font-weight: 800;
-            font-size: 0.88rem;
-            letter-spacing: 0.03em;
-            color: var(--tinta);
-            background: var(--azul-50);
-            border-top: 1px solid var(--tinta);
-            border-bottom: 1px solid var(--tinta);
-            padding: 0.45rem 0.5rem;
-            margin-top: 1.75rem;
-            margin-bottom: 0.75rem;
-        }
+        .conteudo-pedagogico-real .doc-secao-titulo { text-align: center; text-transform: uppercase; font-weight: 800; font-size: 0.88rem; letter-spacing: 0.03em; color: var(--tinta); background: var(--azul-50); border-top: 1px solid var(--tinta); border-bottom: 1px solid var(--tinta); padding: 0.45rem 0.5rem; margin-top: 1.75rem; margin-bottom: 0.75rem; }
         .conteudo-pedagogico-real .doc-secao-corpo { font-size: 0.88rem; line-height: 1.55; }
         .conteudo-pedagogico-real .doc-secao-corpo p { margin-bottom: 0.5rem; }
-
-        .linha-resposta {
-            border-bottom: 1px dotted #94a3b8;
-            margin-top: 1.5rem;
-            height: 1px;
-        }
-
-        .letterhead-selo {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.68rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            color: var(--selo-ouro);
-            background: #fdf6e8;
-            border: 1px solid #eddca4;
-            border-radius: 99px;
-            padding: 3px 10px 3px 8px;
-        }
-
-        .estado-vazio {
-            border: 2px dashed var(--borda);
-            border-radius: 12px;
-            background-color: #ffffff;
-        }
-
         @media print {
             .no-print { display: none !important; }
             .sidebar { display: none !important; }
@@ -282,7 +64,6 @@
     </style>
 </head>
 <body>
-
 <div class="container-fluid">
     <div class="row">
         <!-- BARRA LATERAL -->
@@ -294,82 +75,164 @@
                 </div>
                 <div class="selo-legal"><i class="fa-solid fa-shield-halved"></i> BNCC · LDB · DCTMA</div>
             </div>
-
             <div class="sidebar-body">
                 <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Módulos do Sistema</p>
                 <nav class="nav flex-column">
-                    <a class="nav-link-premium {% if form_type == 'plano' %}active{% endif %}" href="{{ url_for('dashboard', form_type='plano') }}">
-                        <i class="fa-solid fa-book"></i> Plano de Aula
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'bimestral' %}active{% endif %}" href="{{ url_for('dashboard', form_type='bimestral') }}">
-                        <i class="fa-solid fa-calendar-check"></i> Plan. Bimestral
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'atividades' %}active{% endif %}" href="{{ url_for('dashboard', form_type='atividades') }}">
-                        <i class="fa-solid fa-list-check"></i> Banco de Atividades
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'avaliacoes' %}active{% endif %}" href="{{ url_for('dashboard', form_type='avaliacoes') }}">
-                        <i class="fa-solid fa-file-signature"></i> Gerador de Provas
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'duvidas' %}active{% endif %}" href="{{ url_for('dashboard', form_type='duvidas') }}">
-                        <i class="fa-solid fa-circle-question"></i> Tira-Dúvidas IA
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'relatorios' %}active{% endif %}" href="{{ url_for('dashboard', form_type='relatorios') }}">
-                        <i class="fa-solid fa-chart-line"></i> Relatórios
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'inclusao' %}active{% endif %}" href="{{ url_for('dashboard', form_type='inclusao') }}">
-                        <i class="fa-solid fa-hands-asl-interpreting"></i> Plano AEE
-                    </a>
-                    <a class="nav-link-premium {% if form_type == 'projetos' %}active{% endif %}" href="{{ url_for('dashboard', form_type='projetos') }}">
-                        <i class="fa-solid fa-diagram-project"></i> Projetos
-                    </a>
+                    <a class="nav-link-premium {% if form_type == 'plano' %}active{% endif %}" href="{{ url_for('dashboard', form_type='plano') }}"><i class="fa-solid fa-book"></i> Plano de Aula</a>
+                    <a class="nav-link-premium {% if form_type == 'bimestral' %}active{% endif %}" href="{{ url_for('dashboard', form_type='bimestral') }}"><i class="fa-solid fa-calendar-check"></i> Plan. Bimestral</a>
+                    <a class="nav-link-premium {% if form_type == 'atividades' %}active{% endif %}" href="{{ url_for('dashboard', form_type='atividades') }}"><i class="fa-solid fa-list-check"></i> Banco de Atividades</a>
+                    <a class="nav-link-premium {% if form_type == 'avaliacoes' %}active{% endif %}" href="{{ url_for('dashboard', form_type='avaliacoes') }}"><i class="fa-solid fa-file-signature"></i> Gerador de Provas</a>
+                    <a class="nav-link-premium {% if form_type == 'duvidas' %}active{% endif %}" href="{{ url_for('dashboard', form_type='duvidas') }}"><i class="fa-solid fa-circle-question"></i> Tira-Dúvidas IA</a>
+                    <a class="nav-link-premium {% if form_type == 'relatorios' %}active{% endif %}" href="{{ url_for('dashboard', form_type='relatorios') }}"><i class="fa-solid fa-chart-line"></i> Relatórios</a>
+                    <a class="nav-link-premium {% if form_type == 'inclusao' %}active{% endif %}" href="{{ url_for('dashboard', form_type='inclusao') }}"><i class="fa-solid fa-hands-asl-interpreting"></i> Plano AEE</a>
+                    <a class="nav-link-premium {% if form_type == 'projetos' %}active{% endif %}" href="{{ url_for('dashboard', form_type='projetos') }}"><i class="fa-solid fa-diagram-project"></i> Projetos</a>
+                    <hr>
+                    <a class="nav-link-premium" href="{{ url_for('biblioteca') }}"><i class="fa-solid fa-folder-open"></i> Minha Biblioteca</a>
                 </nav>
-
                 <hr class="my-4">
                 <div class="small mb-3">
                     <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
                     <p class="mb-0 text-truncate text-muted" style="font-size: 0.8rem;">{{ school }}</p>
                 </div>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm w-100">
-                    <i class="fa-solid fa-right-from-bracket me-1"></i> Sair do Sistema
-                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm w-100"><i class="fa-solid fa-right-from-bracket me-1"></i> Sair</a>
             </div>
         </div>
 
         <!-- FORMULÁRIO -->
         <div class="col-md-4 col-lg-3 p-4 bg-white border-end no-print" style="min-height: 100vh;">
             <div class="mb-4">
-                <span class="badge-modulo mb-2">
-                    <i class="fa-solid {{ config.icone }}"></i> {{ config.nome }}
-                </span>
+                <span class="badge-modulo mb-2"><i class="fa-solid {{ config.icone }}"></i> {{ config.nome }}</span>
                 <h4 class="fw-bold mt-2" style="color: var(--tinta);">Configurar Parâmetros</h4>
             </div>
-
             <form action="{{ url_for('dashboard', form_type=form_type) }}" method="POST">
                 <input type="hidden" name="form_type" value="{{ form_type }}">
 
                 <div class="mb-2">
-                    <label class="form-label-premium">
-                        {% if form_type == 'duvidas' %}
-                            SUA PERGUNTA OU CONSULTA PEDAGÓGICA
-                        {% else %}
-                            CONTEÚDO / OBJETO DE ESTUDO
-                        {% endif %}
-                    </label>
-                    <textarea class="form-control form-control-premium" name="tema" rows="4" placeholder="{% if form_type == 'duvidas' %}Ex: O que diz a LDB sobre a progressividade escolar? Como aplicar o DCTMA neste tema?{% else %}Ex: Equações de 2º Grau, Sintaxe, Revolução Francesa...{% endif %}" required>{{ tema }}</textarea>
+                    <label class="form-label-premium">{% if form_type == 'duvidas' %}SUA PERGUNTA PEDAGÓGICA{% else %}CONTEÚDO / OBJETO DE ESTUDO{% endif %}</label>
+                    <textarea class="form-control form-control-premium" name="tema" rows="4" placeholder="Ex: Equações de 2º Grau, Sintaxe, Revolução Francesa..." required>{{ tema }}</textarea>
                 </div>
 
                 {% if form_type != 'duvidas' %}
                 <div class="mb-2">
-                    <label class="form-label-premium">DISCIPLINA / COMPONENTE</label>
-                    <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina if disciplina != 'Componente Curricular' else '' }}" placeholder="Ex: Matemática, História">
+                    <label class="form-label-premium">DISCIPLINA</label>
+                    <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina }}" placeholder="Ex: Matemática, História">
                 </div>
-
                 <div class="mb-2">
                     <label class="form-label-premium">ANO / TURMA</label>
-                    <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 9º Ano, 3ª Série E.M.">
+                    <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 9º Ano">
                 </div>
                 {% endif %}
 
+                <!-- Campos específicos: ATIVIDADES -->
+                {% if form_type == 'atividades' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">QUANTIDADE DE QUESTÕES</label>
+                    <select class="form-select form-control-premium" name="quantidade">
+                        <option value="5" {% if quantidade == '5' %}selected{% endif %}>5</option>
+                        <option value="10" {% if quantidade == '10' %}selected{% endif %}>10</option>
+                        <option value="15" {% if quantidade == '15' %}selected{% endif %}>15</option>
+                        <option value="20" {% if quantidade == '20' %}selected{% endif %}>20</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">NÍVEL DE DIFICULDADE</label>
+                    <select class="form-select form-control-premium" name="nivel">
+                        <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
+                        <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
+                        <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
+                        <option value="Misto" {% if nivel == 'Misto' %}selected{% endif %}>Misto</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">TIPOS DE ATIVIDADE (selecione um ou mais)</label>
+                    <div class="row row-cols-2 g-1 small">
+                        {% set tipos_atividade_opcoes = [
+                            'Interpretação de texto', 'Questões objetivas', 'Questões subjetivas', 'Produção textual',
+                            'Atividade de leitura (alfabetização)', 'Complete as lacunas', 'Ligue as colunas', 'Verdadeiro ou falso',
+                            'Caça-palavras', 'Cruzadinha', 'Sequência lógica', 'Ordenação de frases',
+                            'Escrita de palavras', 'Formação de frases', 'Problemas matemáticos', 'Atividade ilustrada',
+                            'Recorte e cole', 'Pintura educativa', 'Pesquisa', 'Debate em sala',
+                            'Trabalho em grupo', 'Atividade prática', 'Revisão de conteúdo', 'Exercícios para reforço'
+                        ] %}
+                        {% for tipo in tipos_atividade_opcoes %}
+                        <div class="col">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="tipos_atividade" value="{{ tipo }}" id="tipo_{{ loop.index }}" {% if tipo in tipos_atividade %}checked{% endif %}>
+                                <label class="form-check-label" for="tipo_{{ loop.index }}">{{ tipo }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Campos específicos: PROVAS -->
+                {% if form_type == 'avaliacoes' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">FORMATO DAS QUESTÕES</label>
+                    <select class="form-select form-control-premium" name="tipo_prova">
+                        <option value="Mista" {% if tipo_prova == 'Mista' %}selected{% endif %}>Mista (Objetivas + Subjetivas)</option>
+                        <option value="Apenas Objetivas" {% if tipo_prova == 'Apenas Objetivas' %}selected{% endif %}>Apenas Objetivas</option>
+                        <option value="Apenas Subjetivas" {% if tipo_prova == 'Apenas Subjetivas' %}selected{% endif %}>Apenas Subjetivas</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">QUANTIDADE DE QUESTÕES</label>
+                    <select class="form-select form-control-premium" name="qtd_questoes">
+                        <option value="5" {% if qtd_questoes == '5' %}selected{% endif %}>5</option>
+                        <option value="10" {% if qtd_questoes == '10' %}selected{% endif %}>10</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">NÍVEL DE DIFICULDADE</label>
+                    <select class="form-select form-control-premium" name="nivel">
+                        <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
+                        <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
+                        <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Campos específicos: PROJETOS -->
+                {% if form_type == 'projetos' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">SÉRIE/ANO</label>
+                    <input type="text" class="form-control form-control-premium" name="serie" value="{{ serie }}" placeholder="Ex: 9º Ano">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">DURAÇÃO PREVISTA</label>
+                    <input type="text" class="form-control form-control-premium" name="duracao" value="{{ duracao }}" placeholder="Ex: 2 meses">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">OBJETIVO GERAL</label>
+                    <textarea class="form-control form-control-premium" name="objetivo" rows="3" placeholder="Descreva o objetivo principal">{{ objetivo }}</textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">TIPOS DE PROJETO (selecione um ou mais)</label>
+                    <div class="row row-cols-2 g-1 small">
+                        {% set tipos_projeto_opcoes = [
+                            'Feira de Ciências', 'Feira Cultural', 'Feira Literária', 'Mostra Pedagógica',
+                            'Visita Técnica', 'Aula de Campo', 'Projeto Interdisciplinar', 'Projeto de Leitura',
+                            'Projeto de Escrita', 'Projeto Ambiental', 'Projeto de Sustentabilidade', 'Projeto de História Local',
+                            'Projeto de Cultura Popular', 'Projeto de Consciência Negra', 'Projeto de Educação Financeira',
+                            'Projeto de Saúde', 'Projeto Esportivo', 'Gincana Educativa', 'Culminância',
+                            'Exposição de Trabalhos', 'Oficina', 'Seminário', 'Palestra', 'Teatro', 'Musical',
+                            'Produção de Podcast', 'Produção de Vídeo', 'Robótica Educacional', 'Clube de Ciências',
+                            'Clube de Leitura', 'Horta Escolar', 'Outro'
+                        ] %}
+                        {% for tipo in tipos_projeto_opcoes %}
+                        <div class="col">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="tipos_projeto" value="{{ tipo }}" id="proj_{{ loop.index }}" {% if tipo in tipos_projeto %}checked{% endif %}>
+                                <label class="form-check-label" for="proj_{{ loop.index }}">{{ tipo }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Planejamento Bimestral -->
                 {% if form_type == 'bimestral' %}
                 <div class="row g-2">
                     <div class="col-6">
@@ -390,170 +253,122 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="row g-2 mt-0">
-                    <div class="col-6">
-                        <label class="form-label-premium">EXECUÇÃO — INÍCIO</label>
-                        <input type="date" class="form-control form-control-premium" name="data_inicio" value="{{ data_inicio }}">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label-premium">EXECUÇÃO — FIM</label>
-                        <input type="date" class="form-control form-control-premium" name="data_fim" value="{{ data_fim }}">
-                    </div>
+                    <div class="col-6"><label class="form-label-premium">EXECUÇÃO — INÍCIO</label><input type="date" class="form-control form-control-premium" name="data_inicio" value="{{ data_inicio }}"></div>
+                    <div class="col-6"><label class="form-label-premium">EXECUÇÃO — FIM</label><input type="date" class="form-control form-control-premium" name="data_fim" value="{{ data_fim }}"></div>
                 </div>
-
                 <div class="row g-2 mt-0">
-                    <div class="col-4">
-                        <label class="form-label-premium">TURMA (LETRA)</label>
-                        <input type="text" class="form-control form-control-premium" name="turma" value="{{ turma }}" placeholder="Ex: A">
-                    </div>
-                    <div class="col-8">
-                        <label class="form-label-premium">TURNO</label>
-                        <select class="form-select form-control-premium" name="turno">
-                            <option value="MATUTINO" {% if turno == 'MATUTINO' %}selected{% endif %}>Matutino</option>
-                            <option value="VESPERTINO" {% if turno == 'VESPERTINO' %}selected{% endif %}>Vespertino</option>
-                            <option value="NOTURNO" {% if turno == 'NOTURNO' %}selected{% endif %}>Noturno</option>
-                            <option value="INTEGRAL" {% if turno == 'INTEGRAL' %}selected{% endif %}>Integral</option>
-                        </select>
-                    </div>
+                    <div class="col-4"><label class="form-label-premium">TURMA (LETRA)</label><input type="text" class="form-control form-control-premium" name="turma" value="{{ turma }}" placeholder="Ex: A"></div>
+                    <div class="col-8"><label class="form-label-premium">TURNO</label><select class="form-select form-control-premium" name="turno">
+                        <option value="MATUTINO" {% if turno == 'MATUTINO' %}selected{% endif %}>Matutino</option>
+                        <option value="VESPERTINO" {% if turno == 'VESPERTINO' %}selected{% endif %}>Vespertino</option>
+                        <option value="NOTURNO" {% if turno == 'NOTURNO' %}selected{% endif %}>Noturno</option>
+                        <option value="INTEGRAL" {% if turno == 'INTEGRAL' %}selected{% endif %}>Integral</option>
+                    </select></div>
                 </div>
-
                 <div class="row g-2 mt-0">
-                    <div class="col-6">
-                        <label class="form-label-premium">Nº DO PLANO (OPCIONAL)</label>
-                        <input type="text" class="form-control form-control-premium" name="numero_plano" value="{{ numero_plano }}" placeholder="Gerado automaticamente">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label-premium">ANO LETIVO</label>
-                        <input type="text" class="form-control form-control-premium" name="ano_letivo" value="{{ ano_letivo }}" placeholder="Ex: 2026">
-                    </div>
+                    <div class="col-6"><label class="form-label-premium">Nº DO PLANO</label><input type="text" class="form-control form-control-premium" name="numero_plano" value="{{ numero_plano }}" placeholder="Gerado"></div>
+                    <div class="col-6"><label class="form-label-premium">ANO LETIVO</label><input type="text" class="form-control form-control-premium" name="ano_letivo" value="{{ ano_letivo }}" placeholder="2026"></div>
                 </div>
-
-                <div class="mb-2 mt-1">
-                    <label class="form-label-premium">OBSERVAÇÕES (OPCIONAL)</label>
-                    <textarea class="form-control form-control-premium" name="observacoes" rows="2" placeholder="Alguma observação para constar no plano?">{{ observacoes }}</textarea>
-                </div>
-
+                <div class="mb-2 mt-1"><label class="form-label-premium">OBSERVAÇÕES</label><textarea class="form-control form-control-premium" name="observacoes" rows="2">{{ observacoes }}</textarea></div>
                 <details class="mb-2 mt-1">
-                    <summary class="form-label-premium" style="cursor: pointer; display: inline;">DADOS INSTITUCIONAIS PARA O CABEÇALHO (OPCIONAL) ▾</summary>
+                    <summary class="form-label-premium" style="cursor:pointer;">DADOS INSTITUCIONAIS (opcional) ▾</summary>
                     <div class="row g-2 mt-1">
-                        <div class="col-6">
-                            <label class="form-label-premium">INEP</label>
-                            <input type="text" class="form-control form-control-premium" name="inep" value="{{ inep }}" placeholder="Ex: 21131333">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label-premium">ZONA</label>
-                            <input type="text" class="form-control form-control-premium" name="zona_escola" value="{{ zona_escola }}" placeholder="Ex: Urbana">
-                        </div>
+                        <div class="col-6"><label class="form-label-premium">INEP</label><input type="text" class="form-control form-control-premium" name="inep" value="{{ inep }}" placeholder="21131333"></div>
+                        <div class="col-6"><label class="form-label-premium">ZONA</label><input type="text" class="form-control form-control-premium" name="zona_escola" value="{{ zona_escola }}" placeholder="Urbana"></div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label-premium">ENDEREÇO DA ESCOLA</label>
-                        <input type="text" class="form-control form-control-premium" name="endereco_escola" value="{{ endereco_escola }}" placeholder="Rua, número, bairro">
+                    <div class="mb-2"><label class="form-label-premium">ENDEREÇO</label><input type="text" class="form-control form-control-premium" name="endereco_escola" value="{{ endereco_escola }}" placeholder="Rua, número"></div>
+                    <div class="row g-2">
+                        <div class="col-8"><label class="form-label-premium">CIDADE</label><input type="text" class="form-control form-control-premium" name="cidade_escola" value="{{ cidade_escola }}" placeholder="Presidente Dutra"></div>
+                        <div class="col-4"><label class="form-label-premium">ESTADO</label><input type="text" class="form-control form-control-premium" name="estado_escola" value="{{ estado_escola }}" maxlength="2"></div>
                     </div>
                     <div class="row g-2">
-                        <div class="col-8">
-                            <label class="form-label-premium">CIDADE</label>
-                            <input type="text" class="form-control form-control-premium" name="cidade_escola" value="{{ cidade_escola }}" placeholder="Ex: Presidente Dutra">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label-premium">ESTADO</label>
-                            <input type="text" class="form-control form-control-premium" name="estado_escola" value="{{ estado_escola if estado_escola else 'MA' }}" maxlength="2">
-                        </div>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label-premium">TELEFONE</label>
-                            <input type="text" class="form-control form-control-premium" name="telefone_escola" value="{{ telefone_escola }}" placeholder="(99) 00000-0000">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label-premium">E-MAIL DA ESCOLA</label>
-                            <input type="email" class="form-control form-control-premium" name="email_escola" value="{{ email_escola }}" placeholder="escola@email.com">
-                        </div>
+                        <div class="col-6"><label class="form-label-premium">TELEFONE</label><input type="text" class="form-control form-control-premium" name="telefone_escola" value="{{ telefone_escola }}" placeholder="(99) 00000-0000"></div>
+                        <div class="col-6"><label class="form-label-premium">E-MAIL</label><input type="email" class="form-control form-control-premium" name="email_escola" value="{{ email_escola }}" placeholder="escola@email.com"></div>
                     </div>
                 </details>
                 {% endif %}
 
-                {% if form_type == 'avaliacoes' %}
-                <div class="mb-2">
-                    <label class="form-label-premium">FORMATO DAS QUESTÕES</label>
-                    <select class="form-select form-control-premium" name="tipo_prova">
-                        <option value="Mista" {% if tipo_prova == 'Mista' %}selected{% endif %}>Mista (Múltipla Escolha e Discursivas)</option>
-                        <option value="Apenas Objetivas" {% if tipo_prova == 'Apenas Objetivas' %}selected{% endif %}>Apenas Objetivas (A a D)</option>
-                        <option value="Apenas Subjetivas" {% if tipo_prova == 'Apenas Subjetivas' %}selected{% endif %}>Apenas Subjetivas (Discursivas)</option>
-                    </select>
-                </div>
-
-                <div class="mb-2">
-                    <label class="form-label-premium">QUANTIDADE DE QUESTÕES</label>
-                    <select class="form-select form-control-premium" name="qtd_questoes">
-                        <option value="5" {% if qtd_questoes == '5' %}selected{% endif %}>05 Questões</option>
-                        <option value="10" {% if qtd_questoes == '10' %}selected{% endif %}>10 Questões</option>
-                    </select>
-                </div>
-
-                <div class="mb-2">
-                    <label class="form-label-premium">NÍVEL DE DIFICULDADE</label>
-                    <select class="form-select form-control-premium" name="nivel">
-                        <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
-                        <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
-                        <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
-                    </select>
-                </div>
-                {% endif %}
-
                 {% if form_type != 'duvidas' %}
                 <div class="mb-3">
-                    <label class="form-label-premium">CÓDIGO DA BNCC (OPCIONAL)</label>
-                    <input type="text" class="form-control form-control-premium" name="bncc" value="{{ bncc }}" placeholder="Ex: EF09MA02, EF15LP01">
+                    <label class="form-label-premium">CÓDIGO BNCC (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="bncc" value="{{ bncc }}" placeholder="Ex: EF09MA02">
                 </div>
                 {% endif %}
 
                 <button type="submit" class="btn btn-gerar w-100 mt-2">
-                    <i class="fa-solid fa-wand-magic-sparkles me-2"></i> {% if form_type == 'duvidas' %}Consultar Expert IA{% else %}Gerar com Inteligência Artificial{% endif %}
+                    <i class="fa-solid fa-wand-magic-sparkles me-2"></i> {% if form_type == 'duvidas' %}Consultar Expert IA{% else %}Gerar com IA{% endif %}
                 </button>
             </form>
         </div>
 
-        <!-- VISUALIZAÇÃO E IMPRESSÃO -->
+        <!-- VISUALIZAÇÃO -->
         <div class="col-md-5 col-lg-7 p-4">
             {% if conteudo %}
             <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-                <h5 class="fw-bold m-0" style="color: var(--tinta-suave);"><i class="fa-solid fa-eye me-1"></i> Visualização Prévia do Documento</h5>
-                <button onclick="window.print();" class="btn btn-imprimir fw-bold px-3">
-                    <i class="fa-solid fa-print me-1"></i> Imprimir / Salvar PDF
-                </button>
-            </div>
-
-            <div class="preview-container">
-                <!-- Cabeçalho Escolar Oficial automático para Impressão -->
-                <div class="text-center mb-4 pb-3 border-bottom d-none d-print-block">
-                    <h4 class="fw-bold mb-1">{{ school }}</h4>
-                    <p class="text-muted small mb-1">Documentação Pedagógica Oficial • Professor(a): {{ name }}</p>
-                    <span class="letterhead-selo"><i class="fa-solid fa-shield-halved"></i> Alinhado à BNCC · LDB 9.394/96 · DCTMA</span>
-                    <div class="row mt-4 text-start small">
-                        <div class="col-6"><strong>ESTUDANTE:</strong> ____________________________________________________</div>
-                        <div class="col-3"><strong>TURMA:</strong> _____________</div>
-                        <div class="col-3"><strong>DATA:</strong> ____/____/______</div>
-                    </div>
+                <h5 class="fw-bold m-0" style="color: var(--tinta-suave);"><i class="fa-solid fa-eye me-1"></i> Visualização Prévia</h5>
+                <div>
+                    <button onclick="window.print();" class="btn btn-imprimir fw-bold px-3 me-2"><i class="fa-solid fa-print me-1"></i> Imprimir / PDF</button>
+                    <form action="{{ url_for('salvar_material') }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="titulo" value="{{ tema or 'Material Gerado' }}">
+                        <input type="hidden" name="tipo" value="{{ form_type }}">
+                        <input type="hidden" name="conteudo" value="{{ conteudo }}">
+                        <button type="submit" class="btn btn-success fw-bold"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar</button>
+                    </form>
+                    <form action="{{ url_for('exportar') }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="conteudo" value="{{ conteudo }}">
+                        <input type="hidden" name="tipo" value="{{ form_type }}">
+                        <input type="hidden" name="disciplina" value="{{ disciplina }}">
+                        <button type="submit" name="formato" value="pdf" class="btn btn-primary fw-bold"><i class="fa-solid fa-file-pdf me-1"></i> PDF</button>
+                        <button type="submit" name="formato" value="docx" class="btn btn-primary fw-bold"><i class="fa-solid fa-file-word me-1"></i> Word</button>
+                    </form>
                 </div>
-
-                <!-- Conteúdo real injetado vindo da IA -->
+            </div>
+            <!-- Cabeçalho de impressão (aparece apenas na impressão) -->
+            <div class="text-center mb-4 pb-3 border-bottom d-none d-print-block">
+                {% if form_type == 'avaliacoes' %}
+                    <h4 class="fw-bold mb-1">{{ school }}</h4>
+                    <p class="mb-1"><strong>Professor(a):</strong> _________________________</p>
+                    <p class="mb-1"><strong>Disciplina:</strong> {{ disciplina if disciplina else '_____________________' }}</p>
+                    <p class="mb-1"><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
+                    <p class="mb-0"><strong>Turma:</strong> _____________    <strong>Data:</strong> ____/____/________    <strong>Nota:</strong> _______</p>
+                {% else %}
+                    <h4 class="fw-bold mb-1">{{ school }}</h4>
+                    <p class="mb-0"><strong>Professor(a):</strong> {{ name }}</p>
+                {% endif %}
+            </div>
+            <div class="preview-container">
                 <div class="conteudo-pedagogico-real">
                     {{ conteudo|safe }}
                 </div>
             </div>
+            <!-- Informações Pedagógicas (apenas para provas) -->
+            {% if form_type == 'avaliacoes' and dados_ia.pedagogico %}
+            <div class="mt-4 no-print">
+                <div class="accordion" id="accordionPedagogico">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingPedagogico">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePedagogico">
+                                <i class="fa-solid fa-graduation-cap me-2"></i> Informações Pedagógicas (não exportadas)
+                            </button>
+                        </h2>
+                        <div id="collapsePedagogico" class="accordion-collapse collapse" data-bs-parent="#accordionPedagogico">
+                            <div class="accordion-body">{{ dados_ia.pedagogico|safe }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             {% else %}
             <div class="d-flex flex-column align-items-center justify-content-center text-center no-print estado-vazio" style="min-height: 70vh; padding: 2rem;">
                 <i class="fa-solid fa-feather-pointed mb-3" style="font-size: 3.2rem; color: var(--azul-500);"></i>
                 <h5 class="fw-bold" style="color: var(--tinta);">Aguardando Parâmetros</h5>
-                <p class="text-muted small" style="max-width: 320px;">Preencha o formulário ao lado para gerar um documento pedagógico estruturado e fundamentado na BNCC, LDB e DCTMA.</p>
+                <p class="text-muted small" style="max-width: 320px;">Preencha o formulário ao lado para gerar um documento pedagógico estruturado.</p>
             </div>
             {% endif %}
         </div>
-
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
