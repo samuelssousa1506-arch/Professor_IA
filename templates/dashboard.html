@@ -46,7 +46,7 @@
         .btn-imprimir:hover { background: var(--azul-800); color: #fff; }
         .estado-vazio { border: 2px dashed var(--borda); border-radius: 12px; background-color: #ffffff; }
 
-        /* LAYOUT PROFISSIONAL PARA PROVAS – sem bullets */
+        /* LAYOUT PROFISSIONAL PARA PROVAS – sem bullets e com espaçamento */
         .prova-profissional {
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
@@ -85,7 +85,6 @@
         }
         .cabecalho-unico .linha-dados .linha-grande { min-width: 250px; }
 
-        /* Título da prova */
         .titulo-prova {
             text-align: center;
             font-size: 14pt;
@@ -96,33 +95,26 @@
             color: var(--azul-900);
         }
 
-        /* Questões */
         .prova-profissional .questao {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.8rem;
             padding: 0.2rem 0;
         }
         .prova-profissional .questao strong {
             font-weight: 700;
             display: block;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.3rem;
         }
-        /* Removemos os bullets das alternativas */
         .prova-profissional .questao .alternativas {
             margin-left: 1.8rem;
-            margin-top: 0.2rem;
-            list-style: none !important;
-            padding-left: 0 !important;
+            margin-top: 0.3rem;
         }
-        .prova-profissional .questao .alternativas li,
-        .prova-profissional .questao .alternativas p {
-            list-style: none !important;
-            margin-bottom: 0.1rem;
-            padding-left: 0 !important;
+        .prova-profissional .questao .alternativas p.alt {
+            margin-bottom: 0.4rem;
+            padding-left: 0;
+            list-style: none;
         }
-        .prova-profissional .questao .alternativas ul,
-        .prova-profissional .questao .alternativas ol {
-            list-style: none !important;
-            padding-left: 0 !important;
+        .prova-profissional .questao .alternativas br {
+            display: none;
         }
         .prova-profissional .linha-resposta {
             border-bottom: 1px dotted #888;
@@ -130,7 +122,6 @@
             height: 1px;
         }
 
-        /* Impressão */
         @media print {
             body { background: #fff !important; margin: 0.5in !important; padding: 0 !important; }
             .no-print { display: none !important; }
@@ -145,7 +136,7 @@
             .prova-profissional { font-size: 12pt; line-height: 1.5; }
             .cabecalho-unico { border-bottom: 2px solid #000; margin-bottom: 1rem; }
             .titulo-prova { font-size: 14pt; margin: 0.5rem 0 1rem 0; }
-            .prova-profissional .questao { margin-bottom: 1.2rem; }
+            .prova-profissional .questao { margin-bottom: 1.5rem; }
             .prova-profissional .questao .alternativas { margin-left: 1.5rem; }
             .prova-profissional .linha-resposta { margin: 0.6rem 0 1rem 0; }
         }
@@ -413,7 +404,7 @@
                 </div>
             </div>
 
-            <!-- CABEÇALHO ÚNICO (aparece na tela e na impressão) -->
+            <!-- CABEÇALHO ÚNICO -->
             <div class="cabecalho-unico">
                 <h2>{{ school }}</h2>
                 <div class="linha-dados">

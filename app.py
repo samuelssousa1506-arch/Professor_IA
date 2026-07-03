@@ -173,7 +173,7 @@ def montar_prompt_atividade(dados):
     return prompt
 
 # =====================================================================
-# PROMPT CORRIGIDO DO GERADOR DE PROVAS
+# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com espaçamento e sem bullets)
 # =====================================================================
 def montar_prompt_prova(dados):
     tema = dados.get('tema', '')
@@ -202,16 +202,12 @@ def montar_prompt_prova(dados):
        Numere as questões com dois dígitos e ponto, começando em 01. (ex: 01., 02., ...).
        Para cada questão, o ENUNCIADO deve estar em NEGRITO, use a tag <strong> em todo o texto da pergunta (incluindo o código BNCC, se houver). Exemplo:
        <strong>01. (EF09MA02) Qual é o valor de ...</strong>
-       Para as alternativas, use o formato:
-       a) texto da alternativa
-       b) texto da alternativa
-       c) texto da alternativa
-       d) texto da alternativa
-       NUNCA use marcadores (bullets) como <ul> ou <li> para as alternativas. Use apenas texto com quebra de linha (<br>) ou parágrafos simples. Exemplo:
-       a) Alternativa A<br>
-       b) Alternativa B<br>
-       c) Alternativa C<br>
-       d) Alternativa D
+       Para as alternativas, use o seguinte formato:
+       <p class="alt">a) texto da alternativa</p>
+       <p class="alt">b) texto da alternativa</p>
+       <p class="alt">c) texto da alternativa</p>
+       <p class="alt">d) texto da alternativa</p>
+       NUNCA use marcadores (bullets) como <ul> ou <li>. Use APENAS <p class="alt"> para cada alternativa.
        Para questões subjetivas, insira <div class="linha-resposta"></div> três vezes após o enunciado.
        Não inclua nenhum texto antes do título da prova.
     </div>
@@ -235,7 +231,7 @@ def montar_prompt_prova(dados):
        - Metodologia de avaliação sugerida
     </div>
 
-    Responda em HTML puro, sem Markdown. Lembre-se: o enunciado de cada questão deve estar dentro de tags <strong> e as alternativas NÃO devem ter marcadores.
+    Responda em HTML puro, sem Markdown. Lembre-se: o enunciado de cada questão deve estar dentro de tags <strong> e as alternativas devem ser <p class="alt">.
     """
     return prompt
 
@@ -700,7 +696,7 @@ def excluir_material(material_id):
     return redirect(url_for('biblioteca'))
 
 # =====================================================================
-# ROTA DE EXPORTAÇÃO (com CSS profissional para provas)
+# ROTA DE EXPORTAÇÃO (com CSS profissional)
 # =====================================================================
 @app.route('/exportar', methods=['POST'])
 def exportar():
@@ -745,10 +741,10 @@ def exportar():
     <style>
         body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.6; margin: 0.5in; color: #000; }
         .titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1.2rem 0; letter-spacing: 1px; color: #0e2a5e; }
-        .questao { margin-bottom: 1.2rem; }
-        .questao strong { font-weight: 700; display: block; margin-bottom: 0.2rem; }
-        .alternativas { margin-left: 1.8rem; margin-top: 0.2rem; }
-        .alternativas p { margin: 0.1rem 0; }
+        .questao { margin-bottom: 1.8rem; }
+        .questao strong { font-weight: 700; display: block; margin-bottom: 0.3rem; }
+        .alternativas { margin-left: 1.8rem; margin-top: 0.3rem; }
+        .alternativas p.alt { margin-bottom: 0.4rem; }
         .linha-resposta { border-bottom: 1px dotted #999; margin: 15px 0; height: 0; }
         table { border-collapse: collapse; width: 100%; margin: 10px 0; }
         th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
