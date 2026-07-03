@@ -134,13 +134,12 @@ def montar_prompt_plano_aula(dados):
     """
 
 def montar_prompt_bimestral(dados):
-    # COPIE AQUI O PROMPT ORIGINAL COMPLETO DO PLANEJAMENTO BIMESTRAL
-    # QUE ESTAVA EM app.py (na antiga função executar_geracao_ia)
-    # POR FAVOR, SUBSTITUA ESTE TEXTO PELO PROMPT COMPLETO.
+    # ATENÇÃO: Substitua este placeholder pelo prompt completo do Planejamento Bimestral
+    # que você tinha originalmente no seu app.py antigo (o extenso com INEP, ESCOLA, etc.)
     return """
-    ATENÇÃO: Substitua este placeholder pelo prompt completo do Planejamento Bimestral que você tinha originalmente.
+    <h4>Planejamento Bimestral</h4>
+    <p><strong>ATENÇÃO:</strong> Substitua este placeholder pelo prompt completo do Planejamento Bimestral que estava no seu arquivo original.</p>
     """
-    # Exemplo: você pode pegar o texto que começa com "Atue como um Especialista em Planejamento Pedagógico Escolar..."
 
 def montar_prompt_atividade(dados):
     tema = dados.get('tema', '')
@@ -174,7 +173,7 @@ def montar_prompt_atividade(dados):
     return prompt
 
 # =====================================================================
-# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com gabarito e alternativas sem duplicação)
+# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com título, dois dígitos, gabarito)
 # =====================================================================
 def montar_prompt_prova(dados):
     tema = dados.get('tema', '')
@@ -198,7 +197,9 @@ def montar_prompt_prova(dados):
     Sua resposta deve ser um HTML estruturado com três seções:
 
     1. <div class="questoes">
-       Gere apenas as questões, sem cabeçalho. Inicie com "01.", "02.", etc.
+       O título da prova deve ser: <h4 style="text-align:center;">AVALIAÇÃO BIMESTRAL DE {disciplina.upper()}</h4>
+       Logo abaixo, inicie as questões imediatamente.
+       Numere as questões com dois dígitos e ponto, começando em 01. (ex: 01., 02., ...).
        Para questões objetivas, liste as alternativas EXATAMENTE assim:
        a) texto da alternativa
        b) texto da alternativa
@@ -206,6 +207,7 @@ def montar_prompt_prova(dados):
        d) texto da alternativa
        (NUNCA repita a letra, como "a. a)" – use APENAS "a)" no início de cada linha)
        Para questões subjetivas, insira <div class="linha-resposta"></div> três vezes após o enunciado.
+       Não inclua nenhum texto antes do título da prova.
     </div>
 
     2. <div class="gabarito">
