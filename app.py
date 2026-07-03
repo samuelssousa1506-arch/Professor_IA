@@ -135,9 +135,10 @@ def montar_prompt_plano_aula(dados):
 
 def montar_prompt_bimestral(dados):
     # ATENÇÃO: Substitua este placeholder pelo prompt completo do Planejamento Bimestral
+    # que estava no seu arquivo original.
     return """
     <h4>Planejamento Bimestral</h4>
-    <p><strong>ATENÇÃO:</strong> Substitua este placeholder pelo prompt completo do Planejamento Bimestral que estava no seu arquivo original.</p>
+    <p><strong>ATENÇÃO:</strong> Substitua este placeholder pelo prompt completo do Planejamento Bimestral.</p>
     """
 
 def montar_prompt_atividade(dados):
@@ -171,11 +172,10 @@ def montar_prompt_atividade(dados):
     """
     return prompt
 
+# =====================================================================
+# PROMPT CORRIGIDO DO GERADOR DE PROVAS
+# =====================================================================
 def montar_prompt_prova(dados):
-    """
-    PROMPT DO GERADOR DE PROVAS – gera apenas o título e as questões.
-    O cabeçalho (escola, professor, aluno etc.) é renderizado pelo template.
-    """
     tema = dados.get('tema', '')
     disciplina = dados.get('disciplina', '')
     ano = dados.get('ano', '')
@@ -194,7 +194,7 @@ def montar_prompt_prova(dados):
     - Nível de dificuldade: {nivel}
     - Código BNCC de referência: {bncc if bncc else 'selecione os mais adequados'}
 
-    Sua resposta deve ser um HTML estruturado com as seguintes partes:
+    Sua resposta deve ser um HTML estruturado com três seções:
 
     1. <div class="questoes">
        O título da prova deve ser: <h4 class="titulo-prova">AVALIAÇÃO BIMESTRAL DE {disciplina.upper()}</h4>
@@ -202,14 +202,16 @@ def montar_prompt_prova(dados):
        Numere as questões com dois dígitos e ponto, começando em 01. (ex: 01., 02., ...).
        Para cada questão, o ENUNCIADO deve estar em NEGRITO, use a tag <strong> em todo o texto da pergunta (incluindo o código BNCC, se houver). Exemplo:
        <strong>01. (EF09MA02) Qual é o valor de ...</strong>
-       Para as alternativas, use uma lista não ordenada com classe "alternativas" e cada item com a letra da alternativa seguida de ) e o texto, por exemplo:
-       <ul class="alternativas">
-           <li>a) texto da alternativa</li>
-           <li>b) texto da alternativa</li>
-           <li>c) texto da alternativa</li>
-           <li>d) texto da alternativa</li>
-       </ul>
-       (NUNCA repita a letra, como "a. a)" – use APENAS "a)" no início de cada item)
+       Para as alternativas, use o formato:
+       a) texto da alternativa
+       b) texto da alternativa
+       c) texto da alternativa
+       d) texto da alternativa
+       NUNCA use marcadores (bullets) como <ul> ou <li> para as alternativas. Use apenas texto com quebra de linha (<br>) ou parágrafos simples. Exemplo:
+       a) Alternativa A<br>
+       b) Alternativa B<br>
+       c) Alternativa C<br>
+       d) Alternativa D
        Para questões subjetivas, insira <div class="linha-resposta"></div> três vezes após o enunciado.
        Não inclua nenhum texto antes do título da prova.
     </div>
@@ -233,7 +235,7 @@ def montar_prompt_prova(dados):
        - Metodologia de avaliação sugerida
     </div>
 
-    Responda em HTML puro, sem Markdown. Lembre-se: o enunciado de cada questão deve estar dentro de tags <strong>.
+    Responda em HTML puro, sem Markdown. Lembre-se: o enunciado de cada questão deve estar dentro de tags <strong> e as alternativas NÃO devem ter marcadores.
     """
     return prompt
 
@@ -713,8 +715,8 @@ def exportar():
     # Monta o cabeçalho de acordo com o tipo
     if tipo == 'avaliacoes':
         cabecalho = f"""
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-            <h3>{session.get('user_school', '')}</h3>
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0e2a5e; padding-bottom: 10px;">
+            <h3 style="color: #0e2a5e;">{session.get('user_school', '')}</h3>
             <p><strong>Professor(a):</strong> _________________________</p>
             <p><strong>Disciplina:</strong> {disciplina}</p>
             <p><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
@@ -723,8 +725,8 @@ def exportar():
         """
     else:
         cabecalho = f"""
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-            <h3>{session.get('user_school', '')}</h3>
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0e2a5e; padding-bottom: 10px;">
+            <h3 style="color: #0e2a5e;">{session.get('user_school', '')}</h3>
             <p><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
         </div>
         """
@@ -738,21 +740,20 @@ def exportar():
         conteudo_html = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
         conteudo_html = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
     
-    # CSS profissional para o documento exportado (com espaçamento melhorado)
+    # CSS profissional para o documento exportado
     css_profissional = """
     <style>
         body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.6; margin: 0.5in; color: #000; }
-        h4 { margin-top: 20px; }
-        h4.titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1.2rem 0; letter-spacing: 1px; }
-        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-        .linha-resposta { border-bottom: 1px dotted #999; margin: 15px 0; height: 0; }
+        .titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1.2rem 0; letter-spacing: 1px; color: #0e2a5e; }
         .questao { margin-bottom: 1.2rem; }
         .questao strong { font-weight: 700; display: block; margin-bottom: 0.2rem; }
-        .alternativas { margin-left: 1.8rem; list-style: none; padding-left: 0; margin-top: 0.2rem; }
-        .alternativas li { margin-bottom: 0.15rem; }
-        hr { border: 0; border-top: 2px solid #000; }
-        p { margin: 0.2rem 0; }
+        .alternativas { margin-left: 1.8rem; margin-top: 0.2rem; }
+        .alternativas p { margin: 0.1rem 0; }
+        .linha-resposta { border-bottom: 1px dotted #999; margin: 15px 0; height: 0; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+        hr { border: 0; border-top: 2px solid #0e2a5e; }
+        .gabarito { margin-top: 20px; padding-top: 10px; border-top: 2px solid #0e2a5e; }
     </style>
     """
     

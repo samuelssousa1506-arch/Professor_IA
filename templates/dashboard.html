@@ -44,12 +44,9 @@
         .preview-container { background: #ffffff; border: 1px solid var(--borda); border-radius: 12px; padding: 2.75rem; box-shadow: 0 1px 3px rgba(10,31,63,0.05); min-height: 70vh; }
         .btn-imprimir { background: var(--azul-700); border: none; color: #fff; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 10px rgba(27,77,166,0.2); }
         .btn-imprimir:hover { background: var(--azul-800); color: #fff; }
-        .letterhead-selo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; color: var(--selo-ouro); background: #fdf6e8; border: 1px solid #eddca4; border-radius: 99px; padding: 3px 10px 3px 8px; }
         .estado-vazio { border: 2px dashed var(--borda); border-radius: 12px; background-color: #ffffff; }
 
-        /* ================================================================
-               LAYOUT PROFISSIONAL PARA PROVAS (Visualização e Impressão)
-               ================================================================ */
+        /* LAYOUT PROFISSIONAL PARA PROVAS – sem bullets */
         .prova-profissional {
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
@@ -58,12 +55,10 @@
             max-width: 100%;
             margin: 0 auto;
         }
-
-        /* Cabeçalho único – aparece na tela e na impressão */
         .cabecalho-unico {
             text-align: center;
             margin-bottom: 1.5rem;
-            border-bottom: 2px solid #000;
+            border-bottom: 2px solid var(--azul-900);
             padding-bottom: 0.8rem;
         }
         .cabecalho-unico h2 {
@@ -71,6 +66,7 @@
             font-weight: 700;
             margin-bottom: 0.3rem;
             letter-spacing: 0.5px;
+            color: var(--azul-900);
         }
         .cabecalho-unico .linha-dados {
             display: flex;
@@ -80,27 +76,24 @@
             margin-top: 0.3rem;
             font-size: 11pt;
         }
-        .cabecalho-unico .linha-dados .campo {
-            white-space: nowrap;
-        }
+        .cabecalho-unico .linha-dados .campo { white-space: nowrap; }
         .cabecalho-unico .linha-dados .linha {
             display: inline-block;
             border-bottom: 1px solid #000;
             min-width: 80px;
             margin-left: 0.2rem;
         }
-        .cabecalho-unico .linha-dados .linha-grande {
-            min-width: 250px;
-        }
+        .cabecalho-unico .linha-dados .linha-grande { min-width: 250px; }
 
-        /* Título da prova (gerado pela IA) */
-        .prova-profissional .titulo-prova {
+        /* Título da prova */
+        .titulo-prova {
             text-align: center;
             font-size: 14pt;
             font-weight: 700;
             text-transform: uppercase;
             margin: 0.5rem 0 1.5rem 0;
             letter-spacing: 1px;
+            color: var(--azul-900);
         }
 
         /* Questões */
@@ -113,14 +106,23 @@
             display: block;
             margin-bottom: 0.2rem;
         }
+        /* Removemos os bullets das alternativas */
         .prova-profissional .questao .alternativas {
             margin-left: 1.8rem;
-            list-style: none;
-            padding-left: 0;
             margin-top: 0.2rem;
+            list-style: none !important;
+            padding-left: 0 !important;
         }
-        .prova-profissional .questao .alternativas li {
-            margin-bottom: 0.15rem;
+        .prova-profissional .questao .alternativas li,
+        .prova-profissional .questao .alternativas p {
+            list-style: none !important;
+            margin-bottom: 0.1rem;
+            padding-left: 0 !important;
+        }
+        .prova-profissional .questao .alternativas ul,
+        .prova-profissional .questao .alternativas ol {
+            list-style: none !important;
+            padding-left: 0 !important;
         }
         .prova-profissional .linha-resposta {
             border-bottom: 1px dotted #888;
@@ -128,7 +130,7 @@
             height: 1px;
         }
 
-        /* Estilos para impressão */
+        /* Impressão */
         @media print {
             body { background: #fff !important; margin: 0.5in !important; padding: 0 !important; }
             .no-print { display: none !important; }
@@ -141,23 +143,11 @@
                 background: transparent !important;
             }
             .prova-profissional { font-size: 12pt; line-height: 1.5; }
-            .cabecalho-unico {
-                border-bottom: 2px solid #000;
-                margin-bottom: 1rem;
-            }
-            .prova-profissional .titulo-prova {
-                font-size: 14pt;
-                margin: 0.5rem 0 1rem 0;
-            }
-            .prova-profissional .questao {
-                margin-bottom: 1.2rem;
-            }
-            .prova-profissional .questao .alternativas {
-                margin-left: 1.5rem;
-            }
-            .prova-profissional .linha-resposta {
-                margin: 0.6rem 0 1rem 0;
-            }
+            .cabecalho-unico { border-bottom: 2px solid #000; margin-bottom: 1rem; }
+            .titulo-prova { font-size: 14pt; margin: 0.5rem 0 1rem 0; }
+            .prova-profissional .questao { margin-bottom: 1.2rem; }
+            .prova-profissional .questao .alternativas { margin-left: 1.5rem; }
+            .prova-profissional .linha-resposta { margin: 0.6rem 0 1rem 0; }
         }
     </style>
 </head>
@@ -207,17 +197,17 @@
 
                 <div class="mb-2">
                     <label class="form-label-premium">{% if form_type == 'duvidas' %}SUA PERGUNTA PEDAGÓGICA{% else %}CONTEÚDO / OBJETO DE ESTUDO{% endif %}</label>
-                    <textarea class="form-control form-control-premium" name="tema" rows="4" placeholder="Ex: Equações de 2º Grau, Sintaxe, Revolução Francesa..." required>{{ tema }}</textarea>
+                    <textarea class="form-control form-control-premium" name="tema" rows="4" required>{{ tema }}</textarea>
                 </div>
 
                 {% if form_type != 'duvidas' %}
                 <div class="mb-2">
                     <label class="form-label-premium">DISCIPLINA</label>
-                    <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina }}" placeholder="Ex: Matemática, História">
+                    <input type="text" class="form-control form-control-premium" name="disciplina" value="{{ disciplina }}">
                 </div>
                 <div class="mb-2">
                     <label class="form-label-premium">ANO / TURMA</label>
-                    <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 9º Ano">
+                    <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}">
                 </div>
                 {% endif %}
 
@@ -295,15 +285,15 @@
                 {% if form_type == 'projetos' %}
                 <div class="mb-2">
                     <label class="form-label-premium">SÉRIE/ANO</label>
-                    <input type="text" class="form-control form-control-premium" name="serie" value="{{ serie }}" placeholder="Ex: 9º Ano">
+                    <input type="text" class="form-control form-control-premium" name="serie" value="{{ serie }}">
                 </div>
                 <div class="mb-2">
                     <label class="form-label-premium">DURAÇÃO PREVISTA</label>
-                    <input type="text" class="form-control form-control-premium" name="duracao" value="{{ duracao }}" placeholder="Ex: 2 meses">
+                    <input type="text" class="form-control form-control-premium" name="duracao" value="{{ duracao }}">
                 </div>
                 <div class="mb-2">
                     <label class="form-label-premium">OBJETIVO GERAL</label>
-                    <textarea class="form-control form-control-premium" name="objetivo" rows="3" placeholder="Descreva o objetivo principal">{{ objetivo }}</textarea>
+                    <textarea class="form-control form-control-premium" name="objetivo" rows="3">{{ objetivo }}</textarea>
                 </div>
                 <div class="mb-2">
                     <label class="form-label-premium">TIPOS DE PROJETO (selecione um ou mais)</label>
@@ -356,7 +346,7 @@
                     <div class="col-6"><label class="form-label-premium">EXECUÇÃO — FIM</label><input type="date" class="form-control form-control-premium" name="data_fim" value="{{ data_fim }}"></div>
                 </div>
                 <div class="row g-2 mt-0">
-                    <div class="col-4"><label class="form-label-premium">TURMA (LETRA)</label><input type="text" class="form-control form-control-premium" name="turma" value="{{ turma }}" placeholder="Ex: A"></div>
+                    <div class="col-4"><label class="form-label-premium">TURMA (LETRA)</label><input type="text" class="form-control form-control-premium" name="turma" value="{{ turma }}"></div>
                     <div class="col-8"><label class="form-label-premium">TURNO</label><select class="form-select form-control-premium" name="turno">
                         <option value="MATUTINO" {% if turno == 'MATUTINO' %}selected{% endif %}>Matutino</option>
                         <option value="VESPERTINO" {% if turno == 'VESPERTINO' %}selected{% endif %}>Vespertino</option>
@@ -365,24 +355,24 @@
                     </select></div>
                 </div>
                 <div class="row g-2 mt-0">
-                    <div class="col-6"><label class="form-label-premium">Nº DO PLANO</label><input type="text" class="form-control form-control-premium" name="numero_plano" value="{{ numero_plano }}" placeholder="Gerado"></div>
-                    <div class="col-6"><label class="form-label-premium">ANO LETIVO</label><input type="text" class="form-control form-control-premium" name="ano_letivo" value="{{ ano_letivo }}" placeholder="2026"></div>
+                    <div class="col-6"><label class="form-label-premium">Nº DO PLANO</label><input type="text" class="form-control form-control-premium" name="numero_plano" value="{{ numero_plano }}"></div>
+                    <div class="col-6"><label class="form-label-premium">ANO LETIVO</label><input type="text" class="form-control form-control-premium" name="ano_letivo" value="{{ ano_letivo }}"></div>
                 </div>
                 <div class="mb-2 mt-1"><label class="form-label-premium">OBSERVAÇÕES</label><textarea class="form-control form-control-premium" name="observacoes" rows="2">{{ observacoes }}</textarea></div>
                 <details class="mb-2 mt-1">
                     <summary class="form-label-premium" style="cursor:pointer;">DADOS INSTITUCIONAIS (opcional) ▾</summary>
                     <div class="row g-2 mt-1">
-                        <div class="col-6"><label class="form-label-premium">INEP</label><input type="text" class="form-control form-control-premium" name="inep" value="{{ inep }}" placeholder="21131333"></div>
-                        <div class="col-6"><label class="form-label-premium">ZONA</label><input type="text" class="form-control form-control-premium" name="zona_escola" value="{{ zona_escola }}" placeholder="Urbana"></div>
+                        <div class="col-6"><label class="form-label-premium">INEP</label><input type="text" class="form-control form-control-premium" name="inep" value="{{ inep }}"></div>
+                        <div class="col-6"><label class="form-label-premium">ZONA</label><input type="text" class="form-control form-control-premium" name="zona_escola" value="{{ zona_escola }}"></div>
                     </div>
-                    <div class="mb-2"><label class="form-label-premium">ENDEREÇO</label><input type="text" class="form-control form-control-premium" name="endereco_escola" value="{{ endereco_escola }}" placeholder="Rua, número"></div>
+                    <div class="mb-2"><label class="form-label-premium">ENDEREÇO</label><input type="text" class="form-control form-control-premium" name="endereco_escola" value="{{ endereco_escola }}"></div>
                     <div class="row g-2">
-                        <div class="col-8"><label class="form-label-premium">CIDADE</label><input type="text" class="form-control form-control-premium" name="cidade_escola" value="{{ cidade_escola }}" placeholder="Presidente Dutra"></div>
+                        <div class="col-8"><label class="form-label-premium">CIDADE</label><input type="text" class="form-control form-control-premium" name="cidade_escola" value="{{ cidade_escola }}"></div>
                         <div class="col-4"><label class="form-label-premium">ESTADO</label><input type="text" class="form-control form-control-premium" name="estado_escola" value="{{ estado_escola }}" maxlength="2"></div>
                     </div>
                     <div class="row g-2">
-                        <div class="col-6"><label class="form-label-premium">TELEFONE</label><input type="text" class="form-control form-control-premium" name="telefone_escola" value="{{ telefone_escola }}" placeholder="(99) 00000-0000"></div>
-                        <div class="col-6"><label class="form-label-premium">E-MAIL</label><input type="email" class="form-control form-control-premium" name="email_escola" value="{{ email_escola }}" placeholder="escola@email.com"></div>
+                        <div class="col-6"><label class="form-label-premium">TELEFONE</label><input type="text" class="form-control form-control-premium" name="telefone_escola" value="{{ telefone_escola }}"></div>
+                        <div class="col-6"><label class="form-label-premium">E-MAIL</label><input type="email" class="form-control form-control-premium" name="email_escola" value="{{ email_escola }}"></div>
                     </div>
                 </details>
                 {% endif %}
@@ -423,7 +413,7 @@
                 </div>
             </div>
 
-            <!-- CABEÇALHO ÚNICO – aparece na tela e na impressão -->
+            <!-- CABEÇALHO ÚNICO (aparece na tela e na impressão) -->
             <div class="cabecalho-unico">
                 <h2>{{ school }}</h2>
                 <div class="linha-dados">
@@ -442,14 +432,13 @@
 
             <div class="preview-container">
                 <div class="prova-profissional">
-                    <!-- O conteúdo gerado pela IA é inserido aqui -->
                     <div class="conteudo-pedagogico-real">
                         {{ conteudo|safe }}
                     </div>
                 </div>
             </div>
 
-            <!-- Gabarito (apenas para provas) -->
+            <!-- Gabarito -->
             {% if form_type == 'avaliacoes' and dados_ia.gabarito %}
             <div class="mt-4 no-print">
                 <div class="card border-success">
@@ -463,7 +452,7 @@
             </div>
             {% endif %}
 
-            <!-- Informações Pedagógicas (apenas para provas) -->
+            <!-- Informações Pedagógicas -->
             {% if form_type == 'avaliacoes' and dados_ia.pedagogico %}
             <div class="mt-4 no-print">
                 <div class="accordion" id="accordionPedagogico">
