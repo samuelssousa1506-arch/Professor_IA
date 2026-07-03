@@ -196,6 +196,57 @@
         }
         .conteudo-pedagogico-real strong { color: var(--azul-900); }
 
+        /* Estrutura do documento oficial — Planejamento Bimestral */
+        .conteudo-pedagogico-real .doc-cabecalho-oficial {
+            border: 1px solid var(--tinta);
+            border-radius: 4px;
+            padding: 0.7rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.82rem;
+            line-height: 1.55;
+        }
+        .conteudo-pedagogico-real .doc-cabecalho-oficial p { margin: 0; }
+        .conteudo-pedagogico-real .doc-cabecalho-oficial strong { color: var(--tinta); }
+
+        .conteudo-pedagogico-real .doc-titulo-oficial {
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--tinta);
+            margin: 1.25rem 0;
+            border: none;
+        }
+
+        .conteudo-pedagogico-real .doc-metadata-oficial {
+            background: var(--azul-50);
+            border: 1px solid var(--azul-100);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            color: var(--azul-800);
+            font-weight: 600;
+        }
+        .conteudo-pedagogico-real .doc-metadata-oficial p { margin: 0; }
+
+        .conteudo-pedagogico-real .doc-secao-titulo {
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: 800;
+            font-size: 0.88rem;
+            letter-spacing: 0.03em;
+            color: var(--tinta);
+            background: var(--azul-50);
+            border-top: 1px solid var(--tinta);
+            border-bottom: 1px solid var(--tinta);
+            padding: 0.45rem 0.5rem;
+            margin-top: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .conteudo-pedagogico-real .doc-secao-corpo { font-size: 0.88rem; line-height: 1.55; }
+        .conteudo-pedagogico-real .doc-secao-corpo p { margin-bottom: 0.5rem; }
+
         .linha-resposta {
             border-bottom: 1px dotted #94a3b8;
             margin-top: 1.5rem;
@@ -317,6 +368,109 @@
                     <label class="form-label-premium">ANO / TURMA</label>
                     <input type="text" class="form-control form-control-premium" name="ano" value="{{ ano }}" placeholder="Ex: 9º Ano, 3ª Série E.M.">
                 </div>
+                {% endif %}
+
+                {% if form_type == 'bimestral' %}
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label-premium">BIMESTRE</label>
+                        <select class="form-select form-control-premium" name="bimestre">
+                            <option value="1º BIM" {% if bimestre == '1º BIM' %}selected{% endif %}>1º Bimestre</option>
+                            <option value="2º BIM" {% if bimestre == '2º BIM' %}selected{% endif %}>2º Bimestre</option>
+                            <option value="3º BIM" {% if bimestre == '3º BIM' %}selected{% endif %}>3º Bimestre</option>
+                            <option value="4º BIM" {% if bimestre == '4º BIM' %}selected{% endif %}>4º Bimestre</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium">MODALIDADE</label>
+                        <select class="form-select form-control-premium" name="modalidade">
+                            <option value="Presencial" {% if modalidade == 'Presencial' %}selected{% endif %}>Presencial</option>
+                            <option value="EAD" {% if modalidade == 'EAD' %}selected{% endif %}>EAD</option>
+                            <option value="Híbrido" {% if modalidade == 'Híbrido' %}selected{% endif %}>Híbrido</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-2 mt-0">
+                    <div class="col-6">
+                        <label class="form-label-premium">EXECUÇÃO — INÍCIO</label>
+                        <input type="date" class="form-control form-control-premium" name="data_inicio" value="{{ data_inicio }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium">EXECUÇÃO — FIM</label>
+                        <input type="date" class="form-control form-control-premium" name="data_fim" value="{{ data_fim }}">
+                    </div>
+                </div>
+
+                <div class="row g-2 mt-0">
+                    <div class="col-4">
+                        <label class="form-label-premium">TURMA (LETRA)</label>
+                        <input type="text" class="form-control form-control-premium" name="turma" value="{{ turma }}" placeholder="Ex: A">
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label-premium">TURNO</label>
+                        <select class="form-select form-control-premium" name="turno">
+                            <option value="MATUTINO" {% if turno == 'MATUTINO' %}selected{% endif %}>Matutino</option>
+                            <option value="VESPERTINO" {% if turno == 'VESPERTINO' %}selected{% endif %}>Vespertino</option>
+                            <option value="NOTURNO" {% if turno == 'NOTURNO' %}selected{% endif %}>Noturno</option>
+                            <option value="INTEGRAL" {% if turno == 'INTEGRAL' %}selected{% endif %}>Integral</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-2 mt-0">
+                    <div class="col-6">
+                        <label class="form-label-premium">Nº DO PLANO (OPCIONAL)</label>
+                        <input type="text" class="form-control form-control-premium" name="numero_plano" value="{{ numero_plano }}" placeholder="Gerado automaticamente">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium">ANO LETIVO</label>
+                        <input type="text" class="form-control form-control-premium" name="ano_letivo" value="{{ ano_letivo }}" placeholder="Ex: 2026">
+                    </div>
+                </div>
+
+                <div class="mb-2 mt-1">
+                    <label class="form-label-premium">OBSERVAÇÕES (OPCIONAL)</label>
+                    <textarea class="form-control form-control-premium" name="observacoes" rows="2" placeholder="Alguma observação para constar no plano?">{{ observacoes }}</textarea>
+                </div>
+
+                <details class="mb-2 mt-1">
+                    <summary class="form-label-premium" style="cursor: pointer; display: inline;">DADOS INSTITUCIONAIS PARA O CABEÇALHO (OPCIONAL) ▾</summary>
+                    <div class="row g-2 mt-1">
+                        <div class="col-6">
+                            <label class="form-label-premium">INEP</label>
+                            <input type="text" class="form-control form-control-premium" name="inep" value="{{ inep }}" placeholder="Ex: 21131333">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-premium">ZONA</label>
+                            <input type="text" class="form-control form-control-premium" name="zona_escola" value="{{ zona_escola }}" placeholder="Ex: Urbana">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label-premium">ENDEREÇO DA ESCOLA</label>
+                        <input type="text" class="form-control form-control-premium" name="endereco_escola" value="{{ endereco_escola }}" placeholder="Rua, número, bairro">
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <label class="form-label-premium">CIDADE</label>
+                            <input type="text" class="form-control form-control-premium" name="cidade_escola" value="{{ cidade_escola }}" placeholder="Ex: Presidente Dutra">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-premium">ESTADO</label>
+                            <input type="text" class="form-control form-control-premium" name="estado_escola" value="{{ estado_escola if estado_escola else 'MA' }}" maxlength="2">
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label-premium">TELEFONE</label>
+                            <input type="text" class="form-control form-control-premium" name="telefone_escola" value="{{ telefone_escola }}" placeholder="(99) 00000-0000">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-premium">E-MAIL DA ESCOLA</label>
+                            <input type="email" class="form-control form-control-premium" name="email_escola" value="{{ email_escola }}" placeholder="escola@email.com">
+                        </div>
+                    </div>
+                </details>
                 {% endif %}
 
                 {% if form_type == 'avaliacoes' %}

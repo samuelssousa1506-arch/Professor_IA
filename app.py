@@ -1,8 +1,10 @@
 import os
 import re
 import sqlite3
+import random
 import requests
 import markdown as md
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
@@ -22,6 +24,32 @@ MODULOS = {
     'inclusao': {'nome': 'Plano de Inclusão / AEE', 'icone': 'fa-hands-asl-interpreting'},
     'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'}
 }
+
+# =====================================================================
+# TEXTO OFICIAL FIXO — COMPETÊNCIAS GERAIS DA EDUCAÇÃO BÁSICA (BNCC, 2018)
+# Fixado no backend (não gerado pela IA) para garantir fidelidade 100% ao
+# texto oficial do MEC em todo Planejamento Bimestral, independente do tema.
+# =====================================================================
+COMPETENCIAS_GERAIS_BNCC = [
+    "Valorizar e utilizar os conhecimentos historicamente construídos sobre o mundo físico, social, cultural e digital para entender e explicar a realidade, continuar aprendendo e colaborar para a construção de uma sociedade justa, democrática e inclusiva.",
+    "Exercitar a curiosidade intelectual e recorrer à abordagem própria das ciências, incluindo a investigação, a reflexão, a análise crítica, a imaginação e a criatividade, para investigar causas, elaborar e testar hipóteses, formular e resolver problemas e criar soluções (inclusive tecnológicas) com base nos conhecimentos das diferentes áreas.",
+    "Valorizar e fruir as diversas manifestações artísticas e culturais, das locais às mundiais, e também participar de práticas diversificadas da produção artístico-cultural.",
+    "Utilizar diferentes linguagens – verbal (oral ou visual-motora, como Libras, e escrita), corporal, visual, sonora e digital –, bem como conhecimentos das linguagens artística, matemática e científica, para se expressar e partilhar informações, experiências, ideias e sentimentos em diferentes contextos e produzir sentidos que levem ao entendimento mútuo.",
+    "Compreender, utilizar e criar tecnologias digitais de informação e comunicação de forma crítica, significativa, reflexiva e ética nas diversas práticas sociais (incluindo as escolares) para se comunicar, acessar e disseminar informações, produzir conhecimentos, resolver problemas e exercer protagonismo e autoria na vida pessoal e coletiva.",
+    "Valorizar a diversidade de saberes e vivências culturais e apropriar-se de conhecimentos e experiências que lhe possibilitem entender as relações próprias do mundo do trabalho e fazer escolhas alinhadas ao exercício da cidadania e ao seu projeto de vida, com liberdade, autonomia, consciência crítica e responsabilidade.",
+    "Argumentar com base em fatos, dados e informações confiáveis, para formular, negociar e defender ideias, pontos de vista e decisões comuns que respeitem e promovam os direitos humanos, a consciência socioambiental e o consumo responsável em âmbito local, regional e global, com posicionamento ético em relação ao cuidado de si mesmo, dos outros e do planeta.",
+    "Conhecer-se, apreciar-se e cuidar de sua saúde física e emocional, compreendendo-se na diversidade humana e reconhecendo suas emoções e as dos outros, com autocrítica e capacidade para lidar com elas.",
+    "Exercitar a empatia, o diálogo, a resolução de conflitos e a cooperação, fazendo-se respeitar e promovendo o respeito ao outro e aos direitos humanos, com acolhimento e valorização da diversidade de indivíduos e de grupos sociais, seus saberes, identidades, culturas e potencialidades, sem preconceitos de qualquer natureza.",
+    "Agir pessoal e coletivamente com autonomia, responsabilidade, flexibilidade, resiliência e determinação, tomando decisões com base em princípios éticos, democráticos, inclusivos, sustentáveis e solidários.",
+]
+
+def montar_html_competencias_gerais():
+    ordinais = ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "7ª", "8ª", "9ª", "10ª"]
+    itens = "".join(
+        f"<p><strong>{ordinais[i]}</strong> - {texto}</p>"
+        for i, texto in enumerate(COMPETENCIAS_GERAIS_BNCC)
+    )
+    return f'<h5 class="doc-secao-titulo">Competências Gerais da Educação Básica</h5><div class="doc-secao-corpo">{itens}</div>'
 
 def sanitizar_saida_html(texto):
     """
@@ -58,6 +86,24 @@ def executar_geracao_ia(**kwargs):
     nivel = kwargs.get('nivel', 'Médio')
     nome_professor = kwargs.get('nome_professor', 'Professor(a)')
     nome_escola = kwargs.get('nome_escola', 'Instituição de Ensino')
+
+    # Campos específicos do Planejamento Bimestral (formato oficial SEMED)
+    numero_plano = kwargs.get('numero_plano', '')
+    bimestre = kwargs.get('bimestre', '1º BIM')
+    data_inicio = kwargs.get('data_inicio', '')
+    data_fim = kwargs.get('data_fim', '')
+    turma = kwargs.get('turma', '')
+    turno = kwargs.get('turno', '')
+    modalidade = kwargs.get('modalidade', 'Presencial')
+    ano_letivo = kwargs.get('ano_letivo', '')
+    inep = kwargs.get('inep', '')
+    endereco_escola = kwargs.get('endereco_escola', '')
+    cidade_escola = kwargs.get('cidade_escola', '')
+    estado_escola = kwargs.get('estado_escola', 'MA')
+    zona_escola = kwargs.get('zona_escola', '')
+    telefone_escola = kwargs.get('telefone_escola', '')
+    email_escola = kwargs.get('email_escola', '')
+    observacoes = kwargs.get('observacoes', '')
 
     if not GEMINI_API_KEY:
         return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
@@ -96,6 +142,83 @@ def executar_geracao_ia(**kwargs):
         Dúvida ou Consulta do Professor: "{tema}"
         {regras_formato}
         """
+    elif tipo_modulo == 'Planejamento Bimestral':
+        numero_final = numero_plano.strip() or str(random.randint(10000, 99999))
+        ano_letivo_final = ano_letivo.strip() or str(datetime.now().year)
+        criado_em = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        turma_completa = f"{ano} | ({turma}) | {turno}".upper() if turma or turno else ano.upper()
+        periodo_execucao = f"{data_inicio} a {data_fim}" if data_inicio and data_fim else "[preencher período de execução]"
+
+        prompt = f"""
+        Atue como um Especialista em Planejamento Pedagógico Escolar, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere um PLANEJAMENTO BIMESTRAL completo e oficial, seguindo EXATAMENTE a estrutura, ordem de seções e nível de detalhamento abaixo — este é o modelo oficial usado pela Secretaria Municipal de Educação, e deve ser reproduzido fielmente.
+
+        {regras_formato}
+        REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No lugar exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
+
+        ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA:
+
+        1. <div class="doc-cabecalho-oficial">
+           Inclua, em formato de linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>):
+           INEP: {inep or '[preencher]'}
+           ESCOLA: {nome_escola}
+           ENDEREÇO: {endereco_escola or '[preencher endereço]'}
+           CIDADE: {cidade_escola or '[preencher cidade]'} ESTADO: {estado_escola}
+           ZONA: {zona_escola or '[preencher]'} TELEFONE: {telefone_escola or '[preencher]'} EMAIL: {email_escola or '[preencher]'}
+           </div>
+
+        2. <h2 class="doc-titulo-oficial">PLANO BIMESTRAL #{numero_final}</h2>
+
+        3. <div class="doc-metadata-oficial">
+           Em linhas rotuladas, exatamente nesta ordem:
+           BIMESTRAL // {modalidade}
+           {bimestre} {periodo_execucao}
+           TURMA: {turma_completa}
+           COMP. CURR.: {disciplina}
+           EXECUÇÃO: {periodo_execucao}
+           CRIADO EM: {criado_em}
+           PROFESSOR(A): {nome_professor}
+           ANO LETIVO: {ano_letivo_final}
+           </div>
+
+        4. <!--COMPETENCIAS_GERAIS_AQUI-->
+
+        5. <h5 class="doc-secao-titulo">Competências Específicas de {disciplina}</h5>
+           Liste, numeradas (1ª, 2ª, 3ª...), as competências específicas oficiais da BNCC para a área de conhecimento à qual "{disciplina}" pertence (ex: Ciências da Natureza, Matemática, Linguagens, Ciências Humanas), voltadas ao Ensino Fundamental — Anos Finais. Seja fiel ao texto oficial, sem inventar.
+
+        6. <h5 class="doc-secao-titulo">Unidades Temáticas</h5>
+           Identifique a(s) unidade(s) temática(s) da BNCC relacionada(s) ao tema "{tema}" para a série/ano "{ano}", no formato "Nome da Unidade / {ano}".
+
+        7. <h5 class="doc-secao-titulo">Objetos de Conhecimento</h5>
+           Liste os objetos de conhecimento relacionados ao tema, cada um seguido de "UNIDADE: [nome da unidade] / {ano}".
+
+        8. <h5 class="doc-secao-titulo">Habilidades</h5>
+           Liste as habilidades da BNCC pertinentes (formato: código - descrição completa da habilidade). Priorize o código informado pelo professor ({bncc if bncc else 'nenhum código específico informado — selecione os mais adequados ao tema'}) e complemente com habilidades relacionadas do mesmo objeto de conhecimento.
+
+        9. <h5 class="doc-secao-titulo">Sugestões Metodológicas</h5>
+           Lista <ul><li> com 8 a 10 sugestões práticas e variadas de condução das aulas ao longo do bimestre (leitura, TIC, debates, mapas conceituais, saída de campo, mostra científica, etc.), adaptadas ao tema e à realidade do Maranhão quando pertinente.
+
+        10. <h5 class="doc-secao-titulo">Avaliação</h5>
+            Lista <ul><li> com os instrumentos avaliativos do bimestre (ex: Avaliação Bimestral, Seminários, Trabalhos individuais e em grupo, etc.), adequados ao tema.
+
+        11. <h5 class="doc-secao-titulo">Recursos</h5>
+            Lista <ul><li> com os recursos didáticos necessários (materiais, equipamentos, tecnologia).
+
+        12. <h5 class="doc-secao-titulo">Referências</h5>
+            Liste em linhas simples (sem bullets), formato ABNT simplificado:
+            BRASIL. Ministério da Educação. Documento Curricular do Território Maranhense (DCTMA): para o ensino fundamental. Rio de Janeiro: FGV, [ano mais recente conhecido].
+            BRASIL. Ministério da Educação. Base Nacional Comum Curricular (BNCC). Brasília, 2018.
+            E, se pertinente ao tema/disciplina, uma referência bibliográfica de livro didático real e amplamente reconhecido (não invente autores/obras).
+
+        13. <h5 class="doc-secao-titulo">Observações Pertinentes</h5>
+            {f'Inclua o seguinte texto informado pelo professor: "{observacoes}"' if observacoes else 'Deixe um parágrafo curto padrão indicando que não há observações adicionais registradas, ou omita se preferir deixar em branco.'}
+
+        DADOS DE CONFIGURAÇÃO DO ESCOPO:
+        - Componente/Disciplina: {disciplina}
+        - Ano/Série Escolar: {ano}
+        - Tema Central / Objeto de Estudo: {tema}
+        - Código de Habilidade BNCC Alvo: {bncc}
+        """
     else:
         prompt = f"""
         Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
@@ -133,19 +256,17 @@ def executar_geracao_ia(**kwargs):
             5. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
             6. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
             """
-        elif tipo_modulo in ('Plano de Aula', 'Planejamento Bimestral'):
-            if tipo_modulo == 'Plano de Aula':
-                prompt += """
-                SEÇÃO OBRIGATÓRIA — METODOLOGIAS E SUGESTÕES DE AULAS DIFERENCIADAS:
-                Inclua, antes da conclusão do plano, uma seção <h5>Sugestões de Aulas Diferenciadas</h5> com pelo menos 3 a 4 propostas concretas e variadas para trabalhar o tema de formas alternativas à aula expositiva tradicional, por exemplo (adapte ao tema e ano/série informados):
-                - Aula prática/experimental (uso de materiais concretos, experimentos, manipuláveis).
-                - Metodologia ativa (sala de aula invertida, aprendizagem baseada em problemas/projetos, gamificação).
-                - Atividade em grupo/colaborativa (debate, júri simulado, oficina, estudo de caso).
-                - Uso de tecnologia/recursos digitais (aplicativos, vídeos, simuladores, jogos educativos).
-                - Conexão com o cotidiano/comunidade local (saída de campo, entrevista, estudo do meio, quando aplicável ao contexto maranhense).
-                Apresente cada sugestão em formato de lista <ul><li>, com um parágrafo curto (2-3 linhas) explicando como aplicá-la e qual habilidade/competência da BNCC ela reforça.
-                """
+        elif tipo_modulo == 'Plano de Aula':
             prompt += """
+            SEÇÃO OBRIGATÓRIA — METODOLOGIAS E SUGESTÕES DE AULAS DIFERENCIADAS:
+            Inclua, antes da conclusão do plano, uma seção <h5>Sugestões de Aulas Diferenciadas</h5> com pelo menos 3 a 4 propostas concretas e variadas para trabalhar o tema de formas alternativas à aula expositiva tradicional, por exemplo (adapte ao tema e ano/série informados):
+            - Aula prática/experimental (uso de materiais concretos, experimentos, manipuláveis).
+            - Metodologia ativa (sala de aula invertida, aprendizagem baseada em problemas/projetos, gamificação).
+            - Atividade em grupo/colaborativa (debate, júri simulado, oficina, estudo de caso).
+            - Uso de tecnologia/recursos digitais (aplicativos, vídeos, simuladores, jogos educativos).
+            - Conexão com o cotidiano/comunidade local (saída de campo, entrevista, estudo do meio, quando aplicável ao contexto maranhense).
+            Apresente cada sugestão em formato de lista <ul><li>, com um parágrafo curto (2-3 linhas) explicando como aplicá-la e qual habilidade/competência da BNCC ela reforça.
+
             SEÇÃO FINAL OBRIGATÓRIA — REFERÊNCIAS:
             Ao final do documento, após todo o conteúdo pedagógico, inclua uma seção <h5>Referências</h5> contendo:
             1. As referências normativas/legais utilizadas, no formato ABNC simplificado, por exemplo:
@@ -175,7 +296,11 @@ def executar_geracao_ia(**kwargs):
             resultado = response.json()
             texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
             texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
-            return sanitizar_saida_html(texto_gerado)
+            texto_gerado = sanitizar_saida_html(texto_gerado)
+            # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
+            if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
+                texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+            return texto_gerado
         else:
             return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}")
             
@@ -287,7 +412,25 @@ def dashboard():
     tipo_prova = request.form.get('tipo_prova', '').strip()
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()
-    
+
+    # Campos específicos do Planejamento Bimestral
+    numero_plano = request.form.get('numero_plano', '').strip()
+    bimestre = request.form.get('bimestre', '1º BIM').strip()
+    data_inicio = request.form.get('data_inicio', '').strip()
+    data_fim = request.form.get('data_fim', '').strip()
+    turma = request.form.get('turma', '').strip()
+    turno = request.form.get('turno', '').strip()
+    modalidade = request.form.get('modalidade', 'Presencial').strip()
+    ano_letivo = request.form.get('ano_letivo', '').strip()
+    inep = request.form.get('inep', '').strip()
+    endereco_escola = request.form.get('endereco_escola', '').strip()
+    cidade_escola = request.form.get('cidade_escola', '').strip()
+    estado_escola = request.form.get('estado_escola', 'MA').strip()
+    zona_escola = request.form.get('zona_escola', '').strip()
+    telefone_escola = request.form.get('telefone_escola', '').strip()
+    email_escola = request.form.get('email_escola', '').strip()
+    observacoes = request.form.get('observacoes', '').strip()
+
     if request.method == 'POST' and tema:
         conteudo = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
@@ -299,7 +442,23 @@ def dashboard():
             qtd_questoes=qtd_questoes,
             nivel=nivel,
             nome_professor=session.get('user_name', 'Professor(a)'),
-            nome_escola=session.get('user_school', 'Instituição de Ensino')
+            nome_escola=session.get('user_school', 'Instituição de Ensino'),
+            numero_plano=numero_plano,
+            bimestre=bimestre,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            turma=turma,
+            turno=turno,
+            modalidade=modalidade,
+            ano_letivo=ano_letivo,
+            inep=inep,
+            endereco_escola=endereco_escola,
+            cidade_escola=cidade_escola,
+            estado_escola=estado_escola,
+            zona_escola=zona_escola,
+            telefone_escola=telefone_escola,
+            email_escola=email_escola,
+            observacoes=observacoes
         )
 
     return render_template(
@@ -314,6 +473,22 @@ def dashboard():
         tipo_prova=tipo_prova,
         qtd_questoes=qtd_questoes,
         nivel=nivel,
+        numero_plano=numero_plano,
+        bimestre=bimestre,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        turma=turma,
+        turno=turno,
+        modalidade=modalidade,
+        ano_letivo=ano_letivo,
+        inep=inep,
+        endereco_escola=endereco_escola,
+        cidade_escola=cidade_escola,
+        estado_escola=estado_escola,
+        zona_escola=zona_escola,
+        telefone_escola=telefone_escola,
+        email_escola=email_escola,
+        observacoes=observacoes,
         app_name="Professor IA",
         name=session.get('user_name', 'Samuel Araújo Sousa'),     
         school=session.get('user_school', 'U.E. Prof. João Martins Neto')  
