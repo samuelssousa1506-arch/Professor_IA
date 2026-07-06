@@ -256,6 +256,28 @@
         .conteudo-pedagogico-real .doc-secao-corpo { font-size: 0.88rem; line-height: 1.55; }
         .conteudo-pedagogico-real .doc-secao-corpo p { margin-bottom: 0.5rem; }
 
+        /* Prova — 2 colunas, Arial 12 (fonte já vem inline do backend, aqui só ajustes de quebra) */
+        .conteudo-pedagogico-real .questao-item {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 14px;
+        }
+        .conteudo-pedagogico-real .gabarito-prova {
+            margin-top: 1.5rem;
+            border-top: 2px solid var(--azul-100);
+            padding-top: 0.75rem;
+        }
+
+        /* Aba Informações Pedagógicas (nunca impressa/exportada) */
+        .info-pedagogica-box h5 {
+            color: var(--azul-700);
+            font-weight: 700;
+            margin-top: 1.25rem;
+        }
+        .info-pedagogica-box h5:first-of-type { margin-top: 0; }
+        .nav-tabs .nav-link.active { color: var(--azul-800); border-color: var(--borda) var(--borda) #fff; font-weight: 700; }
+        .nav-tabs .nav-link { color: var(--tinta-suave); }
+
         .linha-resposta {
             border-bottom: 1px dotted #94a3b8;
             margin-top: 1.5rem;
@@ -635,6 +657,23 @@
                 </div>
             </div>
 
+            {% if form_type == 'avaliacoes' and info_pedagogica %}
+            <ul class="nav nav-tabs mb-3 no-print" id="tabsProva" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="tab-btn-prova" data-bs-toggle="tab" data-bs-target="#tab-prova" type="button" role="tab">
+                        <i class="fa-solid fa-file-lines me-1"></i> Prova
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="tab-btn-info" data-bs-toggle="tab" data-bs-target="#tab-info" type="button" role="tab">
+                        <i class="fa-solid fa-circle-info me-1"></i> Informações Pedagógicas
+                    </button>
+                </li>
+            </ul>
+            {% endif %}
+
+            <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-prova" role="tabpanel">
             <div class="preview-container">
                 {% if form_type == 'avaliacoes' %}
                 <!-- Cabeçalho único de Prova (impressão e tela) -->
@@ -660,6 +699,17 @@
                 <div class="conteudo-pedagogico-real" id="conteudo-editavel">
                     {{ conteudo|safe }}
                 </div>
+            </div>
+            </div>
+
+            {% if form_type == 'avaliacoes' and info_pedagogica %}
+            <div class="tab-pane fade no-print" id="tab-info" role="tabpanel">
+                <div class="preview-container info-pedagogica-box">
+                    <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-1"></i> Esta aba é só para sua consulta — não é impressa nem exportada junto com a prova.</p>
+                    {{ info_pedagogica|safe }}
+                </div>
+            </div>
+            {% endif %}
             </div>
             {% else %}
             <div class="d-flex flex-column align-items-center justify-content-center text-center no-print estado-vazio" style="min-height: 70vh; padding: 2rem;">

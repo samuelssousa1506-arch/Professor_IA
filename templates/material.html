@@ -55,6 +55,23 @@
         </div>
     </div>
 
+    {% if material.tipo_modulo == 'Gerador de Provas' and material.info_pedagogica %}
+    <ul class="nav nav-tabs mb-3 btn-print-hide" id="tabsProvaMat" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-prova-mat" type="button" role="tab">
+                <i class="fa-solid fa-file-lines me-1"></i> Prova
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-info-mat" type="button" role="tab">
+                <i class="fa-solid fa-circle-info me-1"></i> Informações Pedagógicas
+            </button>
+        </li>
+    </ul>
+    {% endif %}
+
+    <div class="tab-content">
+    <div class="tab-pane fade show active" id="tab-prova-mat" role="tabpanel">
     <div class="editor-box">
         <div class="text-center border-bottom pb-3 mb-4">
             <h2 class="fw-bold m-0">{{ material.titulo }}</h2>
@@ -68,6 +85,17 @@
         <div class="pedagogical-content">
             {{ material.conteudo_html | safe }}
         </div>
+    </div>
+    </div>
+
+    {% if material.tipo_modulo == 'Gerador de Provas' and material.info_pedagogica %}
+    <div class="tab-pane fade btn-print-hide" id="tab-info-mat" role="tabpanel">
+        <div class="editor-box">
+            <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-1"></i> Esta aba é só para sua consulta — não é impressa nem exportada junto com a prova.</p>
+            {{ material.info_pedagogica | safe }}
+        </div>
+    </div>
+    {% endif %}
     </div>
 </div>
 

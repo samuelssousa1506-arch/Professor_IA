@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 from docx import Document
 from htmldocx import HtmlToDocx
 from xhtml2pdf import pisa
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
@@ -66,6 +67,42 @@ COMPETENCIAS_GERAIS_BNCC = [
     "Exercitar a empatia, o diálogo, a resolução de conflitos e a cooperação, fazendo-se respeitar e promovendo o respeito ao outro e aos direitos humanos, com acolhimento e valorização da diversidade de indivíduos e de grupos sociais, seus saberes, identidades, culturas e potencialidades, sem preconceitos de qualquer natureza.",
     "Agir pessoal e coletivamente com autonomia, responsabilidade, flexibilidade, resiliência e determinação, tomando decisões com base em princípios éticos, democráticos, inclusivos, sustentáveis e solidários.",
 ]
+
+def montar_prova_duas_colunas(html_questoes):
+    """
+    Recebe o HTML das questões (cada uma em <div class="questao-item">) e o
+    gabarito (em <div class="gabarito-prova">), e monta uma tabela de 2 colunas
+    de tamanho igual, fonte Arial 12 — igual ao modelo de prova impressa
+    tradicional. Usar tabela (em vez de CSS column-count) garante que o layout
+    se preserve tanto na tela quanto na exportação para PDF e Word.
+    """
+    soup = BeautifulSoup(html_questoes, 'html.parser')
+    itens = soup.find_all('div', class_='questao-item')
+    gabarito_tag = soup.find('div', class_='gabarito-prova')
+    gabarito_html = str(gabarito_tag) if gabarito_tag else ''
+
+    fonte_estilo = 'font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.4;'
+
+    if not itens:
+        # Rede de segurança: a IA não usou as divs esperadas — devolve sem split, mas já com a fonte correta.
+        conteudo_sem_gabarito = html_questoes
+        if gabarito_tag:
+            conteudo_sem_gabarito = conteudo_sem_gabarito.replace(str(gabarito_tag), '')
+        return f'<div style="{fonte_estilo}">{conteudo_sem_gabarito}</div>{gabarito_html}'
+
+    metade = (len(itens) + 1) // 2
+    col1_html = "".join(str(i) for i in itens[:metade])
+    col2_html = "".join(str(i) for i in itens[metade:])
+
+    tabela = f"""
+    <table class="tabela-prova-colunas" style="width:100%; border-collapse:collapse; {fonte_estilo}">
+        <tr>
+            <td style="width:50%; vertical-align:top; padding:0 14px 0 0; border-right:1px solid #999;">{col1_html}</td>
+            <td style="width:50%; vertical-align:top; padding:0 0 0 14px;">{col2_html}</td>
+        </tr>
+    </table>
+    """
+    return tabela + gabarito_html
 
 def montar_html_competencias_gerais():
     ordinais = ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "7ª", "8ª", "9ª", "10ª"]
@@ -130,7 +167,7 @@ def executar_geracao_ia(**kwargs):
     observacoes = kwargs.get('observacoes', '')
 
     if not GEMINI_API_KEY:
-        return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
+        return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render."), ''
 
     # -----------------------------------------------------------------
     # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
@@ -243,6 +280,34 @@ def executar_geracao_ia(**kwargs):
         - Tema Central / Objeto de Estudo: {tema}
         - Código de Habilidade BNCC Alvo: {bncc}
         """
+    elif tipo_modulo == 'Gerador de Provas':
+        prompt = f"""
+        Atue como um Especialista em Avaliação Pedagógica, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere uma PROVA/AVALIAÇÃO completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}".
+        NÃO gere nenhum cabeçalho com nome de escola, professor, aluno ou data — isso já é adicionado automaticamente pelo sistema.
+
+        {regras_formato}
+
+        SUA RESPOSTA DEVE TER DUAS PARTES, NESTA ORDEM, SEPARADAS PELO MARCADOR LITERAL EXATO <!--INFO_PEDAGOGICA--> (sem nenhum texto ao redor do marcador):
+
+        ============ PARTE 1 — A PROVA EM SI (vai para o documento impresso/exportado) ============
+        1. Gere exatamente {qtd_questoes} questões no formato de aplicação: {tipo_prova}.
+        2. Cada questão DEVE estar envolvida em <div class="questao-item">...</div> (uma div por questão, isso é obrigatório para a diagramação em colunas).
+        3. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
+        4. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
+        5. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
+        6. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
+        7. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
+        8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
+
+        ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS (fica visível só na tela do sistema, NUNCA é exportada/impressa) ============
+        Após o marcador <!--INFO_PEDAGOGICA-->, gere, cada uma como <h5>[Título]</h5>:
+        - Objetivos: o que se espera avaliar com esta prova.
+        - Competências e Habilidades da BNCC: competência(s) geral(is) e habilidade(s) específica(s) (código + descrição) trabalhadas, priorizando o código informado ({bncc if bncc else 'nenhum informado — selecione os mais adequados ao tema'}).
+        - Fundamentação Legal: artigo pertinente da LDB (Lei 9.394/96) e eixo/orientação do DCTMA relacionados ao tema.
+        - Configuração Utilizada: resuma em lista os parâmetros desta prova — Disciplina: {disciplina}; Ano/Série: {ano}; Nível: {nivel}; Formato: {tipo_prova}; Quantidade de questões: {qtd_questoes}.
+        - Metodologia de Aplicação: sugestões de como aplicar esta avaliação em sala (tempo sugerido, orientações antes da aplicação, critérios de correção).
+        """
     else:
         prompt = f"""
         Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
@@ -264,19 +329,7 @@ def executar_geracao_ia(**kwargs):
         - Nível de Rigor Cognitivo: {nivel}
         {regras_formato}
         """
-        if tipo_modulo == 'Gerador de Provas':
-            prompt += f"""
-            DIRETRIZES DO GERADOR DE PROVAS EXCLUSIVAS:
-            1. Você deve gerar exatamente {qtd_questoes} questões no formato de aplicação: {tipo_prova}.
-            2. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
-            3. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
-            4. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
-            5. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
-            6. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
-            7. NÃO gere cabeçalho de identificação do aluno/turma/data — isso já é adicionado automaticamente pelo sistema antes do seu conteúdo. Comece direto pela primeira questão.
-            8. Ao final, inclua uma seção <h5>Gabarito</h5> com a resposta correta de cada questão (apenas o número da questão e a alternativa/resposta correta, de forma resumida).
-            """
-        elif tipo_modulo == 'Banco de Atividades':
+        if tipo_modulo == 'Banco de Atividades':
             tipos_selecionados = kwargs.get('tipos_atividade', []) or ['Questões objetivas']
             lista_tipos = ", ".join(tipos_selecionados)
             prompt += f"""
@@ -360,12 +413,22 @@ def executar_geracao_ia(**kwargs):
             # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
             if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
                 texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
-            return texto_gerado
+
+            info_pedagogica = ''
+            if tipo_modulo == 'Gerador de Provas':
+                if '<!--INFO_PEDAGOGICA-->' in texto_gerado:
+                    parte_prova, parte_info = texto_gerado.split('<!--INFO_PEDAGOGICA-->', 1)
+                else:
+                    parte_prova, parte_info = texto_gerado, ''
+                texto_gerado = montar_prova_duas_colunas(parte_prova)
+                info_pedagogica = parte_info.strip()
+
+            return texto_gerado, info_pedagogica
         else:
-            return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}")
+            return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}"), ''
             
     except Exception as e:
-        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexão física: {str(e)}")
+        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexão física: {str(e)}"), ''
 
 # =====================================================================
 # EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
@@ -466,6 +529,12 @@ def init_db():
             criado_em TEXT
         )
     ''')
+
+    # Migração segura: adiciona a coluna info_pedagogica se o banco já existia sem ela
+    try:
+        cursor.execute("ALTER TABLE materiais ADD COLUMN info_pedagogica TEXT")
+    except sqlite3.OperationalError:
+        pass  # coluna já existe
 
     conn.commit()
     conn.close()
@@ -577,9 +646,10 @@ def dashboard():
     objetivo = request.form.get('objetivo', '').strip()
 
     material_id = None
+    info_pedagogica = ""
 
     if request.method == 'POST' and tema:
-        conteudo = executar_geracao_ia(
+        conteudo, info_pedagogica = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
             ano=ano,
@@ -617,11 +687,11 @@ def dashboard():
             conn = sqlite3.connect('database.db')
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO materiais (usuario_email, tipo_modulo, titulo, disciplina, ano, conteudo_html, favorito, criado_em)
-                VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+                INSERT INTO materiais (usuario_email, tipo_modulo, titulo, disciplina, ano, conteudo_html, favorito, criado_em, info_pedagogica)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
             ''', (
                 session.get('user_email', ''), config_modulo['nome'], tema, disciplina, ano,
-                conteudo, datetime.now().strftime('%d/%m/%Y %H:%M')
+                conteudo, datetime.now().strftime('%d/%m/%Y %H:%M'), info_pedagogica
             ))
             material_id = cursor.lastrowid
             conn.commit()
@@ -635,6 +705,7 @@ def dashboard():
         config=config_modulo,
         conteudo=conteudo,
         material_id=material_id,
+        info_pedagogica=info_pedagogica,
         tema=tema,
         disciplina=disciplina if disciplina else "Componente Curricular",
         ano=ano,
