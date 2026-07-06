@@ -86,15 +86,22 @@ def extrair_chave_api():
     return None
 
 def chamar_gemini_com_retry(prompt, chave, tentativas=3):
-    """Tenta chamar a API Gemini com até 3 tentativas em caso de erro 503/429, com fallback de modelo"""
-    modelos = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
+    """
+    Tenta chamar a API Gemini com até 3 tentativas por modelo.
+    Modelos tentados: gemini-1.5-pro, gemini-pro.
+    Usa a API v1 (não v1beta) para compatibilidade.
+    """
+    modelos = ['gemini-1.5-pro', 'gemini-pro']
     ultimo_erro = None
-    
+
+    # Usar a versão v1 da API (mais estável)
+    base_url = "https://generativelanguage.googleapis.com/v1/models/{modelo}:generateContent?key={chave}"
+
     for modelo in modelos:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={chave}"
+        url = base_url.format(modelo=modelo, chave=chave)
         headers = {'Content-Type': 'application/json'}
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        
+
         for tentativa in range(tentativas):
             try:
                 resp = requests.post(url, headers=headers, json=payload, timeout=60)
@@ -107,16 +114,19 @@ def chamar_gemini_com_retry(prompt, chave, tentativas=3):
                         texto = texto.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
                     return texto
                 elif resp.status_code in [429, 503]:
-                    tempo_espera = 2 ** tentativa
+                    # Aguarda e tenta novamente
+                    tempo_espera = 2 ** tentativa  # 1, 2, 4 segundos
                     time.sleep(tempo_espera)
                     continue
                 else:
+                    # Erro não relacionado a limite de requisições – tenta próximo modelo
                     ultimo_erro = f"Código {resp.status_code}: {resp.text}"
-                    break  # Sai do loop de tentativas para este modelo, tenta próximo
+                    break  # Sai do loop de tentativas, vai para o próximo modelo
             except Exception as e:
                 ultimo_erro = str(e)
                 break
-    # Se chegou aqui, todos os modelos falharam
+
+    # Se todos os modelos falharam
     return f"<!--ERRO--> {ultimo_erro}"
 
 # =====================================================================
