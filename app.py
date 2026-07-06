@@ -86,34 +86,38 @@ def extrair_chave_api():
     return None
 
 def chamar_gemini_com_retry(prompt, chave, tentativas=3):
-    """Tenta chamar a API Gemini com até 3 tentativas em caso de erro 503"""
-    # Modelo alterado para gemini-1.5-flash (menos sobrecarregado)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={chave}"
-    headers = {'Content-Type': 'application/json'}
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    """Tenta chamar a API Gemini com até 3 tentativas em caso de erro 503/429, com fallback de modelo"""
+    modelos = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
+    ultimo_erro = None
     
-    for tentativa in range(tentativas):
-        try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=60)
-            if resp.status_code == 200:
-                data = resp.json()
-                texto = data['candidates'][0]['content']['parts'][0]['text']
-                texto = texto.replace("```html", "").replace("```", "").strip()
-                texto = sanitizar_saida_html(texto)
-                if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto:
-                    texto = texto.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
-                return texto
-            elif resp.status_code == 503:
-                # Erro de sobrecarga - aguarda e tenta novamente
-                tempo_espera = 2 ** tentativa  # 1, 2, 4 segundos
-                time.sleep(tempo_espera)
-                continue
-            else:
-                return f"<!--ERRO--> Código {resp.status_code}: {resp.text}"
-        except Exception as e:
-            return f"<!--ERRO--> {str(e)}"
-    
-    return "<!--ERRO--> O serviço Gemini está temporariamente indisponível (503). Tente novamente mais tarde."
+    for modelo in modelos:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={chave}"
+        headers = {'Content-Type': 'application/json'}
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        
+        for tentativa in range(tentativas):
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=60)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    texto = data['candidates'][0]['content']['parts'][0]['text']
+                    texto = texto.replace("```html", "").replace("```", "").strip()
+                    texto = sanitizar_saida_html(texto)
+                    if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto:
+                        texto = texto.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+                    return texto
+                elif resp.status_code in [429, 503]:
+                    tempo_espera = 2 ** tentativa
+                    time.sleep(tempo_espera)
+                    continue
+                else:
+                    ultimo_erro = f"Código {resp.status_code}: {resp.text}"
+                    break  # Sai do loop de tentativas para este modelo, tenta próximo
+            except Exception as e:
+                ultimo_erro = str(e)
+                break
+    # Se chegou aqui, todos os modelos falharam
+    return f"<!--ERRO--> {ultimo_erro}"
 
 # =====================================================================
 # FUNÇÕES DE MONTAGEM DE PROMPTS
