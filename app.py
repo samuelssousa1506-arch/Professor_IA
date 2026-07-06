@@ -135,7 +135,6 @@ def montar_prompt_plano_aula(dados):
 
 def montar_prompt_bimestral(dados):
     # ATENÇÃO: Substitua este placeholder pelo prompt completo do Planejamento Bimestral
-    # que estava no seu arquivo original.
     return """
     <h4>Planejamento Bimestral</h4>
     <p><strong>ATENÇÃO:</strong> Substitua este placeholder pelo prompt completo do Planejamento Bimestral.</p>
@@ -173,7 +172,7 @@ def montar_prompt_atividade(dados):
     return prompt
 
 # =====================================================================
-# PROMPT CORRIGIDO DO GERADOR DE PROVAS (com espaçamento e sem bullets)
+# PROMPT GERADOR DE PROVAS – com 2 colunas e Arial 12
 # =====================================================================
 def montar_prompt_prova(dados):
     tema = dados.get('tema', '')
@@ -194,44 +193,31 @@ def montar_prompt_prova(dados):
     - Nível de dificuldade: {nivel}
     - Código BNCC de referência: {bncc if bncc else 'selecione os mais adequados'}
 
-    Sua resposta deve ser um HTML estruturado com três seções:
+    A prova deve ser formatada em duas colunas de tamanho igual, com fonte Arial 12.
+    A estrutura HTML deve ser:
+    - Título: <h4 class="titulo-prova">AVALIAÇÃO BIMESTRAL DE {disciplina.upper()}</h4>
+    - As questões devem ser agrupadas em uma <div class="questoes-2col"> que aplica duas colunas via CSS (column-count: 2).
+    - Cada questão deve ter a classe .questao e conter:
+      * Enunciado em negrito: <strong>01. (código) texto da questão</strong>
+      * Alternativas como <p class="alt">a) texto</p>, <p class="alt">b) ...</p>, etc. (sem marcadores)
+      * Para subjetivas, inclua <div class="linha-resposta"></div> três vezes após o enunciado.
+    - Não inclua cabeçalho, apenas o título e as questões.
+    - Ao final, inclua uma seção <div class="gabarito"> com o gabarito (para o professor).
 
-    1. <div class="questoes">
-       O título da prova deve ser: <h4 class="titulo-prova">AVALIAÇÃO BIMESTRAL DE {disciplina.upper()}</h4>
-       Logo abaixo, inicie as questões imediatamente.
-       Numere as questões com dois dígitos e ponto, começando em 01. (ex: 01., 02., ...).
-       Para cada questão, o ENUNCIADO deve estar em NEGRITO, use a tag <strong> em todo o texto da pergunta (incluindo o código BNCC, se houver). Exemplo:
-       <strong>01. (EF09MA02) Qual é o valor de ...</strong>
-       Para as alternativas, use o seguinte formato:
-       <p class="alt">a) texto da alternativa</p>
-       <p class="alt">b) texto da alternativa</p>
-       <p class="alt">c) texto da alternativa</p>
-       <p class="alt">d) texto da alternativa</p>
-       NUNCA use marcadores (bullets) como <ul> ou <li>. Use APENAS <p class="alt"> para cada alternativa.
-       Para questões subjetivas, insira <div class="linha-resposta"></div> três vezes após o enunciado.
-       Não inclua nenhum texto antes do título da prova.
+    Exemplo de estrutura:
+    <div class="questoes-2col">
+      <div class="questao">
+        <strong>01. (EF09MA02) Qual é ...</strong>
+        <p class="alt">a) alternativa A</p>
+        <p class="alt">b) alternativa B</p>
+        <p class="alt">c) alternativa C</p>
+        <p class="alt">d) alternativa D</p>
+      </div>
+      <!-- próxima questão -->
     </div>
+    <div class="gabarito">...</div>
 
-    2. <div class="gabarito">
-       Inclua aqui o gabarito completo para o professor, com as respostas corretas.
-       Exemplo:
-       <h5>Gabarito</h5>
-       <p>01. A</p>
-       <p>02. C</p>
-       <p>03. B</p>
-       ...
-    </div>
-
-    3. <div class="info-pedagogica" style="display:none;">
-       Inclua aqui as informações pedagógicas que não devem ser exportadas:
-       - Objetivos da avaliação
-       - Habilidades da BNCC trabalhadas (códigos e descrições)
-       - Competências gerais relacionadas
-       - Fundamentação legal (BNCC, LDB, DCTMA) citada
-       - Metodologia de avaliação sugerida
-    </div>
-
-    Responda em HTML puro, sem Markdown. Lembre-se: o enunciado de cada questão deve estar dentro de tags <strong> e as alternativas devem ser <p class="alt">.
+    Responda em HTML puro, sem Markdown. A fonte deve ser Arial 12 (não use Times).
     """
     return prompt
 
@@ -550,7 +536,6 @@ def dashboard():
         
         # Extração para provas: informações pedagógicas e gabarito
         if form_type == 'avaliacoes' and conteudo:
-            # Extrai informações pedagógicas
             match_pedagogico = re.search(r'<div class="info-pedagogica"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
             if match_pedagogico:
                 dados_ia['pedagogico'] = match_pedagogico.group(1)
@@ -558,11 +543,9 @@ def dashboard():
             else:
                 dados_ia['pedagogico'] = 'Informações pedagógicas não disponíveis.'
             
-            # Extrai o gabarito
             match_gabarito = re.search(r'<div class="gabarito"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
             if match_gabarito:
                 dados_ia['gabarito'] = match_gabarito.group(1)
-                # Remove o gabarito do conteúdo principal (não aparece para o aluno)
                 conteudo = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo, flags=re.DOTALL)
             else:
                 dados_ia['gabarito'] = ''
@@ -696,7 +679,7 @@ def excluir_material(material_id):
     return redirect(url_for('biblioteca'))
 
 # =====================================================================
-# ROTA DE EXPORTAÇÃO (com CSS profissional)
+# ROTA DE EXPORTAÇÃO (com 2 colunas e Arial 12)
 # =====================================================================
 @app.route('/exportar', methods=['POST'])
 def exportar():
@@ -708,48 +691,60 @@ def exportar():
     tipo = request.form.get('tipo', 'geral')
     disciplina = request.form.get('disciplina', '')
     
-    # Monta o cabeçalho de acordo com o tipo
+    # Cabeçalho com nome da escola e professor já preenchidos
     if tipo == 'avaliacoes':
         cabecalho = f"""
         <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0e2a5e; padding-bottom: 10px;">
-            <h3 style="color: #0e2a5e;">{session.get('user_school', '')}</h3>
-            <p><strong>Professor(a):</strong> _________________________</p>
-            <p><strong>Disciplina:</strong> {disciplina}</p>
-            <p><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
-            <p><strong>Turma:</strong> _____________    <strong>Data:</strong> ____/____/________    <strong>Nota:</strong> _______</p>
+            <h3 style="color: #0e2a5e; font-family: Arial, sans-serif; font-size: 14pt;">{session.get('user_school', '')}</h3>
+            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
+            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Disciplina:</strong> {disciplina}</p>
+            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
+            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Turma:</strong> _____________    <strong>Data:</strong> ____/____/________    <strong>Nota:</strong> _______</p>
         </div>
         """
     else:
         cabecalho = f"""
         <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0e2a5e; padding-bottom: 10px;">
-            <h3 style="color: #0e2a5e;">{session.get('user_school', '')}</h3>
-            <p><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
+            <h3 style="color: #0e2a5e; font-family: Arial, sans-serif; font-size: 14pt;">{session.get('user_school', '')}</h3>
+            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
         </div>
         """
     
-    # Para provas, extrai apenas a div .questoes e remove gabarito/info-pedagogica
+    # Para provas, extrai apenas a div .questoes (já vem com 2 colunas)
     if tipo == 'avaliacoes':
-        match = re.search(r'<div class="questoes">(.*?)</div>', conteudo_html, re.DOTALL)
+        match = re.search(r'<div class="questoes-2col">(.*?)</div>', conteudo_html, re.DOTALL)
         if match:
-            conteudo_html = match.group(1)
-        # Remove qualquer vestígio de gabarito ou info-pedagogica (por segurança)
+            # Pega o conteúdo da div .questoes-2col
+            questoes_html = match.group(1)
+        else:
+            # Fallback: se não encontrar, usa todo o conteúdo
+            questoes_html = conteudo_html
+        
+        # Remove gabarito e info-pedagogica do conteúdo principal
         conteudo_html = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
         conteudo_html = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
+        # Usa apenas as questões em 2 colunas
+        conteudo_html = f'<div class="questoes-2col">{questoes_html}</div>'
     
-    # CSS profissional para o documento exportado
+    # CSS para duas colunas, Arial 12
     css_profissional = """
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.6; margin: 0.5in; color: #000; }
-        .titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1.2rem 0; letter-spacing: 1px; color: #0e2a5e; }
-        .questao { margin-bottom: 1.8rem; }
-        .questao strong { font-weight: 700; display: block; margin-bottom: 0.3rem; }
-        .alternativas { margin-left: 1.8rem; margin-top: 0.3rem; }
-        .alternativas p.alt { margin-bottom: 0.4rem; }
-        .linha-resposta { border-bottom: 1px dotted #999; margin: 15px 0; height: 0; }
-        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0.5in; color: #000; }
+        .titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1.2rem 0; letter-spacing: 1px; color: #0e2a5e; font-family: Arial, sans-serif; }
+        .questoes-2col { column-count: 2; column-gap: 40px; column-fill: auto; }
+        .questao { margin-bottom: 1.2rem; break-inside: avoid; page-break-inside: avoid; }
+        .questao strong { font-weight: 700; display: block; margin-bottom: 0.2rem; }
+        .questao .alt { margin-left: 1.2rem; margin-bottom: 0.1rem; }
+        .linha-resposta { border-bottom: 1px dotted #999; margin: 10px 0; height: 0; }
+        .gabarito { margin-top: 20px; padding-top: 10px; border-top: 2px solid #0e2a5e; column-span: all; }
         hr { border: 0; border-top: 2px solid #0e2a5e; }
-        .gabarito { margin-top: 20px; padding-top: 10px; border-top: 2px solid #0e2a5e; }
+        /* Ajustes para impressão */
+        @media print {
+            body { margin: 0.5in; }
+            .questoes-2col { column-gap: 30px; }
+            .questao { margin-bottom: 0.8rem; }
+        }
     </style>
     """
     
@@ -762,6 +757,7 @@ def exportar():
     <body>
         {cabecalho}
         {conteudo_html}
+        <!-- O gabarito fica apenas na visualização, não é exportado -->
     </body>
     </html>
     """
@@ -773,7 +769,7 @@ def exportar():
         doc = Document()
         if tipo == 'avaliacoes':
             doc.add_heading(session.get('user_school', ''), level=1)
-            doc.add_paragraph('Professor(a): _________________________')
+            doc.add_paragraph(f'Professor(a): {session.get("user_name", "")}')
             doc.add_paragraph(f'Disciplina: {disciplina}')
             doc.add_paragraph('Nome do(a) Aluno(a): ________________________________________________')
             doc.add_paragraph('Turma: _____________      Data: ____/____/________      Nota: _______')

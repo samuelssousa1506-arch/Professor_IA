@@ -46,11 +46,11 @@
         .btn-imprimir:hover { background: var(--azul-800); color: #fff; }
         .estado-vazio { border: 2px dashed var(--borda); border-radius: 12px; background-color: #ffffff; }
 
-        /* LAYOUT PROFISSIONAL PARA PROVAS – sem bullets e com espaçamento */
+        /* LAYOUT PROFISSIONAL PARA PROVAS – 2 colunas, Arial 12 */
         .prova-profissional {
-            font-family: 'Times New Roman', Times, serif;
+            font-family: Arial, sans-serif;
             font-size: 12pt;
-            line-height: 1.6;
+            line-height: 1.5;
             color: #000000;
             max-width: 100%;
             margin: 0 auto;
@@ -62,11 +62,12 @@
             padding-bottom: 0.8rem;
         }
         .cabecalho-unico h2 {
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: 700;
             margin-bottom: 0.3rem;
             letter-spacing: 0.5px;
             color: var(--azul-900);
+            font-family: Arial, sans-serif;
         }
         .cabecalho-unico .linha-dados {
             display: flex;
@@ -93,32 +94,32 @@
             margin: 0.5rem 0 1.5rem 0;
             letter-spacing: 1px;
             color: var(--azul-900);
+            font-family: Arial, sans-serif;
         }
 
-        .prova-profissional .questao {
-            margin-bottom: 1.8rem;
-            padding: 0.2rem 0;
+        /* DUAS COLUNAS – estilo principal */
+        .questoes-2col {
+            column-count: 2;
+            column-gap: 40px;
+            column-fill: auto;
         }
-        .prova-profissional .questao strong {
+        .questao {
+            margin-bottom: 1.2rem;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .questao strong {
             font-weight: 700;
             display: block;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.2rem;
         }
-        .prova-profissional .questao .alternativas {
-            margin-left: 1.8rem;
-            margin-top: 0.3rem;
+        .questao .alt {
+            margin-left: 1.2rem;
+            margin-bottom: 0.1rem;
         }
-        .prova-profissional .questao .alternativas p.alt {
-            margin-bottom: 0.4rem;
-            padding-left: 0;
-            list-style: none;
-        }
-        .prova-profissional .questao .alternativas br {
-            display: none;
-        }
-        .prova-profissional .linha-resposta {
+        .linha-resposta {
             border-bottom: 1px dotted #888;
-            margin: 0.8rem 0 1.2rem 0;
+            margin: 10px 0;
             height: 1px;
         }
 
@@ -136,9 +137,8 @@
             .prova-profissional { font-size: 12pt; line-height: 1.5; }
             .cabecalho-unico { border-bottom: 2px solid #000; margin-bottom: 1rem; }
             .titulo-prova { font-size: 14pt; margin: 0.5rem 0 1rem 0; }
-            .prova-profissional .questao { margin-bottom: 1.5rem; }
-            .prova-profissional .questao .alternativas { margin-left: 1.5rem; }
-            .prova-profissional .linha-resposta { margin: 0.6rem 0 1rem 0; }
+            .questoes-2col { column-gap: 30px; }
+            .questao { margin-bottom: 0.8rem; }
         }
     </style>
 </head>
@@ -408,7 +408,7 @@
             <div class="cabecalho-unico">
                 <h2>{{ school }}</h2>
                 <div class="linha-dados">
-                    <span class="campo"><strong>Professor(a):</strong> <span class="linha"></span></span>
+                    <span class="campo"><strong>Professor(a):</strong> {{ name }}</span>
                     <span class="campo"><strong>Disciplina:</strong> {{ disciplina if disciplina else '_____________________' }}</span>
                 </div>
                 <div class="linha-dados">
