@@ -15,41 +15,65 @@
         font-weight: 700;
     }
     .btn-editar-material:hover { filter: brightness(1.05); color: #fff; }
+    .btn-favoritar-material {
+        border: 1px solid #eddca4;
+        background: #fdf6e8;
+        color: var(--selo-ouro);
+        font-weight: 700;
+    }
+    .btn-favoritar-material:hover { background: #fbeccb; color: var(--selo-ouro); }
+    .btn-excluir-material {
+        border: 1px solid #fecaca;
+        background: #fff5f5;
+        color: #dc2626;
+        font-weight: 700;
+    }
+    .btn-excluir-material:hover { background: #fee2e2; color: #b91c1c; }
     .editor-box h2 { color: var(--azul-900); }
 </style>
 {% endblock %}
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 btn-print-hide">
+    <div class="d-flex justify-content-between align-items-center mb-4 btn-print-hide flex-wrap gap-2">
         <div>
-            <a href="{{ url_for('banco') }}" class="btn btn-sm btn-link text-secondary p-0 mb-1"><i class="fa-solid fa-arrow-left"></i> Retornar ao Banco</a>
+            <a href="{{ url_for('biblioteca') }}" class="btn btn-sm btn-link text-secondary p-0 mb-1"><i class="fa-solid fa-arrow-left"></i> Retornar à Biblioteca</a>
             <h3 class="fw-bold m-0" style="color: var(--tinta);">Material Pedagógico Produzido</h3>
         </div>
-        <div>
-            <button onclick="window.print();" class="btn btn-imprimir-material me-2"><i class="fa-solid fa-print me-1"></i> Imprimir / PDF</button>
+        <div class="d-flex gap-2 flex-wrap">
+            <form action="{{ url_for('favoritar_material', material_id=material.id) }}" method="POST">
+                <button type="submit" class="btn btn-favoritar-material">
+                    <i class="fa-solid fa-star me-1"></i> {% if material.favorito %}Favoritado{% else %}Favoritar{% endif %}
+                </button>
+            </form>
+            <a href="{{ url_for('exportar_material', material_id=material.id, formato='pdf') }}" class="btn btn-outline-danger fw-bold"><i class="fa-solid fa-file-pdf me-1"></i> PDF</a>
+            <a href="{{ url_for('exportar_material', material_id=material.id, formato='docx') }}" class="btn btn-outline-primary fw-bold"><i class="fa-solid fa-file-word me-1"></i> Word</a>
+            <button onclick="window.print();" class="btn btn-imprimir-material"><i class="fa-solid fa-print me-1"></i> Imprimir</button>
             <button class="btn btn-editar-material" data-bs-toggle="modal" data-bs-target="#editModal"><i class="fa-solid fa-pen-to-square me-1"></i> Editar Texto</button>
+            <form action="{{ url_for('excluir_material', material_id=material.id) }}" method="POST" onsubmit="return confirm('Excluir este material permanentemente?');">
+                <button type="submit" class="btn btn-excluir-material"><i class="fa-solid fa-trash me-1"></i></button>
+            </form>
         </div>
     </div>
 
     <div class="editor-box">
         <div class="text-center border-bottom pb-3 mb-4">
-            <h2 class="fw-bold m-0">{{ material.title }}</h2>
-            <p class="text-muted m-0 mt-1">Componente: <strong>{{ material.discipline }}</strong> | Segmento: <strong>{{ material.grade }}</strong></p>
-            <small class="text-secondary">Gerado via Professor IA em: {{ material.created_at }}</small>
+            <h2 class="fw-bold m-0">{{ material.titulo }}</h2>
+            <p class="text-muted m-0 mt-1">Componente: <strong>{{ material.disciplina }}</strong> | Ano/Série: <strong>{{ material.ano }}</strong> | Tipo: <strong>{{ material.tipo_modulo }}</strong></p>
+            <small class="text-secondary">Gerado via Professor IA em: {{ material.criado_em }}</small>
             <div class="mt-2">
                 <span class="selo-legal"><i class="fa-solid fa-shield-halved"></i> BNCC · LDB · DCTMA</span>
             </div>
         </div>
 
         <div class="pedagogical-content">
-            {{ material.content | safe }}
+            {{ material.conteudo_html | safe }}
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
-        <form method="POST" action="{{ url_for('ver_material', material_id=material.id) }}" class="modal-content">
+        <form method="POST" action="{{ url_for('editar_material', material_id=material.id) }}" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold">Refinar / Editar Material Salvo</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -57,11 +81,11 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label fw-bold">Título Principal</label>
-                    <input type="text" class="form-control" name="title" value="{{ material.title }}" required>
+                    <input type="text" class="form-control" name="title" value="{{ material.titulo }}" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Código Fonte HTML Pedagógico</label>
-                    <textarea class="form-control code-editor" name="content" rows="18" style="font-family: Courier, monospace; font-size: 0.9rem;">{{ material.content }}</textarea>
+                    <textarea class="form-control code-editor" name="content" rows="18" style="font-family: Courier, monospace; font-size: 0.9rem;">{{ material.conteudo_html }}</textarea>
                 </div>
             </div>
             <div class="modal-footer">

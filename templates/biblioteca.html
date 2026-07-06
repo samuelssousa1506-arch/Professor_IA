@@ -1,52 +1,86 @@
 {% extends 'base.html' %}
+{% block title %}Biblioteca - Professor IA{% endblock %}
+{% block head %}
+<style>
+    .card-material {
+        background: #fff;
+        border: 1px solid var(--borda);
+        border-radius: 12px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 0.85rem;
+        transition: box-shadow 0.15s;
+    }
+    .card-material:hover { box-shadow: 0 4px 14px rgba(10,31,63,0.08); }
+    .tab-filtro {
+        display: inline-flex;
+        gap: 8px;
+        margin-bottom: 1.5rem;
+    }
+    .tab-filtro a {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        color: var(--tinta-suave);
+        background: #fff;
+        border: 1px solid var(--borda);
+    }
+    .tab-filtro a.active {
+        background: var(--azul-100);
+        color: var(--azul-800);
+        border-color: var(--azul-100);
+    }
+    .badge-tipo {
+        background: var(--azul-50);
+        color: var(--azul-800);
+        font-weight: 700;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
 {% block content %}
 <div class="container py-4">
-    <h3 class="fw-bold">Minha Biblioteca</h3>
-    <p class="text-muted">Materiais gerados e salvos</p>
-    {% if materiais %}
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-            <thead>
-                <tr>
-                    <th>Título</th>
-                    <th>Tipo</th>
-                    <th>Data</th>
-                    <th>Favorito</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for mat in materiais %}
-                <tr>
-                    <td>{{ mat[1] }}</td>
-                    <td>{{ mat[2] }}</td>
-                    <td>{{ mat[3] }}</td>
-                    <td>
-                        <form action="{{ url_for('favoritar_material', material_id=mat[0]) }}" method="POST" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-outline-warning">
-                                <i class="fa-solid fa-star {% if mat[4] %}text-warning{% endif %}"></i>
-                            </button>
-                        </form>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('editar_material', material_id=mat[0]) }}" class="btn btn-sm btn-primary">Editar</a>
-                        <form action="{{ url_for('excluir_material', material_id=mat[0]) }}" method="POST" style="display:inline;" onsubmit="return confirm('Excluir este material?')">
-                            <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
-                        </form>
-                        <form action="{{ url_for('exportar') }}" method="POST" style="display:inline;">
-                            <input type="hidden" name="conteudo" value="{{ mat[5] }}">
-                            <input type="hidden" name="tipo" value="{{ mat[2] }}">
-                            <button type="submit" name="formato" value="pdf" class="btn btn-sm btn-secondary">PDF</button>
-                            <button type="submit" name="formato" value="docx" class="btn btn-sm btn-secondary">Word</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <h3 class="fw-bold mb-1" style="color: var(--tinta);">Biblioteca / Histórico</h3>
+    <p class="text-muted small mb-3">Todo material gerado fica salvo aqui automaticamente. Marque como favorito para encontrar mais rápido.</p>
+
+    <div class="tab-filtro">
+        <a href="{{ url_for('biblioteca') }}" class="{% if not apenas_favoritos %}active{% endif %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Todos</a>
+        <a href="{{ url_for('biblioteca', favoritos=1) }}" class="{% if apenas_favoritos %}active{% endif %}"><i class="fa-solid fa-star me-1"></i> Favoritos</a>
     </div>
+
+    {% if materiais %}
+        {% for m in materiais %}
+        <div class="card-material d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="badge-tipo">{{ m.tipo_modulo }}</span>
+                <h6 class="fw-bold mt-2 mb-1">{{ m.titulo }}</h6>
+                <p class="text-muted small mb-0">{{ m.disciplina }} • {{ m.ano }} • {{ m.criado_em }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <form action="{{ url_for('favoritar_material', material_id=m.id) }}" method="POST">
+                    <button type="submit" class="btn btn-sm {% if m.favorito %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+                        <i class="fa-solid fa-star"></i>
+                    </button>
+                </form>
+                <a href="{{ url_for('ver_material', material_id=m.id) }}" class="btn btn-sm btn-outline-primary fw-bold">
+                    <i class="fa-solid fa-eye me-1"></i> Abrir
+                </a>
+                <a href="{{ url_for('exportar_material', material_id=m.id, formato='pdf') }}" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-file-pdf"></i></a>
+                <a href="{{ url_for('exportar_material', material_id=m.id, formato='docx') }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-word"></i></a>
+                <form action="{{ url_for('excluir_material', material_id=m.id) }}" method="POST" onsubmit="return confirm('Excluir este material permanentemente?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
     {% else %}
-    <p>Nenhum material salvo ainda.</p>
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-box-open mb-3" style="font-size: 2.5rem;"></i>
+            <p>Nenhum material {% if apenas_favoritos %}favoritado{% else %}gerado{% endif %} ainda.</p>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

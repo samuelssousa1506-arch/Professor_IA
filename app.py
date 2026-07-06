@@ -1,19 +1,15 @@
 import os
 import re
-import json
 import sqlite3
 import random
 import requests
 import markdown as md
-import time
+from io import BytesIO
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
-from werkzeug.security import generate_password_hash, check_password_hash
-import io
-import weasyprint
+from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from docx import Document
-from docx.shared import Inches, Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from htmldocx import HtmlToDocx
+from xhtml2pdf import pisa
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
@@ -33,8 +29,30 @@ MODULOS = {
     'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'}
 }
 
+TIPOS_ATIVIDADE = [
+    "Interpretação de texto", "Questões objetivas", "Questões subjetivas", "Produção textual",
+    "Atividade de leitura (alfabetização)", "Complete as lacunas", "Ligue as colunas",
+    "Verdadeiro ou falso", "Caça-palavras", "Cruzadinha", "Sequência lógica",
+    "Ordenação de frases", "Escrita de palavras", "Formação de frases", "Problemas matemáticos",
+    "Atividade ilustrada", "Recorte e cole", "Pintura educativa", "Pesquisa", "Debate em sala",
+    "Trabalho em grupo", "Atividade prática", "Revisão de conteúdo", "Exercícios para reforço"
+]
+
+TIPOS_PROJETO = [
+    "Feira de Ciências", "Feira Cultural", "Feira Literária", "Mostra Pedagógica", "Visita Técnica",
+    "Aula de Campo", "Projeto Interdisciplinar", "Projeto de Leitura", "Projeto de Escrita",
+    "Projeto Ambiental", "Projeto de Sustentabilidade", "Projeto de História Local",
+    "Projeto de Cultura Popular", "Projeto de Consciência Negra", "Projeto de Educação Financeira",
+    "Projeto de Saúde", "Projeto Esportivo", "Gincana Educativa", "Culminância",
+    "Exposição de Trabalhos", "Oficina", "Seminário", "Palestra", "Teatro", "Musical",
+    "Produção de Podcast", "Produção de Vídeo", "Robótica Educacional", "Clube de Ciências",
+    "Clube de Leitura", "Horta Escolar", "Outro"
+]
+
 # =====================================================================
 # TEXTO OFICIAL FIXO — COMPETÊNCIAS GERAIS DA EDUCAÇÃO BÁSICA (BNCC, 2018)
+# Fixado no backend (não gerado pela IA) para garantir fidelidade 100% ao
+# texto oficial do MEC em todo Planejamento Bimestral, independente do tema.
 # =====================================================================
 COMPETENCIAS_GERAIS_BNCC = [
     "Valorizar e utilizar os conhecimentos historicamente construídos sobre o mundo físico, social, cultural e digital para entender e explicar a realidade, continuar aprendendo e colaborar para a construção de uma sociedade justa, democrática e inclusiva.",
@@ -58,10 +76,19 @@ def montar_html_competencias_gerais():
     return f'<h5 class="doc-secao-titulo">Competências Gerais da Educação Básica</h5><div class="doc-secao-corpo">{itens}</div>'
 
 def sanitizar_saida_html(texto):
+    """
+    Rede de segurança: mesmo instruindo o Gemini a responder em HTML puro,
+    modelos de linguagem eventualmente retornam sintaxe Markdown (###, **, *).
+    Esta função detecta esse padrão e converte para HTML real antes de renderizar.
+    """
     texto = texto.strip()
+
+    # Heurística: se encontrarmos marcadores clássicos de Markdown, convertemos.
     parece_markdown = bool(re.search(r'(^|\n)#{2,6}\s|\*\*[^*]+\*\*|(^|\n)\*\s|(^|\n)-\s', texto))
+
     if parece_markdown:
         texto = md.markdown(texto, extensions=['tables', 'nl2br', 'sane_lists'])
+
     return texto.strip()
 
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
@@ -72,344 +99,374 @@ def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
     {f'<p class="text-danger small"><strong>Detalhes do Erro:</strong> {erro_adicional}</p>' if erro_adicional else ''}
     """
 
-# ------------------- FUNÇÕES DE EXTRAÇÃO E CHAMADA IA -------------------
-def extrair_chave_api():
-    chave = GEMINI_API_KEY.strip()
-    chave = re.sub(r'[\[\]\'"]', '', chave)
-    if 'key=' in chave:
-        chave = chave.split('key=')[-1]
-    if ')' in chave:
-        chave = chave.split(')')[-1]
-    chave = chave.strip()
-    if re.match(r'(AIzaSy[A-Za-z0-9_-]{35}|AQ\.[A-Za-z0-9_-]+)', chave):
-        return chave
-    return None
+def executar_geracao_ia(**kwargs):
+    tipo_modulo = kwargs.get('tipo_modulo', 'Banco de Atividades')
+    tema = kwargs.get('tema', '')
+    disciplina = kwargs.get('disciplina', 'Geral')
+    ano = kwargs.get('ano', 'Geral')
+    bncc = kwargs.get('bncc', '')
+    tipo_prova = kwargs.get('tipo_prova', 'Mista')
+    qtd_questoes = kwargs.get('qtd_questoes', '10')
+    nivel = kwargs.get('nivel', 'Médio')
+    nome_professor = kwargs.get('nome_professor', 'Professor(a)')
+    nome_escola = kwargs.get('nome_escola', 'Instituição de Ensino')
 
-def chamar_gemini_com_retry(prompt, chave, tentativas=3):
-    """
-    Tenta chamar a API Gemini com até 3 tentativas por modelo.
-    Modelos tentados: gemini-1.5-pro, gemini-pro.
-    Usa a API v1 (não v1beta) para compatibilidade.
-    """
-    modelos = ['gemini-1.5-pro', 'gemini-pro']
-    ultimo_erro = None
+    # Campos específicos do Planejamento Bimestral (formato oficial SEMED)
+    numero_plano = kwargs.get('numero_plano', '')
+    bimestre = kwargs.get('bimestre', '1º BIM')
+    data_inicio = kwargs.get('data_inicio', '')
+    data_fim = kwargs.get('data_fim', '')
+    turma = kwargs.get('turma', '')
+    turno = kwargs.get('turno', '')
+    modalidade = kwargs.get('modalidade', 'Presencial')
+    ano_letivo = kwargs.get('ano_letivo', '')
+    inep = kwargs.get('inep', '')
+    endereco_escola = kwargs.get('endereco_escola', '')
+    cidade_escola = kwargs.get('cidade_escola', '')
+    estado_escola = kwargs.get('estado_escola', 'MA')
+    zona_escola = kwargs.get('zona_escola', '')
+    telefone_escola = kwargs.get('telefone_escola', '')
+    email_escola = kwargs.get('email_escola', '')
+    observacoes = kwargs.get('observacoes', '')
 
-    # Usar a versão v1 da API (mais estável)
-    base_url = "https://generativelanguage.googleapis.com/v1/models/{modelo}:generateContent?key={chave}"
-
-    for modelo in modelos:
-        url = base_url.format(modelo=modelo, chave=chave)
-        headers = {'Content-Type': 'application/json'}
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
-        for tentativa in range(tentativas):
-            try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=60)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    texto = data['candidates'][0]['content']['parts'][0]['text']
-                    texto = texto.replace("```html", "").replace("```", "").strip()
-                    texto = sanitizar_saida_html(texto)
-                    if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto:
-                        texto = texto.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
-                    return texto
-                elif resp.status_code in [429, 503]:
-                    # Aguarda e tenta novamente
-                    tempo_espera = 2 ** tentativa  # 1, 2, 4 segundos
-                    time.sleep(tempo_espera)
-                    continue
-                else:
-                    # Erro não relacionado a limite de requisições – tenta próximo modelo
-                    ultimo_erro = f"Código {resp.status_code}: {resp.text}"
-                    break  # Sai do loop de tentativas, vai para o próximo modelo
-            except Exception as e:
-                ultimo_erro = str(e)
-                break
-
-    # Se todos os modelos falharam
-    return f"<!--ERRO--> {ultimo_erro}"
-
-# =====================================================================
-# FUNÇÕES DE MONTAGEM DE PROMPTS
-# =====================================================================
-
-def montar_prompt_plano_aula(dados):
-    tema = dados.get('tema', '')
-    disciplina = dados.get('disciplina', 'Geral')
-    ano = dados.get('ano', 'Geral')
-    bncc = dados.get('bncc', '')
-    return f"""
-    Você é um especialista em planejamento de aulas, com base na BNCC, LDB e DCTMA.
-    Gere um plano de aula detalhado para:
-    - Disciplina: {disciplina}
-    - Ano/Série: {ano}
-    - Tema: {tema}
-    - Código BNCC: {bncc if bncc else 'selecione o mais adequado'}
-
-    O plano deve conter:
-    1. Título da aula
-    2. Objetivos (geral e específicos)
-    3. Habilidades BNCC trabalhadas
-    4. Conteúdos
-    5. Metodologia (descrição passo a passo)
-    6. Recursos didáticos
-    7. Avaliação
-    8. Referências
-
-    Responda em HTML puro, sem Markdown.
-    """
-
-def montar_prompt_bimestral(dados):
-    # ATENÇÃO: Substitua este placeholder pelo prompt completo do Planejamento Bimestral
-    return """
-    <h4>Planejamento Bimestral</h4>
-    <p><strong>ATENÇÃO:</strong> Substitua este placeholder pelo prompt completo do Planejamento Bimestral.</p>
-    """
-
-def montar_prompt_atividade(dados):
-    tema = dados.get('tema', '')
-    disciplina = dados.get('disciplina', 'Geral')
-    ano = dados.get('ano', 'Geral')
-    quantidade = dados.get('quantidade', '10')
-    nivel = dados.get('nivel', 'Médio')
-    tipos = dados.get('tipos_atividade', [])
-    bncc = dados.get('bncc', '')
-    tipos_str = ', '.join(tipos) if tipos else 'variados'
-    prompt = f"""
-    Você é um especialista em design de atividades pedagógicas, com profundo conhecimento da BNCC, LDB e DCTMA.
-    Crie uma atividade educativa para o seguinte contexto:
-    - Disciplina: {disciplina}
-    - Ano/Série: {ano}
-    - Tema/Conteúdo: {tema}
-    - Nível de dificuldade: {nivel}
-    - Tipos de questões solicitados: {tipos_str}
-    - Quantidade de questões: {quantidade}
-    - Código BNCC de referência: {bncc if bncc else 'não informado, selecione os mais adequados'}
-
-    A atividade deve conter:
-    1. Um título apropriado.
-    2. Instruções claras para o aluno.
-    3. As questões numeradas, com os tipos solicitados.
-    4. Um gabarito ao final, com as respostas corretas (quando aplicável).
-    5. As questões devem ser contextualizadas, criativas e alinhadas à BNCC.
-
-    Responda em HTML puro, sem Markdown. Use <h4> para título, <p> para instruções, <ol> ou <ul> para questões, e uma seção <h5>Gabarito</h5> no final.
-    """
-    return prompt
-
-# =====================================================================
-# PROMPT GERADOR DE PROVAS – com 2 colunas e Arial 12
-# =====================================================================
-def montar_prompt_prova(dados):
-    tema = dados.get('tema', '')
-    disciplina = dados.get('disciplina', '')
-    ano = dados.get('ano', '')
-    tipo_prova = dados.get('tipo_prova', 'Mista')
-    qtd_questoes = dados.get('qtd_questoes', '10')
-    nivel = dados.get('nivel', 'Médio')
-    bncc = dados.get('bncc', '')
-    prompt = f"""
-    Você é um especialista em elaboração de avaliações, alinhado à BNCC, LDB e DCTMA.
-    Crie uma prova com as seguintes características:
-    - Disciplina: {disciplina}
-    - Ano/Série: {ano}
-    - Tema/Conteúdo: {tema}
-    - Formato: {tipo_prova} (Mista = objetivas + subjetivas; Apenas Objetivas; Apenas Subjetivas)
-    - Quantidade de questões: {qtd_questoes}
-    - Nível de dificuldade: {nivel}
-    - Código BNCC de referência: {bncc if bncc else 'selecione os mais adequados'}
-
-    A prova deve ser formatada em duas colunas de tamanho igual, com fonte Arial 12.
-    A estrutura HTML deve ser:
-    - Título: <h4 class="titulo-prova">AVALIAÇÃO BIMESTRAL DE {disciplina.upper()}</h4>
-    - As questões devem ser agrupadas em uma <div class="questoes-2col"> que aplica duas colunas via CSS (column-count: 2).
-    - Cada questão deve ter a classe .questao e conter:
-      * Enunciado em negrito: <strong>01. (código) texto da questão</strong>
-      * Alternativas como <p class="alt">a) texto</p>, <p class="alt">b) ...</p>, etc. (sem marcadores)
-      * Para subjetivas, inclua <div class="linha-resposta"></div> três vezes após o enunciado.
-    - Não inclua cabeçalho, apenas o título e as questões.
-    - Ao final, inclua uma seção <div class="gabarito"> com o gabarito (para o professor).
-
-    Exemplo de estrutura:
-    <div class="questoes-2col">
-      <div class="questao">
-        <strong>01. (EF09MA02) Qual é ...</strong>
-        <p class="alt">a) alternativa A</p>
-        <p class="alt">b) alternativa B</p>
-        <p class="alt">c) alternativa C</p>
-        <p class="alt">d) alternativa D</p>
-      </div>
-      <!-- próxima questão -->
-    </div>
-    <div class="gabarito">...</div>
-
-    Responda em HTML puro, sem Markdown. A fonte deve ser Arial 12 (não use Times).
-    """
-    return prompt
-
-def montar_prompt_duvidas(dados):
-    tema = dados.get('tema', '')
-    return f"""
-    Você é um Consultor Jurídico-Pedagógico especialista em Legislação Educacional Brasileira.
-    Responda com total precisão técnica fundamentando-se OBRIGATORIAMENTE em: BNCC, LDB (Lei nº 9.394/96), DCTMA e, quando pertinente, na Constituição Federal.
-    Sempre que citar um desses documentos, indique de forma explícita o artigo, competência ou eixo correspondente.
-    Dúvida ou Consulta do Professor: "{tema}"
-    Responda em HTML puro, sem Markdown.
-    """
-
-def montar_prompt_relatorio(dados):
-    tema = dados.get('tema', '')
-    disciplina = dados.get('disciplina', '')
-    ano = dados.get('ano', '')
-    return f"""
-    Você é um especialista em relatórios pedagógicos. Gere um relatório descritivo para:
-    - Disciplina: {disciplina}
-    - Ano/Série: {ano}
-    - Tema/Conteúdo: {tema}
-    Inclua: diagnóstico, desenvolvimento, resultados, recomendações.
-    Responda em HTML puro, sem Markdown.
-    """
-
-def montar_prompt_inclusao(dados):
-    tema = dados.get('tema', '')
-    disciplina = dados.get('disciplina', '')
-    ano = dados.get('ano', '')
-    return f"""
-    Você é um especialista em educação inclusiva e AEE. Elabore um plano de atendimento educacional especializado para:
-    - Disciplina: {disciplina}
-    - Ano/Série: {ano}
-    - Tema: {tema}
-    Inclua: objetivos, adaptações curriculares, recursos, estratégias, avaliação.
-    Responda em HTML puro, sem Markdown.
-    """
-
-def montar_prompt_projeto(dados):
-    tema = dados.get('tema', '')
-    serie = dados.get('serie', '')
-    disciplina = dados.get('disciplina', '')
-    duracao = dados.get('duracao', '')
-    objetivo = dados.get('objetivo', '')
-    tipos = dados.get('tipos_projeto', [])
-    tipos_str = ', '.join(tipos) if tipos else 'Projeto Interdisciplinar'
-    prompt = f"""
-    Você é um especialista em projetos pedagógicos interdisciplinares, com base na BNCC, LDB e DCTMA.
-    Elabore um projeto completo para os seguintes dados:
-    - Tema: {tema}
-    - Série/Ano: {serie}
-    - Disciplina(s) envolvida(s): {disciplina}
-    - Duração prevista: {duracao}
-    - Objetivo geral do projeto: {objetivo}
-    - Tipo(s) de projeto: {tipos_str}
-
-    O projeto deve conter as seguintes seções, nesta ordem (em HTML puro, sem Markdown):
-    1. <h4>Justificativa</h4>
-    2. <h4>Objetivos</h4> (Geral e Específicos)
-    3. <h4>Competências da BNCC</h4>
-    4. <h4>Habilidades da BNCC</h4>
-    5. <h4>Metodologia</h4>
-    6. <h4>Cronograma</h4> (tabela)
-    7. <h4>Recursos</h4>
-    8. <h4>Desenvolvimento</h4>
-    9. <h4>Avaliação</h4>
-    10. <h4>Produto Final</h4>
-    11. <h4>Referências</h4>
-    """
-    return prompt
-
-def montar_prompt_generico(tipo_modulo, dados):
-    tema = dados.get('tema', '')
-    disciplina = dados.get('disciplina', '')
-    ano = dados.get('ano', '')
-    return f"""
-    Você é um especialista em educação. Gere conteúdo para o módulo {tipo_modulo}.
-    Tema: {tema}
-    Disciplina: {disciplina}
-    Ano: {ano}
-    Responda em HTML puro, estruturado com cabeçalhos e listas.
-    """
-
-# ------------------- FUNÇÃO PRINCIPAL DE GERAÇÃO -------------------
-def gerar_conteudo_ia(tipo_modulo, dados):
     if not GEMINI_API_KEY:
-        return obter_fallback_pedagogico(tipo_modulo, dados.get('tema', ''), "Chave API ausente.")
-    chave = extrair_chave_api()
-    if not chave:
-        return obter_fallback_pedagogico(tipo_modulo, dados.get('tema', ''), "Chave inválida.")
+        return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render.")
+
+    # -----------------------------------------------------------------
+    # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
+    # -----------------------------------------------------------------
+    # O padrão procura pela sequência que começa com AIza ou AQ e pega apenas caracteres válidos de chave
+    match = re.search(r'(AIzaSy[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9_-]+)', GEMINI_API_KEY)
     
-    prompt_map = {
-        'Plano de Aula': montar_prompt_plano_aula,
-        'Planejamento Bimestral': montar_prompt_bimestral,
-        'Banco de Atividades': montar_prompt_atividade,
-        'Gerador de Provas': montar_prompt_prova,
-        'Tira-Dúvidas com IA': montar_prompt_duvidas,
-        'Relatórios Pedagógicos': montar_prompt_relatorio,
-        'Plano de Inclusão / AEE': montar_prompt_inclusao,
-        'Projetos Interdisciplinares': montar_prompt_projeto,
+    if match:
+        chave_limpa = match.group(1).strip()
+    else:
+        # Fallback caso a regex não isole (remove manualmente caracteres de link comuns)
+        chave_limpa = GEMINI_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', '')
+        if "key=" in chave_limpa:
+            chave_limpa = chave_limpa.split("key=")[-1]
+        if ")" in chave_limpa:
+            chave_limpa = chave_limpa.split(")")[-1]
+        chave_limpa = chave_limpa.strip()
+    # -----------------------------------------------------------------
+
+    # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
+    regras_formato = """
+        REGRAS OBRIGATÓRIAS DE FORMATAÇÃO DA SAÍDA:
+        - Responda ESTRITAMENTE em HTML puro e semântico (tags: h4, h5, p, strong, em, ul, ol, li, table, thead, tbody, tr, th, td, div).
+        - NUNCA utilize sintaxe Markdown (proibido: #, ##, ###, **texto**, *item*, -, ```). Se precisar de negrito use <strong>, se precisar de título use <h4>/<h5>, se precisar de lista use <ul><li>.
+        - NUNCA inclua delimitadores de bloco de código como ```html ou ```.
+        - Use <table class="tabela-bncc"> quando fizer sentido organizar habilidades BNCC, cronogramas ou critérios de avaliação em formato tabular.
+    """
+    if tipo_modulo == 'Tira-Dúvidas com IA':
+        prompt = f"""
+        Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
+        Responda com total precisão técnica fundamentando-se OBRIGATORIAMENTE em: BNCC (Base Nacional Comum Curricular), LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e, quando pertinente, na Seção da Educação da Constituição Federal.
+        Sempre que citar um desses documentos, indique de forma explícita o artigo, competência ou eixo correspondente.
+        Dúvida ou Consulta do Professor: "{tema}"
+        {regras_formato}
+        """
+    elif tipo_modulo == 'Planejamento Bimestral':
+        numero_final = numero_plano.strip() or str(random.randint(10000, 99999))
+        ano_letivo_final = ano_letivo.strip() or str(datetime.now().year)
+        criado_em = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        turma_completa = f"{ano} | ({turma}) | {turno}".upper() if turma or turno else ano.upper()
+        periodo_execucao = f"{data_inicio} a {data_fim}" if data_inicio and data_fim else "[preencher período de execução]"
+
+        prompt = f"""
+        Atue como um Especialista em Planejamento Pedagógico Escolar, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere um PLANEJAMENTO BIMESTRAL completo e oficial, seguindo EXATAMENTE a estrutura, ordem de seções e nível de detalhamento abaixo — este é o modelo oficial usado pela Secretaria Municipal de Educação, e deve ser reproduzido fielmente.
+
+        {regras_formato}
+        REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No lugar exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
+
+        ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA:
+
+        1. <div class="doc-cabecalho-oficial">
+           Inclua, em formato de linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>):
+           INEP: {inep or '[preencher]'}
+           ESCOLA: {nome_escola}
+           ENDEREÇO: {endereco_escola or '[preencher endereço]'}
+           CIDADE: {cidade_escola or '[preencher cidade]'} ESTADO: {estado_escola}
+           ZONA: {zona_escola or '[preencher]'} TELEFONE: {telefone_escola or '[preencher]'} EMAIL: {email_escola or '[preencher]'}
+           </div>
+
+        2. <h2 class="doc-titulo-oficial">PLANO BIMESTRAL #{numero_final}</h2>
+
+        3. <div class="doc-metadata-oficial">
+           Em linhas rotuladas, exatamente nesta ordem:
+           BIMESTRAL // {modalidade}
+           {bimestre} {periodo_execucao}
+           TURMA: {turma_completa}
+           COMP. CURR.: {disciplina}
+           EXECUÇÃO: {periodo_execucao}
+           CRIADO EM: {criado_em}
+           PROFESSOR(A): {nome_professor}
+           ANO LETIVO: {ano_letivo_final}
+           </div>
+
+        4. <!--COMPETENCIAS_GERAIS_AQUI-->
+
+        5. <h5 class="doc-secao-titulo">Competências Específicas de {disciplina}</h5>
+           Liste, numeradas (1ª, 2ª, 3ª...), as competências específicas oficiais da BNCC para a área de conhecimento à qual "{disciplina}" pertence (ex: Ciências da Natureza, Matemática, Linguagens, Ciências Humanas), voltadas ao Ensino Fundamental — Anos Finais. Seja fiel ao texto oficial, sem inventar.
+
+        6. <h5 class="doc-secao-titulo">Unidades Temáticas</h5>
+           Identifique a(s) unidade(s) temática(s) da BNCC relacionada(s) ao tema "{tema}" para a série/ano "{ano}", no formato "Nome da Unidade / {ano}".
+
+        7. <h5 class="doc-secao-titulo">Objetos de Conhecimento</h5>
+           Liste os objetos de conhecimento relacionados ao tema, cada um seguido de "UNIDADE: [nome da unidade] / {ano}".
+
+        8. <h5 class="doc-secao-titulo">Habilidades</h5>
+           Liste as habilidades da BNCC pertinentes (formato: código - descrição completa da habilidade). Priorize o código informado pelo professor ({bncc if bncc else 'nenhum código específico informado — selecione os mais adequados ao tema'}) e complemente com habilidades relacionadas do mesmo objeto de conhecimento.
+
+        9. <h5 class="doc-secao-titulo">Sugestões Metodológicas</h5>
+           Lista <ul><li> com 8 a 10 sugestões práticas e variadas de condução das aulas ao longo do bimestre (leitura, TIC, debates, mapas conceituais, saída de campo, mostra científica, etc.), adaptadas ao tema e à realidade do Maranhão quando pertinente.
+
+        10. <h5 class="doc-secao-titulo">Avaliação</h5>
+            Lista <ul><li> com os instrumentos avaliativos do bimestre (ex: Avaliação Bimestral, Seminários, Trabalhos individuais e em grupo, etc.), adequados ao tema.
+
+        11. <h5 class="doc-secao-titulo">Recursos</h5>
+            Lista <ul><li> com os recursos didáticos necessários (materiais, equipamentos, tecnologia).
+
+        12. <h5 class="doc-secao-titulo">Referências</h5>
+            Liste em linhas simples (sem bullets), formato ABNT simplificado:
+            BRASIL. Ministério da Educação. Documento Curricular do Território Maranhense (DCTMA): para o ensino fundamental. Rio de Janeiro: FGV, [ano mais recente conhecido].
+            BRASIL. Ministério da Educação. Base Nacional Comum Curricular (BNCC). Brasília, 2018.
+            E, se pertinente ao tema/disciplina, uma referência bibliográfica de livro didático real e amplamente reconhecido (não invente autores/obras).
+
+        13. <h5 class="doc-secao-titulo">Observações Pertinentes</h5>
+            {f'Inclua o seguinte texto informado pelo professor: "{observacoes}"' if observacoes else 'Deixe um parágrafo curto padrão indicando que não há observações adicionais registradas, ou omita se preferir deixar em branco.'}
+
+        DADOS DE CONFIGURAÇÃO DO ESCOPO:
+        - Componente/Disciplina: {disciplina}
+        - Ano/Série Escolar: {ano}
+        - Tema Central / Objeto de Estudo: {tema}
+        - Código de Habilidade BNCC Alvo: {bncc}
+        """
+    else:
+        prompt = f"""
+        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
+        NÃO gere nenhum cabeçalho com nome de escola, professor, aluno ou data — o cabeçalho do documento já é adicionado automaticamente pelo sistema. Comece diretamente pelo conteúdo pedagógico.
+
+        FUNDAMENTAÇÃO LEGAL OBRIGATÓRIA:
+        Todo o conteúdo pedagógico deve estar alinhado e referenciar explicitamente, quando aplicável:
+        1. BNCC — cite a(s) competência(s) geral(is) e a(s) habilidade(s) específica(s) trabalhada(s).
+        2. LDB (Lei nº 9.394/96) — cite o artigo pertinente aos princípios/fins da educação relacionados ao tema.
+        3. DCTMA — cite o eixo ou orientação curricular do território maranhense relacionado.
+        Inclua uma seção final <h5>Fundamentação Legal</h5> resumindo essas referências.
+
+        DADOS DE CONFIGURAÇÃO DO ESCOPO:
+        - Componente/Disciplina: {disciplina}
+        - Ano/Série Escolar: {ano}
+        - Tema Central / Objeto de Estudo: {tema}
+        - Código de Habilidade BNCC Alvo: {bncc}
+        - Nível de Rigor Cognitivo: {nivel}
+        {regras_formato}
+        """
+        if tipo_modulo == 'Gerador de Provas':
+            prompt += f"""
+            DIRETRIZES DO GERADOR DE PROVAS EXCLUSIVAS:
+            1. Você deve gerar exatamente {qtd_questoes} questões no formato de aplicação: {tipo_prova}.
+            2. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
+            3. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
+            4. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
+            5. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
+            6. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
+            7. NÃO gere cabeçalho de identificação do aluno/turma/data — isso já é adicionado automaticamente pelo sistema antes do seu conteúdo. Comece direto pela primeira questão.
+            8. Ao final, inclua uma seção <h5>Gabarito</h5> com a resposta correta de cada questão (apenas o número da questão e a alternativa/resposta correta, de forma resumida).
+            """
+        elif tipo_modulo == 'Banco de Atividades':
+            tipos_selecionados = kwargs.get('tipos_atividade', []) or ['Questões objetivas']
+            lista_tipos = ", ".join(tipos_selecionados)
+            prompt += f"""
+            DIRETRIZES DO BANCO DE ATIVIDADES:
+            1. O professor selecionou os seguintes TIPOS DE ATIVIDADE, que devem OBRIGATORIAMENTE estar presentes no material, cada um em sua própria seção com <h5>[Nome do tipo de atividade]</h5>: {lista_tipos}.
+            2. Adapte cada tipo de atividade ao ano/série "{ano}" e ao tema "{tema}" — para anos iniciais/alfabetização, use atividades mais visuais e lúdicas; para anos finais/médio, mais analíticas.
+            3. Se o nível de dificuldade for "Misto", varie a dificuldade das questões dentro de cada seção (inclua fácil, médio e difícil).
+            4. Para "Complete as lacunas", use "_______" para os espaços em branco.
+            5. Para "Ligue as colunas", monte duas colunas usando uma <table>.
+            6. Para "Verdadeiro ou Falso", numere as afirmações e inclua parênteses "( )" antes de cada uma para marcação.
+            7. Para "Caça-palavras" e "Cruzadinha", gere a LISTA de palavras-chave relacionadas ao tema (não é necessário desenhar a grade visualmente, apenas a lista de palavras e uma breve instrução de como montá-la).
+            8. Para atividades práticas/ilustradas/recorte e cole/pintura educativa, descreva claramente as instruções passo a passo para o professor aplicar em sala.
+            9. Ao final de TODAS as seções com questões que tenham resposta certa (objetivas, lacunas, V/F, ligue as colunas, sequência lógica, problemas matemáticos), inclua uma seção final única <h5>Gabarito</h5> reunindo as respostas de todas essas atividades.
+            """
+        elif tipo_modulo == 'Projetos Interdisciplinares':
+            duracao = kwargs.get('duracao', '')
+            objetivo_geral_prof = kwargs.get('objetivo', '')
+            tipos_projeto_sel = kwargs.get('tipos_projeto', []) or ['Projeto Interdisciplinar']
+            lista_tipos_projeto = ", ".join(tipos_projeto_sel)
+            prompt += f"""
+            DIRETRIZES DO GERADOR DE PROJETOS PEDAGÓGICOS:
+            O professor quer um projeto do(s) seguinte(s) tipo(s)/formato(s): {lista_tipos_projeto}. Combine as características desses formatos de forma coerente se mais de um for selecionado.
+            Duração prevista informada pelo professor: {duracao or 'não informada — sugira uma duração adequada ao escopo do tema'}.
+            Objetivo inicial informado pelo professor (use como norte, mas expanda): {objetivo_geral_prof or 'não informado — infira a partir do tema'}.
+
+            ESTRUTURA OBRIGATÓRIA, NESTA ORDEM, cada uma como <h5>[Título da Seção]</h5>:
+            1. Justificativa
+            2. Objetivo Geral
+            3. Objetivos Específicos (lista <ul><li>)
+            4. Competências da BNCC (numeradas, relacionadas ao tema e à área)
+            5. Habilidades da BNCC (código + descrição, relacionadas ao tema e ano/série "{ano}")
+            6. Metodologia
+            7. Cronograma (apresente como <table> com colunas Etapa / Descrição / Período, distribuído ao longo da duração informada)
+            8. Recursos (lista <ul><li>)
+            9. Desenvolvimento (descrição detalhada de como o projeto se desenrola do início ao fim)
+            10. Avaliação
+            11. Produto Final (o que será entregue/apresentado ao final)
+            12. Referências (formato ABNT simplificado, incluindo BNCC e DCTMA; não invente autores)
+            """
+        elif tipo_modulo == 'Plano de Aula':
+            prompt += """
+            SEÇÃO OBRIGATÓRIA — METODOLOGIAS E SUGESTÕES DE AULAS DIFERENCIADAS:
+            Inclua, antes da conclusão do plano, uma seção <h5>Sugestões de Aulas Diferenciadas</h5> com pelo menos 3 a 4 propostas concretas e variadas para trabalhar o tema de formas alternativas à aula expositiva tradicional, por exemplo (adapte ao tema e ano/série informados):
+            - Aula prática/experimental (uso de materiais concretos, experimentos, manipuláveis).
+            - Metodologia ativa (sala de aula invertida, aprendizagem baseada em problemas/projetos, gamificação).
+            - Atividade em grupo/colaborativa (debate, júri simulado, oficina, estudo de caso).
+            - Uso de tecnologia/recursos digitais (aplicativos, vídeos, simuladores, jogos educativos).
+            - Conexão com o cotidiano/comunidade local (saída de campo, entrevista, estudo do meio, quando aplicável ao contexto maranhense).
+            Apresente cada sugestão em formato de lista <ul><li>, com um parágrafo curto (2-3 linhas) explicando como aplicá-la e qual habilidade/competência da BNCC ela reforça.
+
+            SEÇÃO FINAL OBRIGATÓRIA — REFERÊNCIAS:
+            Ao final do documento, após todo o conteúdo pedagógico, inclua uma seção <h5>Referências</h5> contendo:
+            1. As referências normativas/legais utilizadas, no formato ABNC simplificado, por exemplo:
+               BRASIL. Ministério da Educação. Base Nacional Comum Curricular (BNCC). Brasília: MEC, 2018.
+               BRASIL. Lei nº 9.394, de 20 de dezembro de 1996. Lei de Diretrizes e Bases da Educação Nacional (LDB). Brasília, 1996.
+               MARANHÃO. Secretaria de Estado da Educação. Documento Curricular do Território Maranhense (DCTMA). São Luís, [ano de publicação mais recente conhecido].
+            2. Quaisquer referências bibliográficas pedagógicas adicionais (autores, teóricos ou materiais didáticos) efetivamente utilizados como base conceitual para o conteúdo gerado, também em formato ABNT simplificado, listadas em <ul><li>.
+            3. Não invente nomes de autores ou obras específicas que não sejam amplamente reconhecidas na área; se não houver referência bibliográfica adicional além das normativas, inclua apenas as normativas.
+            """
+        else:
+            prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
+
+    # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={chave_limpa}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
     }
-    func = prompt_map.get(tipo_modulo, montar_prompt_generico)
-    prompt = func(dados)
-    resposta = chamar_gemini_com_retry(prompt, chave)
-    if resposta.startswith('<!--ERRO-->'):
-        return obter_fallback_pedagogico(tipo_modulo, dados.get('tema', ''), resposta.replace('<!--ERRO-->', ''))
-    return resposta
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        
+        if response.status_code == 200:
+            resultado = response.json()
+            texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
+            texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
+            texto_gerado = sanitizar_saida_html(texto_gerado)
+            # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
+            if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
+                texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+            return texto_gerado
+        else:
+            return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}")
+            
+    except Exception as e:
+        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexão física: {str(e)}")
 
 # =====================================================================
-# INICIALIZAÇÃO DO BANCO DE DADOS (SQLite) - ATUALIZADO
+# EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
+# =====================================================================
+def gerar_docx(titulo, escola, professor, html_conteudo):
+    documento = Document()
+    documento.add_heading(titulo or "Documento Pedagógico", level=1)
+    p = documento.add_paragraph()
+    p.add_run(f"Instituição de Ensino: {escola}\n").bold = True
+    p.add_run(f"Professor(a): {professor}").italic = True
+    documento.add_paragraph("")
+
+    conversor = HtmlToDocx()
+    conversor.add_html_to_document(html_conteudo, documento)
+
+    buffer = BytesIO()
+    documento.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+def gerar_pdf(titulo, escola, professor, html_conteudo):
+    html_completo = f"""
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #0f1f3d; }}
+        h1 {{ font-size: 16pt; text-align: center; color: #0e2a5e; }}
+        h4, h5 {{ color: #123a7a; margin-top: 14px; }}
+        table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
+        th, td {{ border: 1px solid #999; padding: 5px 8px; font-size: 10pt; }}
+        th {{ background-color: #eef2fa; }}
+        .cabecalho-pdf {{ text-align: center; margin-bottom: 18px; border-bottom: 1px solid #999; padding-bottom: 10px; }}
+    </style>
+    </head>
+    <body>
+        <div class="cabecalho-pdf">
+            <h1>{titulo or 'Documento Pedagógico'}</h1>
+            <p><strong>Instituição de Ensino:</strong> {escola}<br/><strong>Professor(a):</strong> {professor}</p>
+        </div>
+        {html_conteudo}
+    </body>
+    </html>
+    """
+    buffer = BytesIO()
+    pisa.CreatePDF(src=html_completo, dest=buffer, encoding='utf-8')
+    buffer.seek(0)
+    return buffer
+
+# =====================================================================
+# INICIALIZAÇÃO DO BANCO DE DADOS (SQLite)
 # =====================================================================
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    # Tabela de usuários com hash
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             escola TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            senha_hash TEXT NOT NULL
+            senha TEXT NOT NULL
         )
     ''')
-    # Tabela de materiais salvos
+    cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
+    if not cursor.fetchone():
+        cursor.execute('''
+            INSERT INTO usuarios (nome, escola, email, senha) 
+            VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
+        ''')
+
+    # Histórico + Biblioteca (favoritos) de materiais gerados
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS materiais (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER NOT NULL,
-            titulo TEXT NOT NULL,
-            tipo TEXT NOT NULL,
-            conteudo TEXT NOT NULL,
-            dados_ia TEXT,
+            usuario_email TEXT NOT NULL,
+            tipo_modulo TEXT,
+            titulo TEXT,
+            disciplina TEXT,
+            ano TEXT,
+            conteudo_html TEXT,
             favorito INTEGER DEFAULT 0,
-            data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+            criado_em TEXT
         )
     ''')
-    # Tabela de questões reutilizáveis
+
+    # Banco de Questões reutilizáveis
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS questoes (
+        CREATE TABLE IF NOT EXISTS banco_questoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER NOT NULL,
+            usuario_email TEXT NOT NULL,
             ano TEXT,
             disciplina TEXT,
             conteudo TEXT,
             bncc TEXT,
             dificuldade TEXT,
-            tipo TEXT,
-            enunciado TEXT NOT NULL,
-            alternativas TEXT,
-            gabarito TEXT,
-            data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+            enunciado_html TEXT,
+            criado_em TEXT
         )
     ''')
-    # Inserir usuário padrão (Samuel) com senha hash
-    hash_senha = generate_password_hash('123456')
-    try:
-        cursor.execute(
-            "INSERT INTO usuarios (nome, escola, email, senha_hash) VALUES (?, ?, ?, ?)",
-            ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', hash_senha)
-        )
-    except sqlite3.IntegrityError:
-        pass
+
     conn.commit()
     conn.close()
 
@@ -431,17 +488,18 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('senha', '').strip()
+        
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT id, nome, escola, senha_hash FROM usuarios WHERE LOWER(email) = ?", (email,))
+        cursor.execute("SELECT nome, escola, senha FROM usuarios WHERE LOWER(email) = ?", (email,))
         user = cursor.fetchone()
         conn.close()
-        if user and check_password_hash(user[3], password):
+        
+        if user and str(user[2]).strip() == password:
             session['logged_in'] = True
-            session['user_id'] = user[0]
             session['user_email'] = email
-            session['user_name'] = user[1]
-            session['user_school'] = user[2]
+            session['user_name'] = user[0]   
+            session['user_school'] = user[1] 
             return redirect(url_for('dashboard', form_type='plano'))
         else:
             erro = "E-mail ou senha incorretos."
@@ -455,16 +513,16 @@ def cadastro():
         escola = request.form.get('escola', '').strip()
         email = request.form.get('email', '').strip().lower()
         senha = request.form.get('senha', '').strip()
+        
         if not nome or not escola or not email or not senha:
             erro = "Todos os campos são obrigatórios."
         else:
             try:
-                hash_senha = generate_password_hash(senha)
                 conn = sqlite3.connect('database.db')
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO usuarios (nome, escola, email, senha_hash) VALUES (?, ?, ?, ?)",
-                    (nome, escola, email, hash_senha)
+                    "INSERT INTO usuarios (nome, escola, email, senha) VALUES (?, ?, ?, ?)",
+                    (nome, escola, email, senha)
                 )
                 conn.commit()
                 conn.close()
@@ -474,6 +532,7 @@ def cadastro():
     return render_template('cadastro.html', erro=erro)
 
 @app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/gerador', methods=['GET', 'POST'])
 def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
@@ -484,9 +543,7 @@ def dashboard():
         
     config_modulo = MODULOS[form_type]
     conteudo = ""
-    dados_ia = {}
     
-    # Captura campos comuns
     tema = request.form.get('tema', '').strip()
     disciplina = request.form.get('disciplina', '').strip()
     ano = request.form.get('ano', '').strip()
@@ -494,8 +551,8 @@ def dashboard():
     tipo_prova = request.form.get('tipo_prova', '').strip()
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()
-    
-    # Planejamento Bimestral
+
+    # Campos específicos do Planejamento Bimestral
     numero_plano = request.form.get('numero_plano', '').strip()
     bimestre = request.form.get('bimestre', '1º BIM').strip()
     data_inicio = request.form.get('data_inicio', '').strip()
@@ -512,78 +569,74 @@ def dashboard():
     telefone_escola = request.form.get('telefone_escola', '').strip()
     email_escola = request.form.get('email_escola', '').strip()
     observacoes = request.form.get('observacoes', '').strip()
-    
-    # Atividades
-    quantidade = request.form.get('quantidade', '10').strip()
+
+    # Campos específicos do Banco de Atividades e Projetos
     tipos_atividade = request.form.getlist('tipos_atividade')
-    
-    # Projetos
-    serie = request.form.get('serie', '').strip()
+    tipos_projeto = request.form.getlist('tipos_projeto')
     duracao = request.form.get('duracao', '').strip()
     objetivo = request.form.get('objetivo', '').strip()
-    tipos_projeto = request.form.getlist('tipos_projeto')
-    
+
+    material_id = None
+
     if request.method == 'POST' and tema:
-        dados = {
-            'tipo_modulo': config_modulo['nome'],
-            'disciplina': disciplina,
-            'ano': ano,
-            'tema': tema,
-            'bncc': bncc,
-            'tipo_prova': tipo_prova,
-            'qtd_questoes': qtd_questoes,
-            'nivel': nivel,
-            'nome_professor': session.get('user_name', 'Professor(a)'),
-            'nome_escola': session.get('user_school', 'Instituição de Ensino'),
-            'numero_plano': numero_plano,
-            'bimestre': bimestre,
-            'data_inicio': data_inicio,
-            'data_fim': data_fim,
-            'turma': turma,
-            'turno': turno,
-            'modalidade': modalidade,
-            'ano_letivo': ano_letivo,
-            'inep': inep,
-            'endereco_escola': endereco_escola,
-            'cidade_escola': cidade_escola,
-            'estado_escola': estado_escola,
-            'zona_escola': zona_escola,
-            'telefone_escola': telefone_escola,
-            'email_escola': email_escola,
-            'observacoes': observacoes,
-            'quantidade': quantidade,
-            'tipos_atividade': tipos_atividade,
-            'serie': serie,
-            'duracao': duracao,
-            'objetivo': objetivo,
-            'tipos_projeto': tipos_projeto,
-        }
-        conteudo = gerar_conteudo_ia(config_modulo['nome'], dados)
-        
-        # Extração para provas: informações pedagógicas e gabarito
-        if form_type == 'avaliacoes' and conteudo:
-            match_pedagogico = re.search(r'<div class="info-pedagogica"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
-            if match_pedagogico:
-                dados_ia['pedagogico'] = match_pedagogico.group(1)
-                conteudo = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo, flags=re.DOTALL)
-            else:
-                dados_ia['pedagogico'] = 'Informações pedagógicas não disponíveis.'
-            
-            match_gabarito = re.search(r'<div class="gabarito"[^>]*>(.*?)</div>', conteudo, re.DOTALL)
-            if match_gabarito:
-                dados_ia['gabarito'] = match_gabarito.group(1)
-                conteudo = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo, flags=re.DOTALL)
-            else:
-                dados_ia['gabarito'] = ''
-    
+        conteudo = executar_geracao_ia(
+            tipo_modulo=config_modulo['nome'],
+            disciplina=disciplina,
+            ano=ano,
+            tema=tema,
+            bncc=bncc,
+            tipo_prova=tipo_prova,
+            qtd_questoes=qtd_questoes,
+            nivel=nivel,
+            nome_professor=session.get('user_name', 'Professor(a)'),
+            nome_escola=session.get('user_school', 'Instituição de Ensino'),
+            numero_plano=numero_plano,
+            bimestre=bimestre,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            turma=turma,
+            turno=turno,
+            modalidade=modalidade,
+            ano_letivo=ano_letivo,
+            inep=inep,
+            endereco_escola=endereco_escola,
+            cidade_escola=cidade_escola,
+            estado_escola=estado_escola,
+            zona_escola=zona_escola,
+            telefone_escola=telefone_escola,
+            email_escola=email_escola,
+            observacoes=observacoes,
+            tipos_atividade=tipos_atividade,
+            tipos_projeto=tipos_projeto,
+            duracao=duracao,
+            objetivo=objetivo
+        )
+
+        # Registra automaticamente no Histórico / Biblioteca
+        try:
+            conn = sqlite3.connect('database.db')
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO materiais (usuario_email, tipo_modulo, titulo, disciplina, ano, conteudo_html, favorito, criado_em)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+            ''', (
+                session.get('user_email', ''), config_modulo['nome'], tema, disciplina, ano,
+                conteudo, datetime.now().strftime('%d/%m/%Y %H:%M')
+            ))
+            material_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+        except Exception:
+            material_id = None
+
     return render_template(
         'dashboard.html',
         form_type=form_type,
         config=config_modulo,
         conteudo=conteudo,
-        dados_ia=dados_ia,
+        material_id=material_id,
         tema=tema,
-        disciplina=disciplina,
+        disciplina=disciplina if disciplina else "Componente Curricular",
         ano=ano,
         bncc=bncc,
         tipo_prova=tipo_prova,
@@ -605,225 +658,209 @@ def dashboard():
         telefone_escola=telefone_escola,
         email_escola=email_escola,
         observacoes=observacoes,
-        quantidade=quantidade,
         tipos_atividade=tipos_atividade,
-        serie=serie,
+        tipos_projeto=tipos_projeto,
         duracao=duracao,
         objetivo=objetivo,
-        tipos_projeto=tipos_projeto,
+        TIPOS_ATIVIDADE=TIPOS_ATIVIDADE,
+        TIPOS_PROJETO=TIPOS_PROJETO,
         app_name="Professor IA",
-        name=session.get('user_name', 'Samuel Araújo Sousa'),
-        school=session.get('user_school', 'U.E. Prof. João Martins Neto')
+        name=session.get('user_name', 'Samuel Araújo Sousa'),     
+        school=session.get('user_school', 'U.E. Prof. João Martins Neto')  
     )
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-# =====================================================================
-# ROTAS PARA BIBLIOTECA E EDIÇÃO
-# =====================================================================
-@app.route('/salvar_material', methods=['POST'])
-def salvar_material():
+@app.route('/exportar/<int:material_id>/<formato>')
+def exportar_material(material_id, formato):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    usuario_id = session.get('user_id')
-    titulo = request.form.get('titulo', 'Material sem título')
-    tipo = request.form.get('tipo', 'geral')
-    conteudo = request.form.get('conteudo', '')
-    dados_ia = request.form.get('dados_ia', '{}')
+
     conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO materiais (usuario_id, titulo, tipo, conteudo, dados_ia) VALUES (?, ?, ?, ?, ?)",
-        (usuario_id, titulo, tipo, conteudo, dados_ia)
-    )
-    conn.commit()
+    cursor.execute("SELECT * FROM materiais WHERE id = ? AND usuario_email = ?", (material_id, session.get('user_email', '')))
+    material = cursor.fetchone()
     conn.close()
-    return redirect(url_for('biblioteca'))
+
+    if not material:
+        return redirect(url_for('dashboard'))
+
+    titulo = material['titulo'] or material['tipo_modulo']
+    escola = session.get('user_school', '')
+    professor = session.get('user_name', '')
+    nome_arquivo_base = re.sub(r'[^a-zA-Z0-9]+', '_', titulo)[:60] or 'documento'
+
+    if formato == 'docx':
+        buffer = gerar_docx(titulo, escola, professor, material['conteudo_html'])
+        return send_file(
+            buffer, as_attachment=True, download_name=f"{nome_arquivo_base}.docx",
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    elif formato == 'pdf':
+        buffer = gerar_pdf(titulo, escola, professor, material['conteudo_html'])
+        return send_file(buffer, as_attachment=True, download_name=f"{nome_arquivo_base}.pdf", mimetype='application/pdf')
+    else:
+        return redirect(url_for('dashboard'))
 
 @app.route('/biblioteca')
 def biblioteca():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    usuario_id = session.get('user_id')
+
+    apenas_favoritos = request.args.get('favoritos') == '1'
     conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT id, titulo, tipo, data_criacao, favorito, conteudo FROM materiais WHERE usuario_id = ? ORDER BY data_criacao DESC", (usuario_id,))
+    if apenas_favoritos:
+        cursor.execute("SELECT * FROM materiais WHERE usuario_email = ? AND favorito = 1 ORDER BY id DESC", (session.get('user_email', ''),))
+    else:
+        cursor.execute("SELECT * FROM materiais WHERE usuario_email = ? ORDER BY id DESC", (session.get('user_email', ''),))
     materiais = cursor.fetchall()
     conn.close()
-    return render_template('biblioteca.html', materiais=materiais)
 
-@app.route('/editar_material/<int:material_id>', methods=['GET', 'POST'])
-def editar_material(material_id):
+    return render_template(
+        'biblioteca.html', materiais=materiais, apenas_favoritos=apenas_favoritos,
+        app_name="Professor IA", name=session.get('user_name', ''), school=session.get('user_school', '')
+    )
+
+@app.route('/biblioteca/ver/<int:material_id>')
+def ver_material(material_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    usuario_id = session.get('user_id')
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    if request.method == 'POST':
-        novo_titulo = request.form.get('titulo')
-        novo_conteudo = request.form.get('conteudo')
-        cursor.execute(
-            "UPDATE materiais SET titulo = ?, conteudo = ? WHERE id = ? AND usuario_id = ?",
-            (novo_titulo, novo_conteudo, material_id, usuario_id)
-        )
-        conn.commit()
-        conn.close()
-        return redirect(url_for('biblioteca'))
-    else:
-        cursor.execute("SELECT id, titulo, conteudo, tipo FROM materiais WHERE id = ? AND usuario_id = ?", (material_id, usuario_id))
-        material = cursor.fetchone()
-        conn.close()
-        if not material:
-            return "Material não encontrado", 404
-        return render_template('editar_material.html', material=material)
 
-@app.route('/favoritar_material/<int:material_id>', methods=['POST'])
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM materiais WHERE id = ? AND usuario_email = ?", (material_id, session.get('user_email', '')))
+    material = cursor.fetchone()
+    conn.close()
+
+    if not material:
+        return redirect(url_for('biblioteca'))
+
+    return render_template(
+        'material.html', material=material,
+        app_name="Professor IA", name=session.get('user_name', ''), school=session.get('user_school', '')
+    )
+
+@app.route('/biblioteca/favoritar/<int:material_id>', methods=['POST'])
 def favoritar_material(material_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    usuario_id = session.get('user_id')
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    cursor.execute("UPDATE materiais SET favorito = 1 - favorito WHERE id = ? AND usuario_id = ?", (material_id, usuario_id))
-    conn.commit()
+    cursor.execute("SELECT favorito FROM materiais WHERE id = ? AND usuario_email = ?", (material_id, session.get('user_email', '')))
+    row = cursor.fetchone()
+    if row:
+        novo_valor = 0 if row[0] == 1 else 1
+        cursor.execute("UPDATE materiais SET favorito = ? WHERE id = ?", (novo_valor, material_id))
+        conn.commit()
     conn.close()
-    return redirect(url_for('biblioteca'))
+    return redirect(request.referrer or url_for('biblioteca'))
 
-@app.route('/excluir_material/<int:material_id>', methods=['POST'])
-def excluir_material(material_id):
+@app.route('/biblioteca/editar/<int:material_id>', methods=['POST'])
+def editar_material(material_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    usuario_id = session.get('user_id')
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM materiais WHERE id = ? AND usuario_id = ?", (material_id, usuario_id))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('biblioteca'))
-
-# =====================================================================
-# ROTA DE EXPORTAÇÃO (com 2 colunas e Arial 12)
-# =====================================================================
-@app.route('/exportar', methods=['POST'])
-def exportar():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-    
-    formato = request.form.get('formato', 'pdf')
-    conteudo_html = request.form.get('conteudo', '')
-    tipo = request.form.get('tipo', 'geral')
-    disciplina = request.form.get('disciplina', '')
-    
-    # Cabeçalho com nome da escola e professor já preenchidos
-    if tipo == 'avaliacoes':
-        cabecalho = f"""
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0e2a5e; padding-bottom: 10px;">
-            <h3 style="color: #0e2a5e; font-family: Arial, sans-serif; font-size: 14pt;">{session.get('user_school', '')}</h3>
-            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
-            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Disciplina:</strong> {disciplina}</p>
-            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Nome do(a) Aluno(a):</strong> ________________________________________________</p>
-            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Turma:</strong> _____________    <strong>Data:</strong> ____/____/________    <strong>Nota:</strong> _______</p>
-        </div>
-        """
-    else:
-        cabecalho = f"""
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0e2a5e; padding-bottom: 10px;">
-            <h3 style="color: #0e2a5e; font-family: Arial, sans-serif; font-size: 14pt;">{session.get('user_school', '')}</h3>
-            <p style="font-family: Arial, sans-serif; font-size: 12pt;"><strong>Professor(a):</strong> {session.get('user_name', '')}</p>
-        </div>
-        """
-    
-    # Para provas, extrai apenas a div .questoes (já vem com 2 colunas)
-    if tipo == 'avaliacoes':
-        match = re.search(r'<div class="questoes-2col">(.*?)</div>', conteudo_html, re.DOTALL)
-        if match:
-            questoes_html = match.group(1)
-        else:
-            questoes_html = conteudo_html
-        
-        conteudo_html = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
-        conteudo_html = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
-        conteudo_html = f'<div class="questoes-2col">{questoes_html}</div>'
-    
-    # CSS para duas colunas, Arial 12
-    css_profissional = """
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; margin: 0.5in; color: #000; }
-        .titulo-prova { text-align: center; font-size: 14pt; font-weight: 700; text-transform: uppercase; margin: 0.5rem 0 1.2rem 0; letter-spacing: 1px; color: #0e2a5e; font-family: Arial, sans-serif; }
-        .questoes-2col { column-count: 2; column-gap: 40px; column-fill: auto; }
-        .questao { margin-bottom: 1.2rem; break-inside: avoid; page-break-inside: avoid; }
-        .questao strong { font-weight: 700; display: block; margin-bottom: 0.2rem; }
-        .questao .alt { margin-left: 1.2rem; margin-bottom: 0.1rem; }
-        .linha-resposta { border-bottom: 1px dotted #999; margin: 10px 0; height: 0; }
-        .gabarito { margin-top: 20px; padding-top: 10px; border-top: 2px solid #0e2a5e; column-span: all; }
-        hr { border: 0; border-top: 2px solid #0e2a5e; }
-        @media print {
-            body { margin: 0.5in; }
-            .questoes-2col { column-gap: 30px; }
-            .questao { margin-bottom: 0.8rem; }
-        }
-    </style>
-    """
-    
-    html_completo = f"""
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="UTF-8"><title>Documento Exportado</title>
-    {css_profissional}
-    </head>
-    <body>
-        {cabecalho}
-        {conteudo_html}
-    </body>
-    </html>
-    """
-    
-    if formato == 'pdf':
-        pdf = weasyprint.HTML(string=html_completo).write_pdf()
-        return send_file(io.BytesIO(pdf), as_attachment=True, download_name='documento.pdf', mimetype='application/pdf')
-    else:  # docx
-        doc = Document()
-        if tipo == 'avaliacoes':
-            doc.add_heading(session.get('user_school', ''), level=1)
-            doc.add_paragraph(f'Professor(a): {session.get("user_name", "")}')
-            doc.add_paragraph(f'Disciplina: {disciplina}')
-            doc.add_paragraph('Nome do(a) Aluno(a): ________________________________________________')
-            doc.add_paragraph('Turma: _____________      Data: ____/____/________      Nota: _______')
-        else:
-            doc.add_heading(session.get('user_school', ''), level=1)
-            doc.add_paragraph(f'Professor(a): {session.get("user_name", "")}')
-        doc.add_paragraph('')
-        doc.add_paragraph(conteudo_html)
-        buffer = io.BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-        return send_file(buffer, as_attachment=True, download_name='documento.docx', mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-
-# =====================================================================
-# ROTA PARA SALVAR QUESTÃO (BANCO DE QUESTÕES)
-# =====================================================================
-@app.route('/salvar_questao', methods=['POST'])
-def salvar_questao():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-    usuario_id = session.get('user_id')
-    dados = request.form
+    novo_titulo = request.form.get('title', '').strip()
+    novo_conteudo = request.form.get('content', '').strip()
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO questoes (usuario_id, ano, disciplina, conteudo, bncc, dificuldade, tipo, enunciado, alternativas, gabarito)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (usuario_id, dados.get('ano'), dados.get('disciplina'), dados.get('conteudo'),
-         dados.get('bncc'), dados.get('dificuldade'), dados.get('tipo'),
-         dados.get('enunciado'), dados.get('alternativas'), dados.get('gabarito'))
+        "UPDATE materiais SET titulo = ?, conteudo_html = ? WHERE id = ? AND usuario_email = ?",
+        (novo_titulo, novo_conteudo, material_id, session.get('user_email', ''))
     )
     conn.commit()
     conn.close()
-    return jsonify({'status': 'ok'})
+    return redirect(url_for('ver_material', material_id=material_id))
+
+@app.route('/biblioteca/excluir/<int:material_id>', methods=['POST'])
+def excluir_material(material_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM materiais WHERE id = ? AND usuario_email = ?", (material_id, session.get('user_email', '')))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('biblioteca'))
+
+@app.route('/banco-questoes')
+def banco_questoes():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    filtro_ano = request.args.get('ano', '').strip()
+    filtro_disciplina = request.args.get('disciplina', '').strip()
+    filtro_conteudo = request.args.get('conteudo', '').strip()
+    filtro_bncc = request.args.get('bncc', '').strip()
+    filtro_dificuldade = request.args.get('dificuldade', '').strip()
+
+    query = "SELECT * FROM banco_questoes WHERE usuario_email = ?"
+    params = [session.get('user_email', '')]
+    if filtro_ano:
+        query += " AND ano LIKE ?"; params.append(f"%{filtro_ano}%")
+    if filtro_disciplina:
+        query += " AND disciplina LIKE ?"; params.append(f"%{filtro_disciplina}%")
+    if filtro_conteudo:
+        query += " AND conteudo LIKE ?"; params.append(f"%{filtro_conteudo}%")
+    if filtro_bncc:
+        query += " AND bncc LIKE ?"; params.append(f"%{filtro_bncc}%")
+    if filtro_dificuldade:
+        query += " AND dificuldade = ?"; params.append(filtro_dificuldade)
+    query += " ORDER BY id DESC"
+
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(query, params)
+    questoes = cursor.fetchall()
+    conn.close()
+
+    return render_template(
+        'banco_questoes.html', questoes=questoes,
+        filtro_ano=filtro_ano, filtro_disciplina=filtro_disciplina, filtro_conteudo=filtro_conteudo,
+        filtro_bncc=filtro_bncc, filtro_dificuldade=filtro_dificuldade,
+        app_name="Professor IA", name=session.get('user_name', ''), school=session.get('user_school', '')
+    )
+
+@app.route('/banco-questoes/salvar', methods=['POST'])
+def salvar_banco_questoes():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO banco_questoes (usuario_email, ano, disciplina, conteudo, bncc, dificuldade, enunciado_html, criado_em)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        session.get('user_email', ''),
+        request.form.get('ano', ''),
+        request.form.get('disciplina', ''),
+        request.form.get('tema', ''),
+        request.form.get('bncc', ''),
+        request.form.get('nivel', ''),
+        request.form.get('conteudo_html', ''),
+        datetime.now().strftime('%d/%m/%Y %H:%M')
+    ))
+    conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for('banco_questoes'))
+
+@app.route('/banco-questoes/excluir/<int:questao_id>', methods=['POST'])
+def excluir_questao(questao_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM banco_questoes WHERE id = ? AND usuario_email = ?", (questao_id, session.get('user_email', '')))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('banco_questoes'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)

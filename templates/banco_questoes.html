@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Banco de Questões - Professor IA{% endblock %}
+{% block head %}
+<style>
+    .filtro-box {
+        background: #fff;
+        border: 1px solid var(--borda);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .card-questao {
+        background: #fff;
+        border: 1px solid var(--borda);
+        border-radius: 12px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 0.85rem;
+    }
+    .badge-meta {
+        background: var(--azul-50);
+        color: var(--azul-800);
+        font-weight: 700;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 6px;
+        margin-right: 4px;
+    }
+    .preview-questao {
+        max-height: 140px;
+        overflow: hidden;
+        position: relative;
+        font-size: 0.85rem;
+        color: var(--tinta-suave);
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3 class="fw-bold mb-1" style="color: var(--tinta);">Banco de Questões</h3>
+    <p class="text-muted small mb-3">Questões e atividades salvas para reutilização, organizadas por ano, disciplina, conteúdo, BNCC e dificuldade.</p>
+
+    <form method="GET" class="filtro-box row g-2">
+        <div class="col-md-2">
+            <input type="text" class="form-control form-control-sm" name="ano" value="{{ filtro_ano }}" placeholder="Ano/Série">
+        </div>
+        <div class="col-md-2">
+            <input type="text" class="form-control form-control-sm" name="disciplina" value="{{ filtro_disciplina }}" placeholder="Disciplina">
+        </div>
+        <div class="col-md-3">
+            <input type="text" class="form-control form-control-sm" name="conteudo" value="{{ filtro_conteudo }}" placeholder="Conteúdo/Tema">
+        </div>
+        <div class="col-md-2">
+            <input type="text" class="form-control form-control-sm" name="bncc" value="{{ filtro_bncc }}" placeholder="Código BNCC">
+        </div>
+        <div class="col-md-2">
+            <select class="form-select form-select-sm" name="dificuldade">
+                <option value="">Dificuldade (todas)</option>
+                <option value="Fácil" {% if filtro_dificuldade == 'Fácil' %}selected{% endif %}>Fácil</option>
+                <option value="Médio" {% if filtro_dificuldade == 'Médio' %}selected{% endif %}>Médio</option>
+                <option value="Difícil" {% if filtro_dificuldade == 'Difícil' %}selected{% endif %}>Difícil</option>
+                <option value="Misto" {% if filtro_dificuldade == 'Misto' %}selected{% endif %}>Misto</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-sm btn-primary w-100" style="background: var(--azul-700); border: none;"><i class="fa-solid fa-filter"></i></button>
+        </div>
+    </form>
+
+    {% if questoes %}
+        {% for q in questoes %}
+        <div class="card-questao">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <span class="badge-meta">{{ q.ano }}</span>
+                    <span class="badge-meta">{{ q.disciplina }}</span>
+                    {% if q.bncc %}<span class="badge-meta">{{ q.bncc }}</span>{% endif %}
+                    <span class="badge-meta">{{ q.dificuldade }}</span>
+                    <p class="fw-bold mt-2 mb-0">{{ q.conteudo }}</p>
+                    <small class="text-muted">Salvo em {{ q.criado_em }}</small>
+                </div>
+                <form action="{{ url_for('excluir_questao', questao_id=q.id) }}" method="POST" onsubmit="return confirm('Excluir esta questão do banco?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                </form>
+            </div>
+            <div class="preview-questao">{{ q.enunciado_html | safe }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-database mb-3" style="font-size: 2.5rem;"></i>
+            <p>Nenhuma questão salva ainda. Gere uma atividade ou prova e clique em "Salvar no Banco".</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
