@@ -5,6 +5,7 @@ import sqlite3
 import random
 import requests
 import markdown as md
+import time
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -84,24 +85,35 @@ def extrair_chave_api():
         return chave
     return None
 
-def chamar_gemini(prompt, chave):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={chave}"
+def chamar_gemini_com_retry(prompt, chave, tentativas=3):
+    """Tenta chamar a API Gemini com até 3 tentativas em caso de erro 503"""
+    # Modelo alterado para gemini-1.5-flash (menos sobrecarregado)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={chave}"
     headers = {'Content-Type': 'application/json'}
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=60)
-        if resp.status_code == 200:
-            data = resp.json()
-            texto = data['candidates'][0]['content']['parts'][0]['text']
-            texto = texto.replace("```html", "").replace("```", "").strip()
-            texto = sanitizar_saida_html(texto)
-            if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto:
-                texto = texto.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
-            return texto
-        else:
-            return f"<!--ERRO--> Código {resp.status_code}: {resp.text}"
-    except Exception as e:
-        return f"<!--ERRO--> {str(e)}"
+    
+    for tentativa in range(tentativas):
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+            if resp.status_code == 200:
+                data = resp.json()
+                texto = data['candidates'][0]['content']['parts'][0]['text']
+                texto = texto.replace("```html", "").replace("```", "").strip()
+                texto = sanitizar_saida_html(texto)
+                if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto:
+                    texto = texto.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+                return texto
+            elif resp.status_code == 503:
+                # Erro de sobrecarga - aguarda e tenta novamente
+                tempo_espera = 2 ** tentativa  # 1, 2, 4 segundos
+                time.sleep(tempo_espera)
+                continue
+            else:
+                return f"<!--ERRO--> Código {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"<!--ERRO--> {str(e)}"
+    
+    return "<!--ERRO--> O serviço Gemini está temporariamente indisponível (503). Tente novamente mais tarde."
 
 # =====================================================================
 # FUNÇÕES DE MONTAGEM DE PROMPTS
@@ -322,9 +334,9 @@ def gerar_conteudo_ia(tipo_modulo, dados):
     }
     func = prompt_map.get(tipo_modulo, montar_prompt_generico)
     prompt = func(dados)
-    resposta = chamar_gemini(prompt, chave)
+    resposta = chamar_gemini_com_retry(prompt, chave)
     if resposta.startswith('<!--ERRO-->'):
-        return obter_fallback_pedagogico(tipo_modulo, dados.get('tema', ''), resposta)
+        return obter_fallback_pedagogico(tipo_modulo, dados.get('tema', ''), resposta.replace('<!--ERRO-->', ''))
     return resposta
 
 # =====================================================================
@@ -714,16 +726,12 @@ def exportar():
     if tipo == 'avaliacoes':
         match = re.search(r'<div class="questoes-2col">(.*?)</div>', conteudo_html, re.DOTALL)
         if match:
-            # Pega o conteúdo da div .questoes-2col
             questoes_html = match.group(1)
         else:
-            # Fallback: se não encontrar, usa todo o conteúdo
             questoes_html = conteudo_html
         
-        # Remove gabarito e info-pedagogica do conteúdo principal
         conteudo_html = re.sub(r'<div class="gabarito"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
         conteudo_html = re.sub(r'<div class="info-pedagogica"[^>]*>.*?</div>', '', conteudo_html, flags=re.DOTALL)
-        # Usa apenas as questões em 2 colunas
         conteudo_html = f'<div class="questoes-2col">{questoes_html}</div>'
     
     # CSS para duas colunas, Arial 12
@@ -739,7 +747,6 @@ def exportar():
         .linha-resposta { border-bottom: 1px dotted #999; margin: 10px 0; height: 0; }
         .gabarito { margin-top: 20px; padding-top: 10px; border-top: 2px solid #0e2a5e; column-span: all; }
         hr { border: 0; border-top: 2px solid #0e2a5e; }
-        /* Ajustes para impressão */
         @media print {
             body { margin: 0.5in; }
             .questoes-2col { column-gap: 30px; }
@@ -757,7 +764,6 @@ def exportar():
     <body>
         {cabecalho}
         {conteudo_html}
-        <!-- O gabarito fica apenas na visualização, não é exportado -->
     </body>
     </html>
     """
