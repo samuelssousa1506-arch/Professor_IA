@@ -33,12 +33,22 @@ MODULOS = {
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
     'atividades': {'nome': 'Banco de Atividades', 'icone': 'fa-list-check'},
     'avaliacoes': {'nome': 'Gerador de Provas', 'icone': 'fa-file-signature'},
+    'simulados': {'nome': 'Simulados', 'icone': 'fa-clipboard-question'},
     'duvidas': {'nome': 'Tira-Dúvidas com IA', 'icone': 'fa-circle-question'},
     'relatorios': {'nome': 'Relatórios Pedagógicos', 'icone': 'fa-chart-line'},
     'inclusao': {'nome': 'Plano de Inclusão / AEE', 'icone': 'fa-hands-asl-interpreting'},
     'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'},
     'alfabetizacao': {'nome': 'Alfabetização e Reforço de Leitura', 'icone': 'fa-spell-check'}
 }
+
+TIPOS_SIMULADO = [
+    "Simulado Bimestral / Revisão de Conteúdo",
+    "Simulado tipo ENEM",
+    "Simulado tipo Vestibular",
+    "Simulado SAEB / Prova Brasil",
+    "Simulado de Concurso Público",
+    "Simulado Geral / Diagnóstico"
+]
 
 NIVEIS_LEITURA = [
     "Pré-silábico (não reconhece letras/sons)",
@@ -341,6 +351,47 @@ def executar_geracao_ia(**kwargs):
         - Configuração Utilizada: resuma em lista os parâmetros desta prova — Disciplina: {disciplina}; Ano/Série: {ano}; Nível: {nivel}; Formato: {tipo_prova}; Quantidade de questões: {qtd_questoes}.
         - Metodologia de Aplicação: sugestões de como aplicar esta avaliação em sala (tempo sugerido, orientações antes da aplicação, critérios de correção).
         """
+    elif tipo_modulo == 'Simulados':
+        tipo_simulado = kwargs.get('tipo_simulado', 'Simulado Geral / Diagnóstico')
+        duracao_simulado = kwargs.get('duracao_simulado', '').strip()
+        qtd_questoes_simulado = kwargs.get('qtd_questoes_simulado', '20').strip() or '20'
+        duracao_sugerida = duracao_simulado
+        if not duracao_sugerida:
+            try:
+                duracao_sugerida = f"aproximadamente {int(qtd_questoes_simulado) * 3} minutos"
+            except ValueError:
+                duracao_sugerida = "a critério do professor"
+
+        prompt = f"""
+        Atue como um Especialista em Avaliação Pedagógica e Elaboração de Simulados, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere um SIMULADO completo sobre o(s) tema(s)/conteúdo(s) "{tema}", disciplina "{disciplina}", ano/série "{ano}".
+        Tipo de simulado: {tipo_simulado}.
+        NÃO gere nenhum cabeçalho com nome de escola, professor, aluno ou data — isso já é adicionado automaticamente pelo sistema.
+
+        {regras_formato}
+
+        SUA RESPOSTA DEVE TER DUAS PARTES, NESTA ORDEM, SEPARADAS PELO MARCADOR LITERAL EXATO <!--INFO_PEDAGOGICA--> (sem nenhum texto ao redor do marcador):
+
+        ============ PARTE 1 — O SIMULADO EM SI (vai para o documento impresso/exportado) ============
+        1. Inicie com <div class="instrucoes-simulado"><p><strong>Duração sugerida:</strong> {duracao_sugerida}</p><p><strong>Instruções:</strong> [orientações curtas e claras ao aluno sobre como responder, adequadas ao tipo de simulado "{tipo_simulado}"]</p></div>
+        2. Gere exatamente {qtd_questoes_simulado} questões, cobrindo de forma equilibrada o(s) conteúdo(s)/tema(s) informado(s). Se mais de um conteúdo/tema foi informado, distribua as questões proporcionalmente entre eles.
+        3. Varie o nível de dificuldade ao longo do simulado (fácil, médio, difícil) de forma progressiva ou intercalada, mesmo que o nível informado seja único — isso é característico de simulados reais. Se o nível informado for "Misto", isso é ainda mais importante.
+        4. Cada questão DEVE estar envolvida em <div class="questao-item">...</div> (uma div por questão, obrigatório para a diagramação em colunas).
+        5. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
+        6. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
+        7. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
+        8. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
+        9. Para questões discursivas, adicione <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
+        10. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
+
+        ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS (fica visível só na tela do sistema, NUNCA é exportada/impressa) ============
+        Após o marcador <!--INFO_PEDAGOGICA-->, gere, cada uma como <h5>[Título]</h5>:
+        - Objetivos: o que se espera diagnosticar/revisar com este simulado.
+        - Matriz de Referência: uma <table> com colunas "Questão", "Habilidade BNCC", "Nível de Dificuldade", uma linha por questão gerada — replicando o formato de matriz de referência usado em simulados oficiais (tipo SAEB/ENEM).
+        - Fundamentação Legal: artigo pertinente da LDB (Lei 9.394/96) e eixo/orientação do DCTMA relacionados ao(s) tema(s).
+        - Configuração Utilizada: resuma em lista — Disciplina: {disciplina}; Ano/Série: {ano}; Tipo de Simulado: {tipo_simulado}; Nível: {nivel}; Quantidade de questões: {qtd_questoes_simulado}; Duração sugerida: {duracao_sugerida}.
+        - Metodologia de Aplicação: sugestões de como aplicar este simulado (condições de sala, correção, uso dos resultados para intervenção pedagógica).
+        """
     else:
         prompt = f"""
         Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
@@ -487,7 +538,7 @@ def executar_geracao_ia(**kwargs):
                 texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
 
             info_pedagogica = ''
-            if tipo_modulo == 'Gerador de Provas':
+            if tipo_modulo in ('Gerador de Provas', 'Simulados'):
                 if '<!--INFO_PEDAGOGICA-->' in texto_gerado:
                     parte_prova, parte_info = texto_gerado.split('<!--INFO_PEDAGOGICA-->', 1)
                 else:
@@ -546,10 +597,11 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
     r_escola.bold = True
     r_escola.font.size = Pt(15)
 
-    if tipo_modulo == 'Gerador de Provas':
+    if tipo_modulo in ('Gerador de Provas', 'Simulados'):
+        rotulo_titulo = "AVALIAÇÃO DE" if tipo_modulo == 'Gerador de Provas' else "SIMULADO DE"
         p_titulo = documento.add_paragraph()
         p_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        r_titulo = p_titulo.add_run(f"AVALIAÇÃO DE {(disciplina or '').upper()}" + (f" — {ano}" if ano else ""))
+        r_titulo = p_titulo.add_run(f"{rotulo_titulo} {(disciplina or '').upper()}" + (f" — {ano}" if ano else ""))
         r_titulo.bold = True
         r_titulo.font.size = Pt(13)
 
@@ -626,11 +678,12 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
     return buffer
 
 def gerar_pdf(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
-    if tipo_modulo == 'Gerador de Provas':
+    if tipo_modulo in ('Gerador de Provas', 'Simulados'):
+        rotulo_titulo_pdf = "Avaliação de" if tipo_modulo == 'Gerador de Provas' else "Simulado de"
         bloco_cabecalho = f"""
         <div class="cabecalho-pdf">
             <h1>{escola}</h1>
-            <h2 style="font-size:13pt; text-transform:uppercase; letter-spacing:1px; margin:4px 0;">Avaliação de {(disciplina or '').upper()}{f' — {ano}' if ano else ''}</h2>
+            <h2 style="font-size:13pt; text-transform:uppercase; letter-spacing:1px; margin:4px 0;">{rotulo_titulo_pdf} {(disciplina or '').upper()}{f' — {ano}' if ano else ''}</h2>
             <p style="font-size:10pt; color:#52627e;">Professor(a): {professor}</p>
             <table style="border:none; margin-top:10px;">
                 <tr>
@@ -852,6 +905,11 @@ def dashboard():
     focos_alfabetizacao = request.form.getlist('focos_alfabetizacao')
     duracao_alfabetizacao = request.form.get('duracao_alfabetizacao', '').strip()
 
+    # Campos específicos do módulo de Simulados
+    tipo_simulado = request.form.get('tipo_simulado', 'Simulado Geral / Diagnóstico').strip()
+    duracao_simulado = request.form.get('duracao_simulado', '').strip()
+    qtd_questoes_simulado = request.form.get('qtd_questoes_simulado', '20').strip()
+
     material_id = None
     info_pedagogica = ""
 
@@ -892,7 +950,10 @@ def dashboard():
             nivel_leitura=nivel_leitura,
             dificuldades_observadas=dificuldades_observadas,
             focos_alfabetizacao=focos_alfabetizacao,
-            duracao_alfabetizacao=duracao_alfabetizacao
+            duracao_alfabetizacao=duracao_alfabetizacao,
+            tipo_simulado=tipo_simulado,
+            duracao_simulado=duracao_simulado,
+            qtd_questoes_simulado=qtd_questoes_simulado
         )
 
         # Registra automaticamente no Histórico / Biblioteca
@@ -951,10 +1012,14 @@ def dashboard():
         dificuldades_observadas=dificuldades_observadas,
         focos_alfabetizacao=focos_alfabetizacao,
         duracao_alfabetizacao=duracao_alfabetizacao,
+        tipo_simulado=tipo_simulado,
+        duracao_simulado=duracao_simulado,
+        qtd_questoes_simulado=qtd_questoes_simulado,
         TIPOS_ATIVIDADE=TIPOS_ATIVIDADE,
         TIPOS_PROJETO=TIPOS_PROJETO,
         NIVEIS_LEITURA=NIVEIS_LEITURA,
         FOCOS_ALFABETIZACAO=FOCOS_ALFABETIZACAO,
+        TIPOS_SIMULADO=TIPOS_SIMULADO,
         app_name="Professor IA",
         name=session.get('user_name', 'Samuel Araújo Sousa'),     
         school=session.get('user_school', 'U.E. Prof. João Martins Neto')  

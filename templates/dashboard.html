@@ -276,6 +276,16 @@
             border-top: 2px solid var(--azul-100);
             padding-top: 0.75rem;
         }
+        .conteudo-pedagogico-real .instrucoes-simulado {
+            border: 1px solid var(--azul-100);
+            background: var(--azul-50);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            color: var(--azul-900);
+        }
+        .conteudo-pedagogico-real .instrucoes-simulado p { margin: 0.2rem 0; }
 
         /* Aba Informações Pedagógicas (nunca impressa/exportada) */
         .info-pedagogica-box h5 {
@@ -357,6 +367,9 @@
                     </a>
                     <a class="nav-link-premium {% if form_type == 'avaliacoes' %}active{% endif %}" href="{{ url_for('dashboard', form_type='avaliacoes') }}">
                         <i class="fa-solid fa-file-signature"></i> Gerador de Provas
+                    </a>
+                    <a class="nav-link-premium {% if form_type == 'simulados' %}active{% endif %}" href="{{ url_for('dashboard', form_type='simulados') }}">
+                        <i class="fa-solid fa-clipboard-question"></i> Simulados
                     </a>
                     <a class="nav-link-premium {% if form_type == 'duvidas' %}active{% endif %}" href="{{ url_for('dashboard', form_type='duvidas') }}">
                         <i class="fa-solid fa-circle-question"></i> Tira-Dúvidas IA
@@ -630,6 +643,36 @@
                 </div>
                 {% endif %}
 
+                {% if form_type == 'simulados' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">TIPO DE SIMULADO</label>
+                    <select class="form-select form-control-premium" name="tipo_simulado">
+                        {% for tipo in TIPOS_SIMULADO %}
+                        <option value="{{ tipo }}" {% if tipo_simulado == tipo %}selected{% endif %}>{{ tipo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label-premium">Nº DE QUESTÕES</label>
+                        <input type="number" min="1" max="90" class="form-control form-control-premium" name="qtd_questoes_simulado" value="{{ qtd_questoes_simulado if qtd_questoes_simulado else '20' }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium">DURAÇÃO (OPCIONAL)</label>
+                        <input type="text" class="form-control form-control-premium" name="duracao_simulado" value="{{ duracao_simulado }}" placeholder="Ex: 2 horas">
+                    </div>
+                </div>
+                <div class="mb-2 mt-1">
+                    <label class="form-label-premium">NÍVEL DE DIFICULDADE</label>
+                    <select class="form-select form-control-premium" name="nivel">
+                        <option value="Fácil" {% if nivel == 'Fácil' %}selected{% endif %}>Fácil</option>
+                        <option value="Médio" {% if nivel == 'Médio' %}selected{% endif %}>Médio</option>
+                        <option value="Difícil" {% if nivel == 'Difícil' %}selected{% endif %}>Difícil</option>
+                        <option value="Misto" {% if nivel == 'Misto' or not nivel %}selected{% endif %}>Misto (recomendado para simulados)</option>
+                    </select>
+                </div>
+                {% endif %}
+
                 {% if form_type == 'avaliacoes' %}
                 <div class="mb-2">
                     <label class="form-label-premium">FORMATO DAS QUESTÕES</label>
@@ -694,7 +737,7 @@
                     <a href="{{ url_for('exportar_material', material_id=material_id, formato='docx') }}" class="btn btn-outline-primary btn-sm fw-bold px-3">
                         <i class="fa-solid fa-file-word me-1"></i> Word
                     </a>
-                    {% if form_type in ('atividades', 'avaliacoes') %}
+                    {% if form_type in ('atividades', 'avaliacoes', 'simulados') %}
                     <form action="{{ url_for('salvar_banco_questoes') }}" method="POST" class="d-inline">
                         <input type="hidden" name="ano" value="{{ ano }}">
                         <input type="hidden" name="disciplina" value="{{ disciplina }}">
@@ -714,11 +757,11 @@
                 </div>
             </div>
 
-            {% if form_type == 'avaliacoes' and info_pedagogica %}
+            {% if form_type in ('avaliacoes', 'simulados') and info_pedagogica %}
             <ul class="nav nav-tabs mb-3 no-print" id="tabsProva" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active fw-bold" id="tab-btn-prova" data-bs-toggle="tab" data-bs-target="#tab-prova" type="button" role="tab">
-                        <i class="fa-solid fa-file-lines me-1"></i> Prova
+                        <i class="fa-solid fa-file-lines me-1"></i> {% if form_type == 'simulados' %}Simulado{% else %}Prova{% endif %}
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -745,6 +788,19 @@
                         <div class="col-6 text-end"><strong>NOTA:</strong> _______________</div>
                     </div>
                 </div>
+                {% elif form_type == 'simulados' %}
+                <!-- Cabeçalho único de Simulado (impressão e tela) -->
+                <div class="text-center mb-4 pb-3 border-bottom">
+                    <h4 class="fw-bold mb-1">{{ school }}</h4>
+                    <h5 class="fw-bold text-uppercase mb-1" style="letter-spacing: 0.03em;">Simulado de {{ disciplina }}{% if ano %} — {{ ano }}{% endif %}</h5>
+                    <p class="text-muted small mb-2">Professor(a): {{ name }} {% if tipo_simulado %}• {{ tipo_simulado }}{% endif %}</p>
+                    <div class="row mt-3 text-start small g-2">
+                        <div class="col-8"><strong>ALUNO(A):</strong> ____________________________________________________</div>
+                        <div class="col-4"><strong>TURMA:</strong> _____________</div>
+                        <div class="col-6"><strong>DATA:</strong> ____/____/______</div>
+                        <div class="col-6 text-end"><strong>PONTUAÇÃO:</strong> ___________</div>
+                    </div>
+                </div>
                 {% elif form_type != 'bimestral' %}
                 <!-- Cabeçalho único institucional (demais documentos) -->
                 <div class="text-center mb-4 pb-3 border-bottom">
@@ -760,7 +816,7 @@
             </div>
             </div>
 
-            {% if form_type == 'avaliacoes' and info_pedagogica %}
+            {% if form_type in ('avaliacoes', 'simulados') and info_pedagogica %}
             <div class="tab-pane fade no-print" id="tab-info" role="tabpanel">
                 <div class="preview-container info-pedagogica-box">
                     <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-1"></i> Esta aba é só para sua consulta — não é impressa nem exportada junto com a prova.</p>
