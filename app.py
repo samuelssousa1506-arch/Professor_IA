@@ -71,10 +71,15 @@ COMPETENCIAS_GERAIS_BNCC = [
 def montar_prova_duas_colunas(html_questoes):
     """
     Recebe o HTML das questões (cada uma em <div class="questao-item">) e o
-    gabarito (em <div class="gabarito-prova">), e monta uma tabela de 2 colunas
-    de tamanho igual, fonte Arial 12 — igual ao modelo de prova impressa
-    tradicional. Usar tabela (em vez de CSS column-count) garante que o layout
-    se preserve tanto na tela quanto na exportação para PDF e Word.
+    gabarito (em <div class="gabarito-prova">), e monta um bloco de texto em
+    2 colunas reais (CSS column-count), fonte Arial 12.
+
+    IMPORTANTE: usamos column-count (fluxo de texto tipo "jornal") em vez de
+    uma tabela HTML de 2 colunas fixas. Uma tabela força uma divisão rígida
+    de questões entre as colunas; quando uma questão é maior que as outras,
+    o navegador precisa manter a "linha" da tabela inteira, criando vãos
+    enormes na impressão. Com column-count, o texto flui naturalmente e
+    quebra de página corretamente, sem espaços em branco indevidos.
     """
     soup = BeautifulSoup(html_questoes, 'html.parser')
     itens = soup.find_all('div', class_='questao-item')
@@ -90,19 +95,15 @@ def montar_prova_duas_colunas(html_questoes):
             conteudo_sem_gabarito = conteudo_sem_gabarito.replace(str(gabarito_tag), '')
         return f'<div style="{fonte_estilo}">{conteudo_sem_gabarito}</div>{gabarito_html}'
 
-    metade = (len(itens) + 1) // 2
-    col1_html = "".join(str(i) for i in itens[:metade])
-    col2_html = "".join(str(i) for i in itens[metade:])
+    questoes_html = "".join(str(i) for i in itens)
 
-    tabela = f"""
-    <table class="tabela-prova-colunas" style="width:100%; border-collapse:collapse; {fonte_estilo}">
-        <tr>
-            <td style="width:50%; vertical-align:top; padding:0 14px 0 0; border-right:1px solid #999;">{col1_html}</td>
-            <td style="width:50%; vertical-align:top; padding:0 0 0 14px;">{col2_html}</td>
-        </tr>
-    </table>
+    bloco_colunas = f"""
+    <div class="prova-colunas" style="column-count:2; -webkit-column-count:2; column-gap:30px; -webkit-column-gap:30px; column-rule:1px solid #999; column-fill:auto; {fonte_estilo}">
+        {questoes_html}
+    </div>
     """
-    return tabela + gabarito_html
+    return bloco_colunas + gabarito_html
+
 
 def montar_html_competencias_gerais():
     ordinais = ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "7ª", "8ª", "9ª", "10ª"]
