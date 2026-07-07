@@ -361,6 +361,9 @@
                     <a class="nav-link-premium {% if form_type == 'projetos' %}active{% endif %}" href="{{ url_for('dashboard', form_type='projetos') }}">
                         <i class="fa-solid fa-diagram-project"></i> Projetos
                     </a>
+                    <a class="nav-link-premium {% if form_type == 'alfabetizacao' %}active{% endif %}" href="{{ url_for('dashboard', form_type='alfabetizacao') }}">
+                        <i class="fa-solid fa-spell-check"></i> Alfabetização / Reforço
+                    </a>
                 </nav>
 
                 <hr class="my-3">
@@ -404,12 +407,49 @@
                     <label class="form-label-premium">
                         {% if form_type == 'duvidas' %}
                             SUA PERGUNTA OU CONSULTA PEDAGÓGICA
+                        {% elif form_type == 'alfabetizacao' %}
+                            CONTEXTO/INTERESSE DO ALUNO (OPCIONAL)
                         {% else %}
                             CONTEÚDO / OBJETO DE ESTUDO
                         {% endif %}
                     </label>
-                    <textarea class="form-control form-control-premium" name="tema" rows="4" placeholder="{% if form_type == 'duvidas' %}Ex: O que diz a LDB sobre a progressividade escolar? Como aplicar o DCTMA neste tema?{% else %}Ex: Equações de 2º Grau, Sintaxe, Revolução Francesa...{% endif %}" required>{{ tema }}</textarea>
+                    <textarea class="form-control form-control-premium" name="tema" rows="4" placeholder="{% if form_type == 'duvidas' %}Ex: O que diz a LDB sobre a progressividade escolar? Como aplicar o DCTMA neste tema?{% elif form_type == 'alfabetizacao' %}Ex: gosta de futebol, jogos de videogame, música... (ajuda a IA a usar temas do interesse do aluno nas atividades){% else %}Ex: Equações de 2º Grau, Sintaxe, Revolução Francesa...{% endif %}" {% if form_type != 'alfabetizacao' %}required{% endif %}>{{ tema }}</textarea>
                 </div>
+
+                {% if form_type == 'alfabetizacao' %}
+                <div class="mb-2">
+                    <label class="form-label-premium">NOME DO ALUNO (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="nome_aluno" value="{{ nome_aluno }}" placeholder="Para plano individualizado">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">NÍVEL DE LEITURA/ESCRITA ATUAL</label>
+                    <select class="form-select form-control-premium" name="nivel_leitura">
+                        <option value="">Selecione...</option>
+                        {% for niv in NIVEIS_LEITURA %}
+                        <option value="{{ niv }}" {% if nivel_leitura == niv %}selected{% endif %}>{{ niv }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">DIFICULDADES OBSERVADAS (OPCIONAL)</label>
+                    <textarea class="form-control form-control-premium" name="dificuldades_observadas" rows="2" placeholder="Ex: confunde letras parecidas (b/d), não junta sílabas, lê muito devagar...">{{ dificuldades_observadas }}</textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">FOCO(S) DA INTERVENÇÃO</label>
+                    <div class="checkbox-scroll">
+                        {% for foco in FOCOS_ALFABETIZACAO %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="focos_alfabetizacao" value="{{ foco }}" id="foco_{{ loop.index }}" {% if foco in focos_alfabetizacao %}checked{% endif %}>
+                            <label class="form-check-label small" for="foco_{{ loop.index }}">{{ foco }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">DURAÇÃO DO PLANO (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="duracao_alfabetizacao" value="{{ duracao_alfabetizacao }}" placeholder="Ex: 6 semanas">
+                </div>
+                {% endif %}
 
                 {% if form_type != 'duvidas' %}
                 <div class="mb-2">

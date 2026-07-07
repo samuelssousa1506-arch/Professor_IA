@@ -27,8 +27,31 @@ MODULOS = {
     'duvidas': {'nome': 'Tira-Dúvidas com IA', 'icone': 'fa-circle-question'},
     'relatorios': {'nome': 'Relatórios Pedagógicos', 'icone': 'fa-chart-line'},
     'inclusao': {'nome': 'Plano de Inclusão / AEE', 'icone': 'fa-hands-asl-interpreting'},
-    'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'}
+    'projetos': {'nome': 'Projetos Interdisciplinares', 'icone': 'fa-diagram-project'},
+    'alfabetizacao': {'nome': 'Alfabetização e Reforço de Leitura', 'icone': 'fa-spell-check'}
 }
+
+NIVEIS_LEITURA = [
+    "Pré-silábico (não reconhece letras/sons)",
+    "Silábico sem valor sonoro (junta símbolos sem som correspondente)",
+    "Silábico com valor sonoro (associa algumas letras ao som)",
+    "Silábico-alfabético (mistura sílabas e letras corretamente)",
+    "Alfabético com dificuldades (lê, mas troca/omite letras, lê devagar)",
+    "Alfabético fluente com dificuldade de interpretação (lê bem, mas não compreende)"
+]
+
+FOCOS_ALFABETIZACAO = [
+    "Consciência Fonológica (rimas, sons, sílabas)",
+    "Reconhecimento de Letras (alfabeto, maiúsculas/minúsculas)",
+    "Formação de Sílabas",
+    "Leitura de Palavras",
+    "Leitura de Frases e Textos Curtos",
+    "Fluência Leitora (velocidade e ritmo)",
+    "Compreensão Leitora (interpretação)",
+    "Escrita Espontânea",
+    "Ortografia Básica",
+    "Gosto pela Leitura / Motivação"
+]
 
 TIPOS_ATIVIDADE = [
     "Interpretação de texto", "Questões objetivas", "Questões subjetivas", "Produção textual",
@@ -370,6 +393,45 @@ def executar_geracao_ia(**kwargs):
             11. Produto Final (o que será entregue/apresentado ao final)
             12. Referências (formato ABNT simplificado, incluindo BNCC e DCTMA; não invente autores)
             """
+        elif tipo_modulo == 'Alfabetização e Reforço de Leitura':
+            nome_aluno = kwargs.get('nome_aluno', '').strip()
+            nivel_leitura = kwargs.get('nivel_leitura', '')
+            dificuldades_observadas = kwargs.get('dificuldades_observadas', '')
+            focos_selecionados = kwargs.get('focos_alfabetizacao', []) or ['Consciência Fonológica (rimas, sons, sílabas)']
+            lista_focos = ", ".join(focos_selecionados)
+            duracao_alfab = kwargs.get('duracao_alfabetizacao', '')
+            eh_aluno_mais_velho = False
+            try:
+                eh_aluno_mais_velho = int(re.search(r'\d+', ano).group()) >= 4 if ano and re.search(r'\d+', ano) else False
+            except Exception:
+                eh_aluno_mais_velho = False
+
+            prompt += f"""
+            DIRETRIZES DO PLANO DE ALFABETIZAÇÃO E REFORÇO DE LEITURA:
+            Este é um plano de INTERVENÇÃO INDIVIDUALIZADA para um aluno com defasagem de leitura/escrita, não uma atividade de sala genérica.
+
+            DADOS DO ALUNO:
+            - Nome (se informado): {nome_aluno or 'não identificado — trate de forma genérica como "o(a) aluno(a)"'}
+            - Ano/Série atual: {ano}
+            - Nível de leitura/escrita diagnosticado pelo professor: {nivel_leitura or 'não informado — infira um nível plausível a partir das dificuldades descritas'}
+            - Dificuldades observadas pelo professor: {dificuldades_observadas or 'não detalhadas — baseie-se no nível informado'}
+            - Foco(s) de intervenção priorizado(s): {lista_focos}
+            - Duração prevista do plano: {duracao_alfab or 'sugira uma duração adequada (geralmente 4 a 8 semanas)'}
+            - Contexto/interesses do aluno informados pelo professor (use para escolher temas de textos e exemplos motivadores): {tema or 'não informado — escolha temas neutros e universalmente interessantes para a idade'}
+
+            {"ATENÇÃO CRÍTICA: o aluno está no " + ano + ", ou seja, é mais velho que a idade típica de alfabetização inicial. NÃO use temas, personagens ou materiais infantilizados (nada de 'bichinhos fofos' ou temas de educação infantil). Use textos, palavras e contextos adequados à idade real do aluno (esportes, música, tecnologia, cotidiano adolescente, temas de interesse da faixa etária), mesmo trabalhando habilidades básicas de leitura. Isso é essencial para não constranger o aluno diante dos colegas." if eh_aluno_mais_velho else "Adeque a linguagem e os temas à faixa etária da educação infantil/anos iniciais, com abordagem lúdica."}
+
+            ESTRUTURA OBRIGATÓRIA, cada uma como <h5>[Título]</h5>:
+            1. Diagnóstico e Leitura da Situação — interprete o nível/dificuldades informados e explique o que isso significa na prática.
+            2. Objetivos da Intervenção (geral e específicos).
+            3. Habilidades da BNCC Relacionadas — competências/habilidades de Língua Portuguesa (alfabetização/leitura) pertinentes ao nível diagnosticado, com código quando aplicável.
+            4. Estratégias e Metodologia — métodos de alfabetização reconhecidos (consciência fonológica, método fônico, silabação, leitura compartilhada, etc.), adaptados ao nível e à idade real do aluno.
+            5. Sequência de Atividades Práticas — organize em blocos (ex: Semana 1, Semana 2...) com atividades concretas e progressivas, do mais simples ao mais complexo.
+            6. Recursos Necessários.
+            7. Envolvimento da Família — orientações simples para os responsáveis reforçarem em casa.
+            8. Avaliação de Progresso — como o professor vai medir a evolução (indicadores observáveis, não apenas provas).
+            9. Referências (formato ABNT simplificado; inclua BNCC, e se pertinente, autores reconhecidos de alfabetização como Magda Soares ou Emilia Ferreiro — não invente nomes/obras).
+            """
         elif tipo_modulo == 'Plano de Aula':
             prompt += """
             SEÇÃO OBRIGATÓRIA — METODOLOGIAS E SUGESTÕES DE AULAS DIFERENCIADAS:
@@ -646,10 +708,18 @@ def dashboard():
     duracao = request.form.get('duracao', '').strip()
     objetivo = request.form.get('objetivo', '').strip()
 
+    # Campos específicos do módulo de Alfabetização e Reforço de Leitura
+    nome_aluno = request.form.get('nome_aluno', '').strip()
+    nivel_leitura = request.form.get('nivel_leitura', '').strip()
+    dificuldades_observadas = request.form.get('dificuldades_observadas', '').strip()
+    focos_alfabetizacao = request.form.getlist('focos_alfabetizacao')
+    duracao_alfabetizacao = request.form.get('duracao_alfabetizacao', '').strip()
+
     material_id = None
     info_pedagogica = ""
 
-    if request.method == 'POST' and tema:
+    pode_gerar = tema or (form_type == 'alfabetizacao' and (nivel_leitura or dificuldades_observadas or nome_aluno))
+    if request.method == 'POST' and pode_gerar:
         conteudo, info_pedagogica = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
@@ -680,7 +750,12 @@ def dashboard():
             tipos_atividade=tipos_atividade,
             tipos_projeto=tipos_projeto,
             duracao=duracao,
-            objetivo=objetivo
+            objetivo=objetivo,
+            nome_aluno=nome_aluno,
+            nivel_leitura=nivel_leitura,
+            dificuldades_observadas=dificuldades_observadas,
+            focos_alfabetizacao=focos_alfabetizacao,
+            duracao_alfabetizacao=duracao_alfabetizacao
         )
 
         # Registra automaticamente no Histórico / Biblioteca
@@ -734,8 +809,15 @@ def dashboard():
         tipos_projeto=tipos_projeto,
         duracao=duracao,
         objetivo=objetivo,
+        nome_aluno=nome_aluno,
+        nivel_leitura=nivel_leitura,
+        dificuldades_observadas=dificuldades_observadas,
+        focos_alfabetizacao=focos_alfabetizacao,
+        duracao_alfabetizacao=duracao_alfabetizacao,
         TIPOS_ATIVIDADE=TIPOS_ATIVIDADE,
         TIPOS_PROJETO=TIPOS_PROJETO,
+        NIVEIS_LEITURA=NIVEIS_LEITURA,
+        FOCOS_ALFABETIZACAO=FOCOS_ALFABETIZACAO,
         app_name="Professor IA",
         name=session.get('user_name', 'Samuel Araújo Sousa'),     
         school=session.get('user_school', 'U.E. Prof. João Martins Neto')  
