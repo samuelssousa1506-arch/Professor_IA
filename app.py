@@ -5,15 +5,24 @@ import random
 import requests
 import markdown as md
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_SECTION
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 from htmldocx import HtmlToDocx
 from xhtml2pdf import pisa
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # 1. MAPEAMENTO DA CHAVE GEMINI
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
@@ -496,30 +505,160 @@ def executar_geracao_ia(**kwargs):
 # =====================================================================
 # EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
 # =====================================================================
-def gerar_docx(titulo, escola, professor, html_conteudo):
-    documento = Document()
-    documento.add_heading(titulo or "Documento Pedagógico", level=1)
+def _definir_colunas_secao(section, num_colunas):
+    """Configura o número de colunas (estilo jornal) de uma seção do Word via XML."""
+    sectPr = section._sectPr
+    cols = sectPr.find(qn('w:cols'))
+    if cols is None:
+        cols = OxmlElement('w:cols')
+        sectPr.append(cols)
+    cols.set(qn('w:num'), str(num_colunas))
+    cols.set(qn('w:space'), '480')
+
+def _adicionar_no_docx(documento, node):
+    """Converte um nó de questão (strong/br/div.linha-resposta/texto) em um parágrafo do Word."""
     p = documento.add_paragraph()
-    p.add_run(f"Instituição de Ensino: {escola}\n").bold = True
-    p.add_run(f"Professor(a): {professor}").italic = True
+    for filho in node.children:
+        nome = getattr(filho, 'name', None)
+        if nome == 'strong' or nome == 'b':
+            run = p.add_run(filho.get_text())
+            run.bold = True
+        elif nome == 'br':
+            p.add_run().add_break()
+        elif nome == 'div' and 'linha-resposta' in (filho.get('class') or []):
+            documento.add_paragraph('_' * 55)
+        elif nome is None:
+            texto = str(filho)
+            if texto.strip():
+                p.add_run(texto)
+        else:
+            texto = filho.get_text()
+            if texto.strip():
+                p.add_run(texto)
     documento.add_paragraph("")
 
-    conversor = HtmlToDocx()
-    conversor.add_html_to_document(html_conteudo, documento)
+def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
+    documento = Document()
+
+    p_escola = documento.add_paragraph()
+    p_escola.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_escola = p_escola.add_run(escola or "Instituição de Ensino")
+    r_escola.bold = True
+    r_escola.font.size = Pt(15)
+
+    if tipo_modulo == 'Gerador de Provas':
+        p_titulo = documento.add_paragraph()
+        p_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r_titulo = p_titulo.add_run(f"AVALIAÇÃO DE {(disciplina or '').upper()}" + (f" — {ano}" if ano else ""))
+        r_titulo.bold = True
+        r_titulo.font.size = Pt(13)
+
+        p_prof = documento.add_paragraph()
+        p_prof.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r_prof = p_prof.add_run(f"Professor(a): {professor}")
+        r_prof.italic = True
+        r_prof.font.size = Pt(10)
+
+        documento.add_paragraph("")
+
+        # Campos de identificação (Aluno / Turma / Data / Nota)
+        tabela_id = documento.add_table(rows=2, cols=2)
+        tabela_id.cell(0, 0).text = "ALUNO(A): " + "_" * 38
+        tabela_id.cell(0, 1).text = "TURMA: " + "_" * 10
+        tabela_id.cell(1, 0).text = "DATA: ____/____/______"
+        tabela_id.cell(1, 1).text = "NOTA: " + "_" * 12
+        documento.add_paragraph("")
+
+        soup = BeautifulSoup(html_conteudo, 'html.parser')
+        itens = soup.find_all('div', class_='questao-item')
+        gabarito_tag = soup.find('div', class_='gabarito-prova')
+
+        # Seção em 2 colunas reais do Word para as questões
+        secao_questoes = documento.add_section(WD_SECTION.CONTINUOUS)
+        _definir_colunas_secao(secao_questoes, 2)
+
+        estilo_normal = documento.styles['Normal']
+        estilo_normal.font.name = 'Arial'
+        estilo_normal.font.size = Pt(12)
+
+        if itens:
+            for item in itens:
+                _adicionar_no_docx(documento, item)
+        else:
+            documento.add_paragraph(soup.get_text())
+
+        # Volta para 1 coluna antes do gabarito
+        secao_gabarito = documento.add_section(WD_SECTION.CONTINUOUS)
+        _definir_colunas_secao(secao_gabarito, 1)
+
+        if gabarito_tag:
+            documento.add_paragraph("")
+            h_gab = documento.add_paragraph()
+            r_gab = h_gab.add_run("Gabarito")
+            r_gab.bold = True
+            r_gab.font.size = Pt(12)
+            gabarito_copia = BeautifulSoup(str(gabarito_tag), 'html.parser')
+            titulo_existente = gabarito_copia.find('h5')
+            if titulo_existente:
+                titulo_existente.decompose()
+            conversor = HtmlToDocx()
+            conversor.add_html_to_document(str(gabarito_copia), documento)
+
+    else:
+        p_titulo = documento.add_paragraph()
+        p_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r_titulo = p_titulo.add_run(titulo or tipo_modulo or "Documento Pedagógico")
+        r_titulo.bold = True
+        r_titulo.font.size = Pt(14)
+
+        p_prof = documento.add_paragraph()
+        p_prof.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r_prof = p_prof.add_run(f"Professor(a): {professor}")
+        r_prof.italic = True
+
+        documento.add_paragraph("")
+        conversor = HtmlToDocx()
+        conversor.add_html_to_document(html_conteudo, documento)
 
     buffer = BytesIO()
     documento.save(buffer)
     buffer.seek(0)
     return buffer
 
-def gerar_pdf(titulo, escola, professor, html_conteudo):
+def gerar_pdf(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
+    if tipo_modulo == 'Gerador de Provas':
+        bloco_cabecalho = f"""
+        <div class="cabecalho-pdf">
+            <h1>{escola}</h1>
+            <h2 style="font-size:13pt; text-transform:uppercase; letter-spacing:1px; margin:4px 0;">Avaliação de {(disciplina or '').upper()}{f' — {ano}' if ano else ''}</h2>
+            <p style="font-size:10pt; color:#52627e;">Professor(a): {professor}</p>
+            <table style="border:none; margin-top:10px;">
+                <tr>
+                    <td style="border:none; width:65%;">ALUNO(A): {'_' * 45}</td>
+                    <td style="border:none; width:35%;">TURMA: {'_' * 10}</td>
+                </tr>
+                <tr>
+                    <td style="border:none;">DATA: ____/____/______</td>
+                    <td style="border:none;">NOTA: {'_' * 12}</td>
+                </tr>
+            </table>
+        </div>
+        """
+    else:
+        bloco_cabecalho = f"""
+        <div class="cabecalho-pdf">
+            <h1>{titulo or 'Documento Pedagógico'}</h1>
+            <p><strong>Instituição de Ensino:</strong> {escola}<br/><strong>Professor(a):</strong> {professor}</p>
+        </div>
+        """
+
     html_completo = f"""
     <html>
     <head>
     <meta charset="utf-8">
     <style>
         body {{ font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #0f1f3d; }}
-        h1 {{ font-size: 16pt; text-align: center; color: #0e2a5e; }}
+        h1 {{ font-size: 16pt; text-align: center; color: #0e2a5e; margin-bottom: 2px; }}
         h4, h5 {{ color: #123a7a; margin-top: 14px; }}
         table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
         th, td {{ border: 1px solid #999; padding: 5px 8px; font-size: 10pt; }}
@@ -528,10 +667,7 @@ def gerar_pdf(titulo, escola, professor, html_conteudo):
     </style>
     </head>
     <body>
-        <div class="cabecalho-pdf">
-            <h1>{titulo or 'Documento Pedagógico'}</h1>
-            <p><strong>Instituição de Ensino:</strong> {escola}<br/><strong>Professor(a):</strong> {professor}</p>
-        </div>
+        {bloco_cabecalho}
         {html_conteudo}
     </body>
     </html>
@@ -628,6 +764,7 @@ def login():
         conn.close()
         
         if user and str(user[2]).strip() == password:
+            session.permanent = True
             session['logged_in'] = True
             session['user_email'] = email
             session['user_name'] = user[0]   
@@ -844,13 +981,13 @@ def exportar_material(material_id, formato):
     nome_arquivo_base = re.sub(r'[^a-zA-Z0-9]+', '_', titulo)[:60] or 'documento'
 
     if formato == 'docx':
-        buffer = gerar_docx(titulo, escola, professor, material['conteudo_html'])
+        buffer = gerar_docx(titulo, escola, professor, material['conteudo_html'], material['tipo_modulo'], material['disciplina'], material['ano'])
         return send_file(
             buffer, as_attachment=True, download_name=f"{nome_arquivo_base}.docx",
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
     elif formato == 'pdf':
-        buffer = gerar_pdf(titulo, escola, professor, material['conteudo_html'])
+        buffer = gerar_pdf(titulo, escola, professor, material['conteudo_html'], material['tipo_modulo'], material['disciplina'], material['ano'])
         return send_file(buffer, as_attachment=True, download_name=f"{nome_arquivo_base}.pdf", mimetype='application/pdf')
     else:
         return redirect(url_for('dashboard'))
