@@ -925,6 +925,10 @@ def editar_material(material_id):
     )
     conn.commit()
     conn.close()
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return {'status': 'ok', 'material_id': material_id}
+
     return redirect(url_for('ver_material', material_id=material_id))
 
 @app.route('/biblioteca/excluir/<int:material_id>', methods=['POST'])

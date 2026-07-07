@@ -258,9 +258,18 @@
 
         /* Prova — 2 colunas, Arial 12 (fonte já vem inline do backend, aqui só ajustes de quebra) */
         .conteudo-pedagogico-real .questao-item {
-            break-inside: avoid;
-            page-break-inside: avoid;
+            break-inside: auto;
+            page-break-inside: auto;
             margin-bottom: 14px;
+        }
+        /* Mantém só o enunciado (não a questão toda) protegido contra corte,
+           evitando que apenas o número da questão fique "órfão" no fim da coluna.
+           As alternativas podem fluir livremente para a coluna/página seguinte
+           — isso evita os grandes vãos em branco de antes. */
+        .conteudo-pedagogico-real .questao-item > strong:first-of-type {
+            break-inside: avoid;
+            break-after: avoid;
+            page-break-after: avoid;
         }
         .conteudo-pedagogico-real .gabarito-prova {
             margin-top: 1.5rem;
@@ -800,11 +809,38 @@
 
     function salvarEdicao() {
         const area = document.getElementById('conteudo-editavel');
-        const input = document.getElementById('input-conteudo-editado');
         const form = document.getElementById('form-salvar-edicao');
-        if (!area || !input || !form) return;
-        input.value = area.innerHTML;
-        form.submit();
+        const btnSalvar = document.getElementById('btn-salvar-edicao');
+        if (!area || !form) return;
+
+        const dados = new FormData(form);
+        dados.set('content', area.innerHTML);
+
+        const textoOriginalBtn = btnSalvar ? btnSalvar.innerHTML : '';
+        if (btnSalvar) {
+            btnSalvar.disabled = true;
+            btnSalvar.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Salvando...';
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            body: dados,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(resp => {
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="fa-solid fa-check me-1"></i> Salvo!';
+                setTimeout(() => { btnSalvar.innerHTML = textoOriginalBtn; }, 1800);
+            }
+        })
+        .catch(() => {
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> Erro ao salvar';
+                setTimeout(() => { btnSalvar.innerHTML = textoOriginalBtn; }, 2500);
+            }
+        });
     }
 </script>
 </body>

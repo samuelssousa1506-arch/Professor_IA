@@ -135,6 +135,27 @@
             padding: 0.5rem 0.75rem;
             border: 1px solid var(--borda);
         }
+        .pedagogical-content .linha-resposta {
+            border-bottom: 1px dotted #94a3b8;
+            margin-top: 1.5rem;
+            height: 1px;
+        }
+        .pedagogical-content .questao-item {
+            break-inside: auto;
+            page-break-inside: auto;
+            margin-bottom: 14px;
+        }
+        .pedagogical-content .questao-item > strong:first-of-type {
+            break-inside: avoid;
+            break-after: avoid;
+            page-break-after: avoid;
+        }
+        .pedagogical-content .gabarito-prova {
+            margin-top: 1.5rem;
+            border-top: 2px solid var(--azul-100);
+            padding-top: 0.75rem;
+        }
+        .pedagogical-content .prova-colunas { margin-top: 0.5rem; }
 
         @media print {
             .no-print, .btn-print-hide { display: none !important; }
