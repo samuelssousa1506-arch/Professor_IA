@@ -340,7 +340,7 @@ def executar_geracao_ia(**kwargs):
         4. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
         5. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
         6. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
-        7. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag: <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
+        7. Para questões discursivas ou subjetivas, adicione o espaço para escrita do aluno aplicando a tag <div class="linha-resposta"></div>, repetida em quantidade PROPORCIONAL ao tamanho da resposta esperada para aquela questão (nunca uma quantidade fixa): estime mentalmente quantas linhas um aluno precisaria para escrever a resposta completa e correta daquela questão especificamente, some 3 linhas extras de folga (o aluno costuma usar mais espaço do que o necessário) e gere exatamente esse total de divs consecutivas — mínimo de 4 no total. Exemplo: se a resposta esperada ocupa cerca de 5 linhas, gere 8 divs (5 + 3); se ocupar 2 linhas, gere 5 divs (2 + 3). Questões que pedem respostas mais longas (redações, dissertações, desenvolvimento de cálculos) devem receber proporcionalmente mais linhas do que perguntas de resposta curta.
         8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
 
         ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS (fica visível só na tela do sistema, NUNCA é exportada/impressa) ============
@@ -381,7 +381,7 @@ def executar_geracao_ia(**kwargs):
         6. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
         7. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
         8. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
-        9. Para questões discursivas, adicione <div class="linha-resposta"></div> repetida 3 vezes consecutivas.
+        9. Para questões discursivas, adicione <div class="linha-resposta"></div>, repetida em quantidade PROPORCIONAL ao tamanho da resposta esperada para aquela questão (nunca uma quantidade fixa): estime mentalmente quantas linhas um aluno precisaria para escrever a resposta completa e correta daquela questão especificamente, some 3 linhas extras de folga (o aluno costuma usar mais espaço do que o necessário) e gere exatamente esse total de divs consecutivas — mínimo de 4 no total. Exemplo: se a resposta esperada ocupa cerca de 5 linhas, gere 8 divs (5 + 3); se ocupar 2 linhas, gere 5 divs (2 + 3).
         10. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
 
         ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS (fica visível só na tela do sistema, NUNCA é exportada/impressa) ============
@@ -623,7 +623,10 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
 
         soup = BeautifulSoup(html_conteudo, 'html.parser')
         itens = soup.find_all('div', class_='questao-item')
+        # O gabarito é só para conferência do professor na tela — nunca deve sair no Word exportado.
         gabarito_tag = soup.find('div', class_='gabarito-prova')
+        if gabarito_tag:
+            gabarito_tag.decompose()
 
         # Seção em 2 colunas reais do Word para as questões
         secao_questoes = documento.add_section(WD_SECTION.CONTINUOUS)
@@ -639,22 +642,9 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
         else:
             documento.add_paragraph(soup.get_text())
 
-        # Volta para 1 coluna antes do gabarito
-        secao_gabarito = documento.add_section(WD_SECTION.CONTINUOUS)
-        _definir_colunas_secao(secao_gabarito, 1)
-
-        if gabarito_tag:
-            documento.add_paragraph("")
-            h_gab = documento.add_paragraph()
-            r_gab = h_gab.add_run("Gabarito")
-            r_gab.bold = True
-            r_gab.font.size = Pt(12)
-            gabarito_copia = BeautifulSoup(str(gabarito_tag), 'html.parser')
-            titulo_existente = gabarito_copia.find('h5')
-            if titulo_existente:
-                titulo_existente.decompose()
-            conversor = HtmlToDocx()
-            conversor.add_html_to_document(str(gabarito_copia), documento)
+        # Volta para 1 coluna ao final da prova (evita que qualquer conteúdo remanescente herde 2 colunas)
+        documento.add_section(WD_SECTION.CONTINUOUS)
+        _definir_colunas_secao(documento.sections[-1], 1)
 
     else:
         p_titulo = documento.add_paragraph()
@@ -679,6 +669,12 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
 
 def gerar_pdf(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
     if tipo_modulo in ('Gerador de Provas', 'Simulados'):
+        # O gabarito é só para conferência do professor na tela — nunca deve sair no PDF exportado.
+        _soup_pdf = BeautifulSoup(html_conteudo, 'html.parser')
+        _gabarito_pdf = _soup_pdf.find('div', class_='gabarito-prova')
+        if _gabarito_pdf:
+            _gabarito_pdf.decompose()
+            html_conteudo = str(_soup_pdf)
         rotulo_titulo_pdf = "Avaliação de" if tipo_modulo == 'Gerador de Provas' else "Simulado de"
         bloco_cabecalho = f"""
         <div class="cabecalho-pdf">
@@ -717,6 +713,9 @@ def gerar_pdf(titulo, escola, professor, html_conteudo, tipo_modulo='', discipli
         th, td {{ border: 1px solid #999; padding: 5px 8px; font-size: 10pt; }}
         th {{ background-color: #eef2fa; }}
         .cabecalho-pdf {{ text-align: center; margin-bottom: 18px; border-bottom: 1px solid #999; padding-bottom: 10px; }}
+        /* xhtml2pdf não suporta column-count corretamente; força fluxo em coluna única para evitar páginas em branco */
+        .prova-colunas {{ column-count: 1 !important; -webkit-column-count: 1 !important; column-rule: none !important; }}
+        .gabarito-prova {{ display: none !important; }}
     </style>
     </head>
     <body>

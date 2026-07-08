@@ -169,6 +169,16 @@
 
         @media print {
             .no-print, .btn-print-hide { display: none !important; }
+            /* Gabarito é só para conferência do professor na tela; nunca deve sair na impressão */
+            .gabarito-prova { display: none !important; }
+            /* Bug histórico do Chromium: column-count some com o conteúdo e gera páginas em branco
+               ao imprimir (https://bugs.chromium.org/p/chromium/issues/detail?id=99358).
+               Por segurança, a prova volta a fluir em coluna única na impressão/PDF. */
+            .prova-colunas {
+                column-count: 1 !important;
+                -webkit-column-count: 1 !important;
+                column-rule: none !important;
+            }
         }
     </style>
     {% block head %}{% endblock %}
