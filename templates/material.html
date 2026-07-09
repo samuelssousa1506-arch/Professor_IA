@@ -1,6 +1,18 @@
 {% extends 'base.html' %}
 {% block head %}
 <style>
+    .btn-imprimir-material,
+    .btn-editar-material,
+    .btn-favoritar-material,
+    .btn-excluir-material {
+        border-radius: 9px;
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    }
+    .btn-imprimir-material:hover,
+    .btn-editar-material:hover,
+    .btn-favoritar-material:hover,
+    .btn-excluir-material:hover { transform: translateY(-1px); }
+
     .btn-imprimir-material {
         background: #ffffff;
         border: 1px solid var(--azul-700);
@@ -13,8 +25,9 @@
         border: none;
         color: #fff;
         font-weight: 700;
+        box-shadow: 0 6px 16px -6px rgba(27,77,166,0.45);
     }
-    .btn-editar-material:hover { filter: brightness(1.05); color: #fff; }
+    .btn-editar-material:hover { filter: brightness(1.06); color: #fff; }
     .btn-favoritar-material {
         border: 1px solid #eddca4;
         background: #fdf6e8;
@@ -29,7 +42,11 @@
         font-weight: 700;
     }
     .btn-excluir-material:hover { background: #fee2e2; color: #b91c1c; }
-    .editor-box h2 { color: var(--azul-900); }
+    .editor-box { animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; }
+    .editor-box h2 { color: var(--azul-900); font-family: 'Fraunces', serif; }
+    .nav-tabs .nav-link.active { color: var(--azul-800); font-weight: 700; border-bottom: 2px solid var(--azul-600); }
+    .nav-tabs .nav-link { color: var(--tinta-suave); transition: color .15s ease; }
+    .nav-tabs .nav-link:hover { color: var(--azul-700); }
 </style>
 {% endblock %}
 {% block content %}

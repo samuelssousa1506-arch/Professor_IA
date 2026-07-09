@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ app_name | default('Professor IA') }}{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
         :root {
-            --azul-950: #0a1f3f;
-            --azul-900: #0e2a5e;
+            --azul-950: #060f24;
+            --azul-900: #0c1d3d;
             --azul-800: #123a7a;
             --azul-700: #1b4da6;
             --azul-600: #2563eb;
@@ -19,68 +19,91 @@
             --azul-100: #dce9fb;
             --azul-50:  #f2f6fc;
             --selo-ouro: #b3811f;
+            --ouro-400: #d4a743;
+            --ouro-100: #fbf3df;
             --tinta: #0f1f3d;
             --tinta-suave: #52627e;
-            --borda: #dbe6f5;
-            --fundo: #f4f7fb;
+            --borda: #dfe7f4;
+            --fundo: #eef2f9;
             --branco: #ffffff;
+            --anel: 0 0 0 3px rgba(37, 99, 235, 0.14);
         }
+
+        * { scrollbar-color: var(--azul-100) transparent; }
 
         body {
             background-color: var(--fundo);
+            background-image:
+                radial-gradient(1100px 480px at 8% -8%, rgba(27, 77, 166, 0.07), transparent 60%),
+                radial-gradient(900px 420px at 105% 8%, rgba(179, 129, 31, 0.06), transparent 55%);
+            background-attachment: fixed;
             font-family: 'Inter', sans-serif;
             color: var(--tinta);
             -webkit-font-smoothing: antialiased;
         }
 
-        h1, h2, h3, h4, h5, h6, .fonte-titulo {
-            font-family: 'Sora', sans-serif;
-        }
+        h1, h2, h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        h4, h5, h6, .fonte-titulo { font-family: 'Inter', sans-serif; font-weight: 800; }
+
+        main { animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; }
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
 
         .navbar-premium {
-            background: linear-gradient(135deg, var(--azul-900), var(--azul-700));
-            padding: 14px 32px;
-            box-shadow: 0 2px 12px rgba(10, 31, 63, 0.15);
+            position: relative;
+            background: linear-gradient(120deg, var(--azul-950) 0%, var(--azul-900) 55%, var(--azul-800) 100%);
+            padding: 15px 32px;
+            box-shadow: 0 8px 24px -8px rgba(6, 15, 36, 0.45);
+        }
+        .navbar-premium::after {
+            content: "";
+            position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--ouro-400) 20%, var(--ouro-400) 80%, transparent);
+            opacity: .8;
         }
 
         .brand-text {
-            font-family: 'Sora', sans-serif;
-            font-weight: 800;
-            font-size: 1.2rem;
-            letter-spacing: -0.3px;
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: 1.28rem;
+            letter-spacing: -0.01em;
             color: #ffffff;
             text-decoration: none;
         }
+        .brand-text .marca-ia { font-style: italic; color: var(--ouro-400); font-weight: 500; }
 
         .brand-icon-box {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #ffffff;
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(212, 167, 67, 0.45);
+            color: var(--ouro-400);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+            transition: transform .35s ease;
         }
+        .brand-text:hover .brand-icon-box { transform: rotate(-6deg) scale(1.05); }
 
         .selo-legal {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 700;
-            letter-spacing: 0.04em;
-            color: var(--selo-ouro);
-            background: #fdf6e8;
-            border: 1px solid #eddca4;
+            letter-spacing: 0.06em;
+            color: var(--ouro-400);
+            background: rgba(212, 167, 67, 0.1);
+            border: 1px solid rgba(212, 167, 67, 0.35);
             border-radius: 99px;
-            padding: 3px 10px 3px 8px;
+            padding: 4px 11px 4px 9px;
         }
 
         .user-badge {
-            background-color: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
             padding: 8px 16px;
             border-radius: 99px;
             font-size: 0.85rem;
@@ -90,9 +113,10 @@
 
         .btn-outline-danger {
             --bs-btn-color: #ffffff;
-            --bs-btn-border-color: rgba(255,255,255,0.35);
+            --bs-btn-border-color: rgba(255,255,255,0.3);
             --bs-btn-hover-bg: #dc2626;
             --bs-btn-hover-border-color: #dc2626;
+            transition: all .2s ease;
         }
 
         /* Usado por material.html */
@@ -100,8 +124,8 @@
         .editor-box {
             background: var(--branco);
             border: 1px solid var(--borda);
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(10, 31, 63, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(10,31,63,0.04), 0 18px 45px -22px rgba(10, 31, 63, 0.28);
             padding: 2.5rem;
             max-width: 960px;
             margin: 0 auto;
@@ -198,7 +222,7 @@
                 <span class="brand-icon-box">
                     <i class="fa-solid fa-graduation-cap"></i>
                 </span>
-                <span>Professor <span style="color:#bcd4ff;">IA</span></span>
+                <span>Professor <span class="marca-ia">IA</span></span>
                 <span class="selo-legal d-none d-md-inline-flex ms-2">
                     <i class="fa-solid fa-shield-halved"></i> BNCC · LDB · DCTMA
                 </span>

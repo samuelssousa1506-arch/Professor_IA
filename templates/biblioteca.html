@@ -2,49 +2,99 @@
 {% block title %}Biblioteca - Professor IA{% endblock %}
 {% block head %}
 <style>
+    .cabecalho-secao {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-bottom: 1.5rem;
+    }
+    .eyebrow {
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--selo-ouro);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: .35rem;
+    }
+    .eyebrow::before { content: ""; width: 16px; height: 1px; background: var(--selo-ouro); display: inline-block; }
+
     .card-material {
+        position: relative;
         background: #fff;
         border: 1px solid var(--borda);
-        border-radius: 12px;
-        padding: 1.1rem 1.25rem;
+        border-radius: 14px;
+        padding: 1.15rem 1.35rem;
         margin-bottom: 0.85rem;
-        transition: box-shadow 0.15s;
+        overflow: hidden;
+        transition: transform .22s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, border-color .22s ease;
+        animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both;
     }
-    .card-material:hover { box-shadow: 0 4px 14px rgba(10,31,63,0.08); }
+    .card-material::before {
+        content: "";
+        position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        background: linear-gradient(180deg, var(--azul-600), var(--ouro-400));
+        opacity: 0; transition: opacity .22s ease;
+    }
+    .card-material:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 34px -20px rgba(10,31,63,0.28);
+        border-color: var(--azul-100);
+    }
+    .card-material:hover::before { opacity: 1; }
+
     .tab-filtro {
         display: inline-flex;
         gap: 8px;
         margin-bottom: 1.5rem;
+        background: #fff;
+        border: 1px solid var(--borda);
+        padding: 5px;
+        border-radius: 11px;
     }
     .tab-filtro a {
-        padding: 0.5rem 1rem;
+        padding: 0.5rem 1.1rem;
         border-radius: 8px;
         font-weight: 700;
         font-size: 0.85rem;
         text-decoration: none;
         color: var(--tinta-suave);
-        background: #fff;
-        border: 1px solid var(--borda);
+        background: transparent;
+        border: 1px solid transparent;
+        transition: all .18s ease;
     }
+    .tab-filtro a:hover { color: var(--azul-800); }
     .tab-filtro a.active {
-        background: var(--azul-100);
-        color: var(--azul-800);
-        border-color: var(--azul-100);
+        background: linear-gradient(135deg, var(--azul-800), var(--azul-600));
+        color: #fff;
+        box-shadow: 0 6px 14px -6px rgba(27,77,166,0.5);
     }
     .badge-tipo {
         background: var(--azul-50);
         color: var(--azul-800);
         font-weight: 700;
-        font-size: 0.7rem;
-        padding: 0.25rem 0.6rem;
+        font-size: 0.68rem;
+        letter-spacing: .02em;
+        padding: 0.3rem 0.65rem;
         border-radius: 6px;
     }
+    .card-material .btn { transition: transform .15s ease, filter .15s ease; }
+    .card-material .btn:hover { transform: translateY(-1px); }
 </style>
 {% endblock %}
 {% block content %}
 <div class="container py-4">
-    <h3 class="fw-bold mb-1" style="color: var(--tinta);">Biblioteca / Histórico</h3>
-    <p class="text-muted small mb-3">Todo material gerado fica salvo aqui automaticamente. Marque como favorito para encontrar mais rápido.</p>
+    <div class="cabecalho-secao">
+        <div>
+            <div class="eyebrow">Acervo pessoal</div>
+            <h3 class="fw-bold mb-1" style="color: var(--tinta); font-family:'Fraunces',serif;">Biblioteca &amp; Histórico</h3>
+            <p class="text-muted small mb-0">Todo material gerado fica salvo aqui automaticamente. Marque como favorito para encontrar mais rápido.</p>
+        </div>
+    </div>
 
     <div class="tab-filtro">
         <a href="{{ url_for('biblioteca') }}" class="{% if not apenas_favoritos %}active{% endif %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Todos</a>
@@ -53,7 +103,7 @@
 
     {% if materiais %}
         {% for m in materiais %}
-        <div class="card-material d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="card-material d-flex justify-content-between align-items-center flex-wrap gap-2" style="animation-delay: {{ (loop.index0 * 0.04)|round(2) }}s;">
             <div>
                 <span class="badge-tipo">{{ m.tipo_modulo }}</span>
                 <h6 class="fw-bold mt-2 mb-1">{{ m.titulo }}</h6>
@@ -78,7 +128,7 @@
         {% endfor %}
     {% else %}
         <div class="text-center py-5 text-muted">
-            <i class="fa-solid fa-box-open mb-3" style="font-size: 2.5rem;"></i>
+            <i class="fa-solid fa-box-open mb-3" style="font-size: 2.5rem; color: var(--azul-500);"></i>
             <p>Nenhum material {% if apenas_favoritos %}favoritado{% else %}gerado{% endif %} ainda.</p>
         </div>
     {% endif %}

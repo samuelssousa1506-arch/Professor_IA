@@ -4,23 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acesso - Professor IA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --azul-950: #0a1f3f;
-            --azul-900: #0e2a5e;
+            --azul-950: #060f24;
+            --azul-900: #0c1d3d;
+            --azul-800: #123a7a;
             --azul-700: #1b4da6;
             --azul-600: #2563eb;
             --azul-100: #dce9fb;
-            --selo-ouro: #b3811f;
+            --ouro-400: #d4a743;
+            --ouro-500: #b3811f;
             --tinta: #0f1f3d;
             --tinta-suave: #52627e;
-            --borda: #dbe6f5;
+            --borda: #dfe7f4;
         }
+        * { box-sizing: border-box; }
         body {
-            background: linear-gradient(160deg, var(--azul-950) 0%, var(--azul-900) 38%, #f4f7fb 38%);
+            margin: 0;
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
@@ -28,72 +31,133 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            background: radial-gradient(1200px 700px at 20% -10%, #16305f 0%, transparent 60%),
+                        radial-gradient(1000px 650px at 100% 10%, #1b2e57 0%, transparent 55%),
+                        linear-gradient(160deg, var(--azul-950) 0%, var(--azul-900) 42%, #f4f7fb 42%);
         }
+        /* halo de fundo animado, sutil */
+        .halo {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: .35;
+            pointer-events: none;
+            animation: derivar 16s ease-in-out infinite alternate;
+        }
+        .halo-1 { width: 420px; height: 420px; top: -120px; left: -100px; background: radial-gradient(circle, rgba(212,167,67,.5), transparent 70%); }
+        .halo-2 { width: 380px; height: 380px; top: 40px; right: -120px; background: radial-gradient(circle, rgba(37,99,235,.5), transparent 70%); animation-delay: -6s; }
+        @keyframes derivar { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,20px) scale(1.08); } }
+
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
         .marca-topo {
             color: #ffffff;
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 26px;
+            position: relative;
+            z-index: 1;
+            animation: subirEntrar .6s cubic-bezier(.22,.61,.36,1) both;
         }
-        .marca-topo .icone {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.25);
+        .selo-emblema {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #1a3a72, var(--azul-950));
+            border: 1.5px solid rgba(212,167,67,0.55);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
+            font-size: 1.35rem;
+            color: var(--ouro-400);
             margin-bottom: 10px;
+            box-shadow: 0 0 0 5px rgba(212,167,67,0.08), 0 10px 24px -8px rgba(0,0,0,0.5);
+            position: relative;
         }
+        .selo-emblema::before {
+            content: "";
+            position: absolute; inset: -8px;
+            border-radius: 50%;
+            border: 1px dashed rgba(212,167,67,0.35);
+            animation: girar 22s linear infinite;
+        }
+        @keyframes girar { to { transform: rotate(360deg); } }
         .marca-topo h1 {
-            font-family: 'Sora', sans-serif;
-            font-weight: 800;
-            font-size: 1.5rem;
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: 1.55rem;
             margin: 0;
+            letter-spacing: -0.01em;
         }
+        .marca-topo h1 em { color: var(--ouro-400); font-style: italic; font-weight: 500; }
         .marca-topo p {
             font-size: 0.85rem;
-            color: #bcd4ff;
-            margin-top: 4px;
+            color: #a9c1e8;
+            margin-top: 6px;
+            font-weight: 500;
         }
         .card-login {
             border: none;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(10, 31, 63, 0.18);
+            border-radius: 18px;
+            box-shadow: 0 30px 60px -20px rgba(6, 15, 36, 0.45), 0 1px 0 rgba(255,255,255,0.5) inset;
             width: 100%;
             max-width: 410px;
             background: #ffffff;
-            padding: 36px;
+            padding: 38px;
+            position: relative;
+            z-index: 1;
+            animation: subirEntrar .6s .08s cubic-bezier(.22,.61,.36,1) both;
+        }
+        .card-login::before {
+            content: "";
+            position: absolute; top: 0; left: 14%; right: 14%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--ouro-400), transparent);
+            border-radius: 0 0 4px 4px;
         }
         .card-login h3 {
-            font-family: 'Sora', sans-serif;
-            font-weight: 700;
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            color: var(--tinta);
         }
         .form-label {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
             color: var(--tinta-suave);
         }
         .form-control {
-            border-radius: 8px;
+            border-radius: 9px;
             border: 1px solid var(--borda);
-            padding: 0.6rem 0.8rem;
+            padding: 0.65rem 0.85rem;
+            transition: border-color .18s ease, box-shadow .18s ease;
         }
         .form-control:focus {
             border-color: var(--azul-600);
-            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.14);
         }
         .btn-entrar {
             background: linear-gradient(135deg, var(--azul-700), var(--azul-600));
             border: none;
             color: #fff;
             font-weight: 700;
-            border-radius: 8px;
-            padding: 0.65rem;
+            border-radius: 9px;
+            padding: 0.7rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 22px -8px rgba(27,77,166,0.55);
+            transition: transform .18s ease, filter .18s ease;
         }
-        .btn-entrar:hover { filter: brightness(1.05); color: #fff; }
+        .btn-entrar::after {
+            content: "";
+            position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
+            transform: skewX(-20deg);
+            transition: left .5s ease;
+        }
+        .btn-entrar:hover { filter: brightness(1.05); color: #fff; transform: translateY(-1px); }
+        .btn-entrar:hover::after { left: 130%; }
         .selo-legal {
             display: inline-flex;
             align-items: center;
@@ -101,38 +165,44 @@
             font-size: 0.68rem;
             font-weight: 700;
             letter-spacing: 0.03em;
-            color: var(--selo-ouro);
+            color: var(--ouro-500);
             background: #fdf6e8;
             border: 1px solid #eddca4;
             border-radius: 99px;
             padding: 4px 12px 4px 9px;
-            margin-top: 16px;
+            margin-top: 18px;
         }
         .dev-footer {
             margin-top: 24px;
             font-size: 0.75rem;
-            color: #64748b;
+            color: #9fb3d6;
             text-align: center;
             max-width: 500px;
             line-height: 1.5;
+            position: relative;
+            z-index: 1;
         }
+        .alert { border-radius: 9px; border: none; }
     </style>
 </head>
 <body>
+    <div class="halo halo-1"></div>
+    <div class="halo halo-2"></div>
+
     <div class="marca-topo">
-        <div class="icone"><i class="fa-solid fa-graduation-cap"></i></div>
-        <h1>Professor IA</h1>
+        <div class="selo-emblema"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h1>Professor <em>IA</em></h1>
         <p>Documentos pedagógicos gerados com fundamentação legal</p>
     </div>
 
     <div class="card-login">
         <div class="text-center mb-4">
-            <h3 class="text-dark m-0">Acessar o Painel</h3>
+            <h3 class="m-0">Acessar o Painel</h3>
             <p class="text-muted small mt-1">Insira suas credenciais institucionais</p>
         </div>
 
-        {% if erro %}<div class="alert alert-danger small py-2 px-3 rounded-3">{{ erro }}</div>{% endif %}
-        {% if sucesso %}<div class="alert alert-success small py-2 px-3 rounded-3">{{ sucesso }}</div>{% endif %}
+        {% if erro %}<div class="alert alert-danger small py-2 px-3">{{ erro }}</div>{% endif %}
+        {% if sucesso %}<div class="alert alert-success small py-2 px-3">{{ sucesso }}</div>{% endif %}
 
         <form action="{{ url_for('login') }}" method="POST">
             <div class="mb-3">

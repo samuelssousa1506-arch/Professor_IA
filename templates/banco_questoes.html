@@ -2,26 +2,56 @@
 {% block title %}Banco de Questões - Professor IA{% endblock %}
 {% block head %}
 <style>
+    .eyebrow {
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--selo-ouro);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: .35rem;
+    }
+    .eyebrow::before { content: ""; width: 16px; height: 1px; background: var(--selo-ouro); display: inline-block; }
+
     .filtro-box {
         background: #fff;
         border: 1px solid var(--borda);
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        padding: 1.1rem 1.3rem;
         margin-bottom: 1.5rem;
+        box-shadow: 0 1px 2px rgba(10,31,63,0.03);
     }
     .card-questao {
+        position: relative;
         background: #fff;
         border: 1px solid var(--borda);
-        border-radius: 12px;
-        padding: 1.1rem 1.25rem;
+        border-radius: 14px;
+        padding: 1.15rem 1.35rem;
         margin-bottom: 0.85rem;
+        overflow: hidden;
+        transition: transform .22s cubic-bezier(.22,.61,.36,1), box-shadow .22s ease, border-color .22s ease;
+        animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both;
     }
+    .card-questao::before {
+        content: "";
+        position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        background: linear-gradient(180deg, var(--azul-600), var(--ouro-400));
+        opacity: 0; transition: opacity .22s ease;
+    }
+    .card-questao:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 34px -20px rgba(10,31,63,0.28);
+        border-color: var(--azul-100);
+    }
+    .card-questao:hover::before { opacity: 1; }
     .badge-meta {
         background: var(--azul-50);
         color: var(--azul-800);
         font-weight: 700;
-        font-size: 0.7rem;
-        padding: 0.25rem 0.55rem;
+        font-size: 0.68rem;
+        padding: 0.28rem 0.6rem;
         border-radius: 6px;
         margin-right: 4px;
     }
@@ -33,11 +63,17 @@
         color: var(--tinta-suave);
         margin-top: 0.5rem;
     }
+    .preview-questao::after {
+        content: "";
+        position: absolute; left: 0; right: 0; bottom: 0; height: 40px;
+        background: linear-gradient(180deg, transparent, #fff);
+    }
 </style>
 {% endblock %}
 {% block content %}
 <div class="container py-4">
-    <h3 class="fw-bold mb-1" style="color: var(--tinta);">Banco de Questões</h3>
+    <div class="eyebrow">Reaproveitamento de conteúdo</div>
+    <h3 class="fw-bold mb-1" style="color: var(--tinta); font-family:'Fraunces',serif;">Banco de Questões</h3>
     <p class="text-muted small mb-3">Questões e atividades salvas para reutilização, organizadas por ano, disciplina, conteúdo, BNCC e dificuldade.</p>
 
     <form method="GET" class="filtro-box row g-2">
@@ -63,13 +99,13 @@
             </select>
         </div>
         <div class="col-md-1">
-            <button type="submit" class="btn btn-sm btn-primary w-100" style="background: var(--azul-700); border: none;"><i class="fa-solid fa-filter"></i></button>
+            <button type="submit" class="btn btn-sm btn-primary w-100" style="background: linear-gradient(135deg, var(--azul-800), var(--azul-600)); border: none;"><i class="fa-solid fa-filter"></i></button>
         </div>
     </form>
 
     {% if questoes %}
         {% for q in questoes %}
-        <div class="card-questao">
+        <div class="card-questao" style="animation-delay: {{ (loop.index0 * 0.04)|round(2) }}s;">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                 <div>
                     <span class="badge-meta">{{ q.ano }}</span>
@@ -88,7 +124,7 @@
         {% endfor %}
     {% else %}
         <div class="text-center py-5 text-muted">
-            <i class="fa-solid fa-database mb-3" style="font-size: 2.5rem;"></i>
+            <i class="fa-solid fa-database mb-3" style="font-size: 2.5rem; color: var(--azul-500);"></i>
             <p>Nenhuma questão salva ainda. Gere uma atividade ou prova e clique em "Salvar no Banco".</p>
         </div>
     {% endif %}
