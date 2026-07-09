@@ -2,6 +2,7 @@ import os
 import re
 import sqlite3
 import random
+import time
 import requests
 import markdown as md
 from io import BytesIO
@@ -177,9 +178,19 @@ def sanitizar_saida_html(texto):
     return texto.strip()
 
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
+    sobrecarga = "503" in erro_adicional and ("UNAVAILABLE" in erro_adicional or "overloaded" in erro_adicional.lower() or "high demand" in erro_adicional.lower())
+    limite_requisicoes = "429" in erro_adicional
+
+    if sobrecarga:
+        mensagem_principal = "O servidor do Gemini está temporariamente sobrecarregado (alta demanda no momento). O sistema já tentou novamente automaticamente, mas o Google ainda não respondeu. Isso normalmente se resolve em poucos minutos — tente gerar novamente."
+    elif limite_requisicoes:
+        mensagem_principal = "Foi atingido um limite de requisições da API do Gemini. Aguarde um instante antes de tentar novamente, ou verifique sua cota no Google AI Studio."
+    else:
+        mensagem_principal = "O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> corretamente no painel do Render."
+
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
-    <p>O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> corretamente no painel do Render.</p>
+    <p>{mensagem_principal}</p>
     <p><strong>Tema enviado:</strong> {tema}</p>
     {f'<p class="text-danger small"><strong>Detalhes do Erro:</strong> {erro_adicional}</p>' if erro_adicional else ''}
     """
@@ -530,34 +541,55 @@ def executar_geracao_ia(**kwargs):
         }]
     }
 
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
-        
-        if response.status_code == 200:
-            resultado = response.json()
-            texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
-            texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
-            texto_gerado = sanitizar_saida_html(texto_gerado)
-            # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
-            if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
-                texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+    MAX_TENTATIVAS = 2
+    ultimo_erro = ""
 
-            info_pedagogica = ''
-            if tipo_modulo in ('Gerador de Provas', 'Simulados'):
-                if '<!--INFO_PEDAGOGICA-->' in texto_gerado:
-                    parte_prova, parte_info = texto_gerado.split('<!--INFO_PEDAGOGICA-->', 1)
-                else:
-                    parte_prova, parte_info = texto_gerado, ''
-                texto_gerado, gabarito_extraido = montar_prova_duas_colunas(parte_prova)
-                bloco_gabarito_tela = f'<div class="gabarito-tela">{gabarito_extraido}</div>' if gabarito_extraido else ''
-                info_pedagogica = (bloco_gabarito_tela + parte_info.strip()).strip()
+    for tentativa in range(1, MAX_TENTATIVAS + 1):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
 
-            return texto_gerado, info_pedagogica
-        else:
-            return obter_fallback_pedagogico(tipo_modulo, tema, f"Código {response.status_code} - Resposta: {response.text}"), ''
-            
-    except Exception as e:
-        return obter_fallback_pedagogico(tipo_modulo, tema, f"Falha de conexão física: {str(e)}"), ''
+            if response.status_code == 200:
+                resultado = response.json()
+                texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
+                texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
+                texto_gerado = sanitizar_saida_html(texto_gerado)
+                # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
+                if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
+                    texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+
+                info_pedagogica = ''
+                if tipo_modulo in ('Gerador de Provas', 'Simulados'):
+                    if '<!--INFO_PEDAGOGICA-->' in texto_gerado:
+                        parte_prova, parte_info = texto_gerado.split('<!--INFO_PEDAGOGICA-->', 1)
+                    else:
+                        parte_prova, parte_info = texto_gerado, ''
+                    texto_gerado, gabarito_extraido = montar_prova_duas_colunas(parte_prova)
+                    bloco_gabarito_tela = f'<div class="gabarito-tela">{gabarito_extraido}</div>' if gabarito_extraido else ''
+                    info_pedagogica = (bloco_gabarito_tela + parte_info.strip()).strip()
+
+                return texto_gerado, info_pedagogica
+
+            # Erros temporários do lado do Gemini: sobrecarga (503) ou limite de requisições (429).
+            # Vale a pena tentar de novo automaticamente antes de desistir.
+            if response.status_code in (503, 429) and tentativa < MAX_TENTATIVAS:
+                ultimo_erro = f"Código {response.status_code} - Resposta: {response.text}"
+                time.sleep(2)
+                continue
+
+            return obter_fallback_pedagogico(
+                tipo_modulo, tema,
+                f"Código {response.status_code} - Resposta: {response.text}" +
+                (f" (após {tentativa} tentativa(s))" if tentativa > 1 else "")
+            ), ''
+
+        except Exception as e:
+            ultimo_erro = f"Falha de conexão física: {str(e)}"
+            if tentativa < MAX_TENTATIVAS:
+                time.sleep(2)
+                continue
+            return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + f" (após {tentativa} tentativas)"), ''
+
+    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro), ''
 
 # =====================================================================
 # EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
