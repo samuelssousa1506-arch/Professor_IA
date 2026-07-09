@@ -116,7 +116,7 @@
 
     {% if material.tipo_modulo in ('Gerador de Provas', 'Simulados') and material.info_pedagogica %}
     <div class="tab-pane fade btn-print-hide" id="tab-info-mat" role="tabpanel">
-        <div class="editor-box">
+        <div class="editor-box info-pedagogica-box">
             <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-1"></i> Esta aba é só para sua consulta — não é impressa nem exportada junto com a prova.</p>
             {{ material.info_pedagogica | safe }}
         </div>
