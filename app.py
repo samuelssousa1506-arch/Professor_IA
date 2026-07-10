@@ -531,9 +531,12 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={chave_limpa}"
-    
+    # 3. ENDPOINT DA API DO GEMINI — cadeia de modelos com fallback automático.
+    # Se o modelo principal estiver sobrecarregado (503) ou com limite atingido (429)
+    # após as tentativas, o sistema cai automaticamente para um modelo alternativo
+    # antes de exibir o Modo de Segurança ao professor.
+    MODELOS_EM_CASCATA = ["gemini-3.5-flash", "gemini-2.5-flash-lite"]
+
     headers = {'Content-Type': 'application/json'}
     payload = {
         "contents": [{
@@ -541,55 +544,63 @@ def executar_geracao_ia(**kwargs):
         }]
     }
 
-    MAX_TENTATIVAS = 3
+    MAX_TENTATIVAS_POR_MODELO = 2
     ultimo_erro = ""
 
-    for tentativa in range(1, MAX_TENTATIVAS + 1):
-        try:
-            response = requests.post(url, headers=headers, json=payload, timeout=90)
+    for indice_modelo, nome_modelo in enumerate(MODELOS_EM_CASCATA):
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{nome_modelo}:generateContent?key={chave_limpa}"
+        eh_ultimo_modelo = (indice_modelo == len(MODELOS_EM_CASCATA) - 1)
 
-            if response.status_code == 200:
-                resultado = response.json()
-                texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
-                texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
-                texto_gerado = sanitizar_saida_html(texto_gerado)
-                # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
-                if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
-                    texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
+        for tentativa in range(1, MAX_TENTATIVAS_POR_MODELO + 1):
+            try:
+                response = requests.post(url, headers=headers, json=payload, timeout=60)
 
-                info_pedagogica = ''
-                if tipo_modulo in ('Gerador de Provas', 'Simulados'):
-                    if '<!--INFO_PEDAGOGICA-->' in texto_gerado:
-                        parte_prova, parte_info = texto_gerado.split('<!--INFO_PEDAGOGICA-->', 1)
-                    else:
-                        parte_prova, parte_info = texto_gerado, ''
-                    texto_gerado, gabarito_extraido = montar_prova_duas_colunas(parte_prova)
-                    bloco_gabarito_tela = f'<div class="gabarito-tela">{gabarito_extraido}</div>' if gabarito_extraido else ''
-                    info_pedagogica = (bloco_gabarito_tela + parte_info.strip()).strip()
+                if response.status_code == 200:
+                    resultado = response.json()
+                    texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
+                    texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
+                    texto_gerado = sanitizar_saida_html(texto_gerado)
+                    # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
+                    if '<!--COMPETENCIAS_GERAIS_AQUI-->' in texto_gerado:
+                        texto_gerado = texto_gerado.replace('<!--COMPETENCIAS_GERAIS_AQUI-->', montar_html_competencias_gerais())
 
-                return texto_gerado, info_pedagogica
+                    info_pedagogica = ''
+                    if tipo_modulo in ('Gerador de Provas', 'Simulados'):
+                        if '<!--INFO_PEDAGOGICA-->' in texto_gerado:
+                            parte_prova, parte_info = texto_gerado.split('<!--INFO_PEDAGOGICA-->', 1)
+                        else:
+                            parte_prova, parte_info = texto_gerado, ''
+                        texto_gerado, gabarito_extraido = montar_prova_duas_colunas(parte_prova)
+                        bloco_gabarito_tela = f'<div class="gabarito-tela">{gabarito_extraido}</div>' if gabarito_extraido else ''
+                        info_pedagogica = (bloco_gabarito_tela + parte_info.strip()).strip()
 
-            # Erros temporários do lado do Gemini: sobrecarga (503) ou limite de requisições (429).
-            # Vale a pena tentar de novo automaticamente antes de desistir.
-            if response.status_code in (503, 429) and tentativa < MAX_TENTATIVAS:
-                ultimo_erro = f"Código {response.status_code} - Resposta: {response.text}"
-                time.sleep(2)
-                continue
+                    return texto_gerado, info_pedagogica
 
-            return obter_fallback_pedagogico(
-                tipo_modulo, tema,
-                f"Código {response.status_code} - Resposta: {response.text}" +
-                (f" (após {tentativa} tentativa(s))" if tentativa > 1 else "")
-            ), ''
+                # Erros temporários do lado do Gemini: sobrecarga (503) ou limite de requisições (429).
+                # Tenta de novo no mesmo modelo com backoff progressivo antes de trocar de modelo.
+                if response.status_code in (503, 429):
+                    ultimo_erro = f"Código {response.status_code} - Modelo {nome_modelo} - Resposta: {response.text}"
+                    if tentativa < MAX_TENTATIVAS_POR_MODELO:
+                        time.sleep(2 * tentativa)
+                        continue
+                    break  # esgotou tentativas neste modelo -> tenta o próximo da cascata
 
-        except Exception as e:
-            ultimo_erro = f"Falha de conexão física: {str(e)}"
-            if tentativa < MAX_TENTATIVAS:
-                time.sleep(2)
-                continue
-            return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + f" (após {tentativa} tentativas)"), ''
+                # Erro definitivo (ex.: 400, 404) — não adianta insistir no mesmo modelo,
+                # mas ainda vale tentar o próximo modelo da cascata, caso exista.
+                ultimo_erro = f"Código {response.status_code} - Modelo {nome_modelo} - Resposta: {response.text}"
+                break
 
-    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro), ''
+            except Exception as e:
+                ultimo_erro = f"Falha de conexão física - Modelo {nome_modelo}: {str(e)}"
+                if tentativa < MAX_TENTATIVAS_POR_MODELO:
+                    time.sleep(2 * tentativa)
+                    continue
+                break  # esgotou tentativas neste modelo -> tenta o próximo da cascata
+
+        if not eh_ultimo_modelo:
+            continue  # segue para o próximo modelo da cascata
+
+    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de modelos esgotada)"), ''
 
 # =====================================================================
 # EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
