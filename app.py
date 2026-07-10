@@ -183,13 +183,16 @@ def sanitizar_saida_html(texto):
 def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
     sobrecarga = "503" in erro_adicional and ("UNAVAILABLE" in erro_adicional or "overloaded" in erro_adicional.lower() or "high demand" in erro_adicional.lower())
     limite_requisicoes = "429" in erro_adicional
+    falha_conexao = "Falha de conexão física" in erro_adicional or "timed out" in erro_adicional.lower() or "timeout" in erro_adicional.lower()
 
     if sobrecarga:
-        mensagem_principal = "O servidor do Gemini está temporariamente sobrecarregado (alta demanda no momento). O sistema já tentou novamente automaticamente, mas o Google ainda não respondeu. Isso normalmente se resolve em poucos minutos — tente gerar novamente."
+        mensagem_principal = "Os servidores de IA estão temporariamente sobrecarregados (alta demanda no momento). O sistema já tentou os provedores configurados automaticamente, mas nenhum respondeu a tempo. Isso normalmente se resolve em poucos minutos — tente gerar novamente."
     elif limite_requisicoes:
-        mensagem_principal = "Foi atingido um limite de requisições da API do Gemini. Aguarde um instante antes de tentar novamente, ou verifique sua cota no Google AI Studio."
+        mensagem_principal = "Foi atingido um limite de requisições em um dos provedores de IA configurados. Aguarde um instante antes de tentar novamente, ou verifique sua cota no painel do provedor correspondente."
+    elif falha_conexao:
+        mensagem_principal = "O sistema não conseguiu estabelecer conexão com os servidores de IA a tempo (timeout de rede). Isso pode ser uma instabilidade temporária de rede — tente gerar novamente em alguns instantes."
     else:
-        mensagem_principal = "O sistema não conseguiu conectar ao Gemini em tempo real. Certifique-se de que configurou a variável <strong>GEMINI_API_KEY</strong> corretamente no painel do Render."
+        mensagem_principal = "O sistema não conseguiu gerar o conteúdo com nenhum dos provedores de IA configurados. Certifique-se de que as variáveis <strong>GEMINI_API_KEY</strong> (e, se estiver usando, <strong>MISTRAL_API_KEY</strong>) estão configuradas corretamente no painel do Render."
 
     return f"""
     <h4><i class="fa-solid fa-graduation-cap text-primary me-2"></i> {tipo_modulo} (Modo de Segurança)</h4>
@@ -543,7 +546,7 @@ def executar_geracao_ia(**kwargs):
 
     mistral_chave_limpa = MISTRAL_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
     payload_mistral = {
-        "model": "mistral-large-latest",
+        "model": "mistral-small-latest",
         "messages": [{"role": "user", "content": prompt}]
     }
     headers_mistral = {
@@ -571,7 +574,7 @@ def executar_geracao_ia(**kwargs):
             "extrair": _extrair_texto_gemini, "ativo": bool(chave_limpa),
         },
         {
-            "nome": "mistral-large-latest",
+            "nome": "mistral-small-latest",
             "url": "https://api.mistral.ai/v1/chat/completions",
             "headers": headers_mistral, "payload": payload_mistral,
             "extrair": _extrair_texto_mistral, "ativo": bool(mistral_chave_limpa),
