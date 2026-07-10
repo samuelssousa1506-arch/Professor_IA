@@ -25,8 +25,11 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# 1. MAPEAMENTO DA CHAVE GEMINI
+# 1. MAPEAMENTO DAS CHAVES DE IA
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+# Chave opcional do Mistral — usada apenas como reforço extra (gratuito) caso
+# os modelos do Gemini falhem em sequência. Se não configurada, é ignorada.
+MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "").strip()
 
 # Dicionário de módulos unificado
 MODULOS = {
@@ -531,33 +534,66 @@ def executar_geracao_ia(**kwargs):
         else:
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
-    # 3. ENDPOINT DA API DO GEMINI — cadeia de modelos com fallback automático.
-    # Se o modelo principal estiver sobrecarregado (503) ou com limite atingido (429)
-    # após as tentativas, o sistema cai automaticamente para um modelo alternativo
-    # antes de exibir o Modo de Segurança ao professor.
-    MODELOS_EM_CASCATA = ["gemini-3.5-flash", "gemini-2.5-flash-lite"]
+    # 3. CADEIA DE PROVEDORES DE IA — fallback automático entre modelos e serviços.
+    # Se o Gemini (principal) estiver sobrecarregado (503) ou no limite (429) após
+    # as tentativas, o sistema cai para o próximo da lista — incluindo, por último,
+    # o Mistral como reforço gratuito extra — antes de exibir o Modo de Segurança.
+    payload_gemini = {"contents": [{"parts": [{"text": prompt}]}]}
+    headers_gemini = {'Content-Type': 'application/json'}
 
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
+    mistral_chave_limpa = MISTRAL_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
+    payload_mistral = {
+        "model": "mistral-large-latest",
+        "messages": [{"role": "user", "content": prompt}]
+    }
+    headers_mistral = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {mistral_chave_limpa}'
     }
 
-    MAX_TENTATIVAS_POR_MODELO = 2
+    def _extrair_texto_gemini(resultado):
+        return resultado['candidates'][0]['content']['parts'][0]['text']
+
+    def _extrair_texto_mistral(resultado):
+        return resultado['choices'][0]['message']['content']
+
+    PROVEDORES_EM_CASCATA = [
+        {
+            "nome": "gemini-3.5-flash",
+            "url": f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={chave_limpa}",
+            "headers": headers_gemini, "payload": payload_gemini,
+            "extrair": _extrair_texto_gemini, "ativo": bool(chave_limpa),
+        },
+        {
+            "nome": "gemini-2.5-flash-lite",
+            "url": f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={chave_limpa}",
+            "headers": headers_gemini, "payload": payload_gemini,
+            "extrair": _extrair_texto_gemini, "ativo": bool(chave_limpa),
+        },
+        {
+            "nome": "mistral-large-latest",
+            "url": "https://api.mistral.ai/v1/chat/completions",
+            "headers": headers_mistral, "payload": payload_mistral,
+            "extrair": _extrair_texto_mistral, "ativo": bool(mistral_chave_limpa),
+        },
+    ]
+
+    MAX_TENTATIVAS_POR_PROVEDOR = 2
     ultimo_erro = ""
 
-    for indice_modelo, nome_modelo in enumerate(MODELOS_EM_CASCATA):
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{nome_modelo}:generateContent?key={chave_limpa}"
-        eh_ultimo_modelo = (indice_modelo == len(MODELOS_EM_CASCATA) - 1)
+    for provedor in PROVEDORES_EM_CASCATA:
+        if not provedor["ativo"]:
+            continue  # chave não configurada para este provedor -> pula direto para o próximo
 
-        for tentativa in range(1, MAX_TENTATIVAS_POR_MODELO + 1):
+        for tentativa in range(1, MAX_TENTATIVAS_POR_PROVEDOR + 1):
             try:
-                response = requests.post(url, headers=headers, json=payload, timeout=60)
+                response = requests.post(
+                    provedor["url"], headers=provedor["headers"], json=provedor["payload"], timeout=60
+                )
 
                 if response.status_code == 200:
                     resultado = response.json()
-                    texto_gerado = resultado['candidates'][0]['content']['parts'][0]['text']
+                    texto_gerado = provedor["extrair"](resultado)
                     texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
                     texto_gerado = sanitizar_saida_html(texto_gerado)
                     # Substitui o marcador pelo texto oficial fixo das Competências Gerais da Educação Básica
@@ -576,31 +612,28 @@ def executar_geracao_ia(**kwargs):
 
                     return texto_gerado, info_pedagogica
 
-                # Erros temporários do lado do Gemini: sobrecarga (503) ou limite de requisições (429).
-                # Tenta de novo no mesmo modelo com backoff progressivo antes de trocar de modelo.
+                # Erros temporários: sobrecarga (503) ou limite de requisições (429).
+                # Tenta de novo no mesmo provedor com backoff progressivo antes de trocar.
                 if response.status_code in (503, 429):
-                    ultimo_erro = f"Código {response.status_code} - Modelo {nome_modelo} - Resposta: {response.text}"
-                    if tentativa < MAX_TENTATIVAS_POR_MODELO:
+                    ultimo_erro = f"Código {response.status_code} - Provedor {provedor['nome']} - Resposta: {response.text}"
+                    if tentativa < MAX_TENTATIVAS_POR_PROVEDOR:
                         time.sleep(2 * tentativa)
                         continue
-                    break  # esgotou tentativas neste modelo -> tenta o próximo da cascata
+                    break  # esgotou tentativas neste provedor -> tenta o próximo da cascata
 
-                # Erro definitivo (ex.: 400, 404) — não adianta insistir no mesmo modelo,
-                # mas ainda vale tentar o próximo modelo da cascata, caso exista.
-                ultimo_erro = f"Código {response.status_code} - Modelo {nome_modelo} - Resposta: {response.text}"
+                # Erro definitivo (ex.: 400, 404) — não adianta insistir neste provedor,
+                # mas ainda vale tentar o próximo da cascata, caso exista.
+                ultimo_erro = f"Código {response.status_code} - Provedor {provedor['nome']} - Resposta: {response.text}"
                 break
 
             except Exception as e:
-                ultimo_erro = f"Falha de conexão física - Modelo {nome_modelo}: {str(e)}"
-                if tentativa < MAX_TENTATIVAS_POR_MODELO:
+                ultimo_erro = f"Falha de conexão física - Provedor {provedor['nome']}: {str(e)}"
+                if tentativa < MAX_TENTATIVAS_POR_PROVEDOR:
                     time.sleep(2 * tentativa)
                     continue
-                break  # esgotou tentativas neste modelo -> tenta o próximo da cascata
+                break  # esgotou tentativas neste provedor -> tenta o próximo da cascata
 
-        if not eh_ultimo_modelo:
-            continue  # segue para o próximo modelo da cascata
-
-    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de modelos esgotada)"), ''
+    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de provedores esgotada)"), ''
 
 # =====================================================================
 # EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
