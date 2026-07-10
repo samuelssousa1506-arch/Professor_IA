@@ -532,7 +532,7 @@ def executar_geracao_ia(**kwargs):
             prompt += f"\nEstruture o documento de forma oficial e profissional com cabeçalhos h4, h5, parágrafos bem espaçados e listas dinâmicas."
 
     # 3. ENDPOINT DA API DO GEMINI COM A URL 100% HIGIENIZADA
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={chave_limpa}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={chave_limpa}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
@@ -541,12 +541,12 @@ def executar_geracao_ia(**kwargs):
         }]
     }
 
-    MAX_TENTATIVAS = 2
+    MAX_TENTATIVAS = 3
     ultimo_erro = ""
 
     for tentativa in range(1, MAX_TENTATIVAS + 1):
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response = requests.post(url, headers=headers, json=payload, timeout=90)
 
             if response.status_code == 200:
                 resultado = response.json()
