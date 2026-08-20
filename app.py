@@ -5,19 +5,10 @@ import random
 import time
 import requests
 import markdown as md
-from io import BytesIO
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect, generate_csrf
-from docx import Document
-from docx.shared import Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.section import WD_SECTION
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
-from htmldocx import HtmlToDocx
-from xhtml2pdf import pisa
 from bs4 import BeautifulSoup
 import bleach
 
@@ -190,7 +181,6 @@ def executar_geracao_ia(**kwargs):
     nivel = kwargs.get('nivel', 'Médio')
     nome_professor = kwargs.get('nome_professor', 'Professor(a)')
     nome_escola = kwargs.get('nome_escola', 'Instituição de Ensino')
-    # Campos específicos
     numero_plano = kwargs.get('numero_plano', '')
     bimestre = kwargs.get('bimestre', '1º BIM')
     data_inicio = kwargs.get('data_inicio', '')
@@ -207,7 +197,6 @@ def executar_geracao_ia(**kwargs):
     telefone_escola = kwargs.get('telefone_escola', '')
     email_escola = kwargs.get('email_escola', '')
     observacoes = kwargs.get('observacoes', '')
-    # Campos específicos de sequência didática
     qtd_aulas = kwargs.get('qtd_aulas', '5')
     duracao = kwargs.get('duracao', '')
     objetivo_geral = kwargs.get('objetivo_geral', '')
@@ -216,7 +205,6 @@ def executar_geracao_ia(**kwargs):
     dificuldades = kwargs.get('dificuldades', '')
     recursos = kwargs.get('recursos', '')
     metodologia = kwargs.get('metodologia', '')
-    # Campos de diagnóstico
     qtd_alunos = kwargs.get('qtd_alunos', '')
     dificuldades_diagnostico = kwargs.get('dificuldades_diagnostico', '')
     habilidades_consolidadas = kwargs.get('habilidades_consolidadas', '')
@@ -238,7 +226,6 @@ def executar_geracao_ia(**kwargs):
             chave_limpa = chave_limpa.split(")")[-1]
         chave_limpa = chave_limpa.strip()
 
-    # CONSTRUÇÃO DO PROMPT (versão resumida para não alongar, mas mantendo a lógica)
     regras_formato = """
         REGRAS OBRIGATÓRIAS DE FORMATAÇÃO DA SAÍDA:
         - Responda ESTRITAMENTE em HTML puro e semântico (tags: h4, h5, p, strong, em, ul, ol, li, table, thead, tbody, tr, th, td, div).
@@ -247,7 +234,6 @@ def executar_geracao_ia(**kwargs):
         - Use <table class="tabela-bncc"> quando fizer sentido organizar habilidades BNCC, cronogramas ou critérios de avaliação em formato tabular.
     """
 
-    # Construção do prompt (similar ao original, mas adicionando casos para sequência e diagnóstico)
     if tipo_modulo == 'Tira-Dúvidas com IA':
         prompt = f"""
         Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
@@ -256,18 +242,10 @@ def executar_geracao_ia(**kwargs):
         Dúvida ou Consulta do Professor: "{tema}"
         {regras_formato}
         """
-    elif tipo_modulo == 'Planejamento Bimestral':
-        # ... (mesmo prompt da versão anterior, omitido por brevidade, mas deve ser mantido)
-        prompt = "..."
-    elif tipo_modulo == 'Gerador de Provas':
-        prompt = "..."
-    elif tipo_modulo == 'Simulados':
-        prompt = "..."
     elif tipo_modulo == 'Sequência Didática':
         prompt = f"""
         Atue como um Especialista em Planejamento de Ensino e Sequências Didáticas.
         Gere uma SEQUÊNCIA DIDÁTICA completa para o componente curricular {disciplina}, ano/série {ano}, sobre o tema "{tema}".
-
         Dados fornecidos:
         - Habilidade BNCC alvo: {bncc if bncc else 'selecione as mais adequadas'}
         - Quantidade de aulas: {qtd_aulas}
@@ -278,9 +256,7 @@ def executar_geracao_ia(**kwargs):
         - Dificuldades: {dificuldades if dificuldades else 'não informadas'}
         - Recursos disponíveis: {recursos if recursos else 'recursos básicos de sala de aula'}
         - Metodologia preferida: {metodologia if metodologia else 'metodologias ativas'}
-
         {regras_formato}
-
         ESTRUTURA OBRIGATÓRIA, nesta ordem exata:
         1. <h5>Identificação</h5> (disciplina, ano, tema, duração, nº de aulas)
         2. <h5>Justificativa</h5> (por que trabalhar este tema)
@@ -299,7 +275,6 @@ def executar_geracao_ia(**kwargs):
         prompt = f"""
         Atue como um Especialista em Avaliação e Diagnóstico Pedagógico.
         Com base nos dados fornecidos pelo professor, elabore um DIAGNÓSTICO DA TURMA e um PLANO DE INTERVENÇÃO para a disciplina {disciplina}, ano/série {ano}.
-
         Dados fornecidos:
         - Quantidade de alunos: {qtd_alunos if qtd_alunos else 'não informada'}
         - Dificuldades observadas: {dificuldades_diagnostico if dificuldades_diagnostico else 'não informadas'}
@@ -307,18 +282,14 @@ def executar_geracao_ia(**kwargs):
         - Habilidades com dificuldade: {habilidades_dificuldade if habilidades_dificuldade else 'não informadas'}
         - Nível geral da turma: {nivel_geral if nivel_geral else 'não informado'}
         - Observações: {observacoes_diagnostico if observacoes_diagnostico else ''}
-
         {regras_formato}
-
         ESTRUTURA OBRIGATÓRIA, em duas partes:
-
         PARTE 1 - DIAGNÓSTICO PEDAGÓGICO:
         <h5>Panorama Geral</h5>
         <h5>Pontos Fortes</h5> (lista <ul>)
         <h5>Principais Dificuldades</h5> (lista <ul>)
         <h5>Habilidades Prioritárias</h5> (lista <ul>)
         <h5>Necessidades de Intervenção</h5> (descrição)
-
         PARTE 2 - PLANO DE INTERVENÇÃO:
         <h5>Objetivos da Intervenção</h5>
         <h5>Estratégias e Metodologias</h5>
@@ -329,7 +300,6 @@ def executar_geracao_ia(**kwargs):
         <h5>Referências</h5>
         """
     else:
-        # Para os demais módulos, mantém o prompt genérico ou específico já existente
         prompt = f"""
         Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
         Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
@@ -337,7 +307,6 @@ def executar_geracao_ia(**kwargs):
         {regras_formato}
         """ + (f" DIRETRIZES ESPECÍFICAS: {kwargs.get('diretrizes_extra', '')}" if kwargs.get('diretrizes_extra') else "")
 
-    # CADEIA DE PROVEDORES (igual ao original, com fallback)
     payload_gemini = {"contents": [{"parts": [{"text": prompt}]}]}
     headers_gemini = {'Content-Type': 'application/json'}
     mistral_chave_limpa = MISTRAL_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
@@ -397,7 +366,7 @@ def executar_geracao_ia(**kwargs):
     return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de provedores esgotada)"), ''
 
 # =====================================================================
-# EXPORTAÇÃO — DOCX e PDF (mantido igual)
+# EXPORTAÇÃO — DOCX e PDF (COM IMPORTAÇÕES CORRIGIDAS)
 # =====================================================================
 def _definir_colunas_secao(section, num_colunas):
     sectPr = section._sectPr
@@ -430,6 +399,16 @@ def _adicionar_no_docx(documento, node):
     documento.add_paragraph("")
 
 def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
+    # Importações movidas para dentro da função para evitar crash na inicialização
+    from docx import Document
+    from docx.shared import Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.section import WD_SECTION
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    from htmldocx import HtmlToDocx
+    from io import BytesIO
+
     documento = Document()
     p_escola = documento.add_paragraph()
     p_escola.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -502,6 +481,10 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
     return buffer
 
 def gerar_pdf(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
+    # Importação movida para dentro da função
+    from xhtml2pdf import pisa
+    from io import BytesIO
+
     if tipo_modulo in ('Gerador de Provas', 'Simulados'):
         rotulo_titulo_pdf = "Avaliação de" if tipo_modulo == 'Gerador de Provas' else "Simulado de"
         bloco_cabecalho = f"""
@@ -554,7 +537,6 @@ DB_PATH = os.environ.get('DATABASE_PATH', 'database.db')
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Tabela usuarios com novas colunas
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -568,14 +550,12 @@ def init_db():
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    # Adicionar colunas se não existirem (migração)
     for col in ['role', 'ativo', 'created_at', 'updated_at']:
         try:
             cursor.execute(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
             pass
 
-    # Verificar se existe usuário admin, senão criar um padrão
     cursor.execute("SELECT * FROM usuarios WHERE email = 'admin@professor.ia'")
     if not cursor.fetchone():
         senha_hash = generate_password_hash('admin123')
@@ -585,7 +565,6 @@ def init_db():
         ''', (senha_hash,))
         print("Usuário admin criado: admin@professor.ia / admin123")
 
-    # Tabela materiais (já existe, adicionar coluna pasta_id se não existir)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS materiais (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -607,7 +586,6 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
-    # Tabela pastas
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pastas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -617,7 +595,6 @@ def init_db():
         )
     ''')
 
-    # Tabela banco_questoes (já existe, não precisa mexer)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS banco_questoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -811,7 +788,6 @@ def dashboard():
         form_type = 'plano'
     config_modulo = MODULOS[form_type]
     conteudo = ""
-    # Coleta de parâmetros do formulário (mesmo da versão anterior, adicionando novos)
     tema = request.form.get('tema', '').strip()
     disciplina = request.form.get('disciplina', '').strip()
     ano = request.form.get('ano', '').strip()
@@ -819,7 +795,6 @@ def dashboard():
     tipo_prova = request.form.get('tipo_prova', '').strip()
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()
-    # Campos específicos
     numero_plano = request.form.get('numero_plano', '').strip()
     bimestre = request.form.get('bimestre', '1º BIM').strip()
     data_inicio = request.form.get('data_inicio', '').strip()
@@ -848,7 +823,6 @@ def dashboard():
     tipo_simulado = request.form.get('tipo_simulado', 'Simulado Geral / Diagnóstico').strip()
     duracao_simulado = request.form.get('duracao_simulado', '').strip()
     qtd_questoes_simulado = request.form.get('qtd_questoes_simulado', '20').strip()
-    # Novos campos para sequência didática
     qtd_aulas = request.form.get('qtd_aulas', '5').strip()
     objetivo_geral = request.form.get('objetivo_geral', '').strip()
     objetivos_especificos = request.form.get('objetivos_especificos', '').strip()
@@ -856,7 +830,6 @@ def dashboard():
     dificuldades = request.form.get('dificuldades', '').strip()
     recursos = request.form.get('recursos', '').strip()
     metodologia = request.form.get('metodologia', '').strip()
-    # Diagnóstico
     qtd_alunos = request.form.get('qtd_alunos', '').strip()
     dificuldades_diagnostico = request.form.get('dificuldades_diagnostico', '').strip()
     habilidades_consolidadas = request.form.get('habilidades_consolidadas', '').strip()
@@ -907,7 +880,6 @@ def dashboard():
             tipo_simulado=tipo_simulado,
             duracao_simulado=duracao_simulado,
             qtd_questoes_simulado=qtd_questoes_simulado,
-            # Novos
             qtd_aulas=qtd_aulas,
             duracao=duracao,
             objetivo_geral=objetivo_geral,
@@ -923,7 +895,6 @@ def dashboard():
             nivel_geral=nivel_geral,
             observacoes_diagnostico=observacoes_diagnostico
         )
-        # Salvar na biblioteca
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -1016,7 +987,6 @@ def assistente():
     if request.method == 'POST':
         pergunta = request.form.get('pergunta', '').strip()
         if pergunta:
-            # Reutiliza a função de IA com tipo 'Tira-Dúvidas com IA'
             conteudo, _ = executar_geracao_ia(
                 tipo_modulo='Tira-Dúvidas com IA',
                 tema=pergunta,
@@ -1033,7 +1003,6 @@ def assistente():
 @login_required
 def biblioteca():
     email = session.get('user_email')
-    # Parâmetros
     search = request.args.get('search', '').strip()
     tipo = request.args.get('tipo', '').strip()
     disciplina = request.args.get('disciplina', '').strip()
@@ -1092,7 +1061,6 @@ def favoritar_material(material_id):
 @app.route('/biblioteca/editar/<int:material_id>', methods=['POST'])
 @login_required
 def editar_material(material_id):
-    # Corrigido: usa 'title' e 'content' (como no template)
     novo_titulo = request.form.get('title', '').strip()
     novo_conteudo = request.form.get('content', '').strip()
     conn = sqlite3.connect(DB_PATH)
@@ -1129,7 +1097,6 @@ def duplicar_material(material_id):
         conn.close()
         flash('Material original não encontrado.', 'danger')
         return redirect(url_for('biblioteca'))
-    # Inserir cópia
     cursor.execute('''
         INSERT INTO materiais (usuario_email, tipo_modulo, titulo, disciplina, ano, conteudo_html, favorito, criado_em, info_pedagogica, pasta_id)
         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
@@ -1149,7 +1116,6 @@ def duplicar_material(material_id):
     flash('Material duplicado com sucesso!', 'success')
     return redirect(url_for('biblioteca'))
 
-# Rotas para pastas
 @app.route('/biblioteca/pastas', methods=['GET', 'POST'])
 @login_required
 def gerenciar_pastas():
@@ -1173,7 +1139,6 @@ def gerenciar_pastas():
 def excluir_pasta(pasta_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Move materiais para pasta NULL (sem pasta)
     cursor.execute("UPDATE materiais SET pasta_id = NULL WHERE pasta_id = ? AND usuario_email = ?", (pasta_id, session.get('user_email', '')))
     cursor.execute("DELETE FROM pastas WHERE id = ? AND usuario_email = ?", (pasta_id, session.get('user_email', '')))
     conn.commit()
@@ -1243,14 +1208,11 @@ def adaptar_material(material_id):
         recursos_disponiveis = request.form.get('recursos_disponiveis', '').strip()
         observacoes = request.form.get('observacoes', '').strip()
         acoes = request.form.getlist('acoes')
-        # Gerar adaptação
         prompt_adaptacao = f"""
         Você é um especialista em Educação Inclusiva e AEE.
         Adapte o seguinte material pedagógico para atender às necessidades de um aluno com dificuldades.
-
         MATERIAL ORIGINAL:
         {material['conteudo_html']}
-
         INFORMAÇÕES DO ALUNO:
         - Dificuldades observadas: {dificuldades}
         - Barreiras de aprendizagem: {barreiras}
@@ -1258,11 +1220,8 @@ def adaptar_material(material_id):
         - Nível do aluno: {nivel_aluno}
         - Recursos disponíveis: {recursos_disponiveis}
         - Observações: {observacoes}
-
         AÇÕES SELECIONADAS: {', '.join(acoes)}
-
         {regras_formato}
-
         Gere uma versão adaptada do material, preservando o objetivo pedagógico original.
         Inclua um cabeçalho com "VERSÃO ADAPTADA PARA INCLUSÃO/AEE".
         Mantenha a estrutura semelhante, mas simplifique a linguagem, instruções, e adicione suportes visuais ou estratégias diferenciadas conforme as ações selecionadas.
@@ -1276,7 +1235,6 @@ def adaptar_material(material_id):
             nome_escola=session.get('user_school', 'Instituição de Ensino'),
             diretrizes_extra=prompt_adaptacao
         )
-        # Salvar como novo material
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
@@ -1308,7 +1266,6 @@ def admin_dashboard():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    # Totais
     cursor.execute("SELECT COUNT(*) as total_usuarios FROM usuarios")
     total_usuarios = cursor.fetchone()['total_usuarios']
     cursor.execute("SELECT COUNT(*) as total_professores FROM usuarios WHERE role = 'professor'")
@@ -1317,16 +1274,12 @@ def admin_dashboard():
     total_escolas = len(cursor.fetchall())
     cursor.execute("SELECT COUNT(*) as total_materiais FROM materiais")
     total_materiais = cursor.fetchone()['total_materiais']
-    # Materiais por módulo
     cursor.execute("SELECT tipo_modulo, COUNT(*) as total FROM materiais GROUP BY tipo_modulo ORDER BY total DESC")
     materiais_por_modulo = cursor.fetchall()
-    # Materiais por disciplina
     cursor.execute("SELECT disciplina, COUNT(*) as total FROM materiais GROUP BY disciplina ORDER BY total DESC")
     materiais_por_disciplina = cursor.fetchall()
-    # Materiais por professor
     cursor.execute("SELECT usuario_email, COUNT(*) as total FROM materiais GROUP BY usuario_email ORDER BY total DESC")
     materiais_por_professor = cursor.fetchall()
-    # Materiais por período (últimos 30 dias)
     cursor.execute("SELECT DATE(criado_em) as data, COUNT(*) as total FROM materiais GROUP BY DATE(criado_em) ORDER BY data DESC LIMIT 30")
     materiais_por_periodo = cursor.fetchall()
     conn.close()
