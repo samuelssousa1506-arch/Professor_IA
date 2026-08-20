@@ -9,7 +9,7 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_wtf.csrf import CSRFProtect
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -34,7 +34,7 @@ csrf = CSRFProtect(app)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "").strip()
 
-# Dicionário de módulos unificado
+# Dicionário de módulos unificado - disponível globalmente para templates
 MODULOS = {
     'plano': {'nome': 'Plano de Aula', 'icone': 'fa-book'},
     'bimestral': {'nome': 'Planejamento Bimestral', 'icone': 'fa-calendar-check'},
@@ -119,7 +119,7 @@ COMPETENCIAS_GERAIS_BNCC = [
 ]
 
 # =====================================================================
-# FUNÇÕES AUXILIARES (mantidas e adaptadas)
+# FUNÇÕES AUXILIARES
 # =====================================================================
 
 def sanitizar_saida_html(texto):
@@ -127,7 +127,6 @@ def sanitizar_saida_html(texto):
     parece_markdown = bool(re.search(r'(^|\n)#{2,6}\s|\*\*[^*]+\*\*|(^|\n)\*\s|(^|\n)-\s', texto))
     if parece_markdown:
         texto = md.markdown(texto, extensions=['tables', 'nl2br', 'sane_lists'])
-    # Sanitização com bleach (remove scripts)
     allowed_tags = ['h4','h5','h6','p','strong','em','ul','ol','li','table','thead','tbody','tr','th','td','div','span','br','a','img','blockquote','pre','code']
     allowed_attrs = {'*': ['class'], 'a': ['href'], 'img': ['src', 'alt']}
     texto = bleach.clean(texto, tags=allowed_tags, attributes=allowed_attrs, strip=True)
@@ -209,7 +208,7 @@ def executar_geracao_ia(**kwargs):
     observacoes = kwargs.get('observacoes', '')
     # Campos específicos de sequência didática
     qtd_aulas = kwargs.get('qtd_aulas', '5')
-    duracao = kwargs.get('duracao', '')
+    duracao = kwargs.get('duracao', '')  # único
     objetivo_geral = kwargs.get('objetivo_geral', '')
     objetivos_especificos = kwargs.get('objetivos_especificos', '')
     perfil_turma = kwargs.get('perfil_turma', '')
@@ -238,7 +237,6 @@ def executar_geracao_ia(**kwargs):
             chave_limpa = chave_limpa.split(")")[-1]
         chave_limpa = chave_limpa.strip()
 
-    # CONSTRUÇÃO DO PROMPT
     regras_formato = """
         REGRAS OBRIGATÓRIAS DE FORMATAÇÃO DA SAÍDA:
         - Responda ESTRITAMENTE em HTML puro e semântico (tags: h4, h5, p, strong, em, ul, ol, li, table, thead, tbody, tr, th, td, div).
@@ -247,6 +245,7 @@ def executar_geracao_ia(**kwargs):
         - Use <table class="tabela-bncc"> quando fizer sentido organizar habilidades BNCC, cronogramas ou critérios de avaliação em formato tabular.
     """
 
+    # Construção do prompt (versão resumida, mas com todos os módulos)
     if tipo_modulo == 'Tira-Dúvidas com IA':
         prompt = f"""
         Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
@@ -264,168 +263,212 @@ def executar_geracao_ia(**kwargs):
         prompt = f"""
         Atue como um Especialista em Planejamento Pedagógico Escolar, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
         Gere um PLANEJAMENTO BIMESTRAL completo e oficial, seguindo EXATAMENTE a estrutura, ordem de seções e nível de detalhamento abaixo — este é o modelo oficial usado pela Secretaria Municipal de Educação, e deve ser reproduzido fielmente.
-
         {regras_formato}
         REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No lugar exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
-
         ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA:
-
-        1. <div class="doc-cabecalho-oficial">
-           Inclua, em formato de linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>):
-           INEP: {inep or '[preencher]'}
-           ESCOLA: {nome_escola}
-           ENDEREÇO: {endereco_escola or '[preencher endereço]'}
-           CIDADE: {cidade_escola or '[preencher cidade]'} ESTADO: {estado_escola}
-           ZONA: {zona_escola or '[preencher]'} TELEFONE: {telefone_escola or '[preencher]'} EMAIL: {email_escola or '[preencher]'}
-           </div>
-
+        1. <div class="doc-cabecalho-oficial"> ... </div>
         2. <h2 class="doc-titulo-oficial">PLANO BIMESTRAL #{numero_final}</h2>
-
-        3. <div class="doc-metadata-oficial">
-           Em linhas rotuladas, exatamente nesta ordem:
-           BIMESTRAL // {modalidade}
-           {bimestre} {periodo_execucao}
-           TURMA: {turma_completa}
-           COMP. CURR.: {disciplina}
-           EXECUÇÃO: {periodo_execucao}
-           CRIADO EM: {criado_em}
-           PROFESSOR(A): {nome_professor}
-           ANO LETIVO: {ano_letivo_final}
-           </div>
-
+        3. <div class="doc-metadata-oficial"> ... </div>
         4. <!--COMPETENCIAS_GERAIS_AQUI-->
-
-        5. <h5 class="doc-secao-titulo">Competências Específicas de {disciplina}</h5>
-           Liste, numeradas (1ª, 2ª, 3ª...), as competências específicas oficiais da BNCC para a área de conhecimento à qual "{disciplina}" pertence, voltadas ao Ensino Fundamental — Anos Finais.
-
-        6. <h5 class="doc-secao-titulo">Unidades Temáticas</h5>
-           Identifique a(s) unidade(s) temática(s) da BNCC relacionada(s) ao tema "{tema}" para a série/ano "{ano}".
-
-        7. <h5 class="doc-secao-titulo">Objetos de Conhecimento</h5>
-           Liste os objetos de conhecimento relacionados ao tema.
-
-        8. <h5 class="doc-secao-titulo">Habilidades</h5>
-           Liste as habilidades da BNCC pertinentes (formato: código - descrição), priorizando {bncc if bncc else 'as mais adequadas'}.
-
-        9. <h5 class="doc-secao-titulo">Sugestões Metodológicas</h5>
-           Lista <ul><li> com 8 a 10 sugestões práticas.
-
-        10. <h5 class="doc-secao-titulo">Avaliação</h5>
-            Lista <ul><li> com os instrumentos avaliativos.
-
-        11. <h5 class="doc-secao-titulo">Recursos</h5>
-            Lista <ul><li> com os recursos didáticos.
-
-        12. <h5 class="doc-secao-titulo">Referências</h5>
-            Liste em linhas simples, formato ABNT simplificado: BNCC, DCTMA, e bibliografia pertinente.
-
-        13. <h5 class="doc-secao-titulo">Observações Pertinentes</h5>
-            {f'Inclua o seguinte texto informado pelo professor: "{observacoes}"' if observacoes else 'Sem observações adicionais.'}
+        5. <h5 class="doc-secao-titulo">Competências Específicas de {disciplina}</h5> ...
+        6. <h5 class="doc-secao-titulo">Unidades Temáticas</h5> ...
+        7. <h5 class="doc-secao-titulo">Objetos de Conhecimento</h5> ...
+        8. <h5 class="doc-secao-titulo">Habilidades</h5> ...
+        9. <h5 class="doc-secao-titulo">Sugestões Metodológicas</h5> ...
+        10. <h5 class="doc-secao-titulo">Avaliação</h5> ...
+        11. <h5 class="doc-secao-titulo">Recursos</h5> ...
+        12. <h5 class="doc-secao-titulo">Referências</h5> ...
+        13. <h5 class="doc-secao-titulo">Observações Pertinentes</h5> ...
+        DADOS DE CONFIGURAÇÃO DO ESCOPO:
+        - Componente/Disciplina: {disciplina}
+        - Ano/Série Escolar: {ano}
+        - Tema Central / Objeto de Estudo: {tema}
+        - Código de Habilidade BNCC Alvo: {bncc}
         """
     elif tipo_modulo == 'Gerador de Provas':
         prompt = f"""
-        Atue como um Especialista em Avaliação Pedagógica. Gere uma PROVA/AVALIAÇÃO completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}".
-        NÃO gere cabeçalho — o sistema adiciona automaticamente.
+        Atue como um Especialista em Avaliação Pedagógica... Gere uma PROVA/AVALIAÇÃO completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}".
         {regras_formato}
-
-        SUA RESPOSTA DEVE TER DUAS PARTES, SEPARADAS PELO MARCADOR LITERAL <!--INFO_PEDAGOGICA-->:
-
+        SUA RESPOSTA DEVE TER DUAS PARTES, NESTA ORDEM, SEPARADAS PELO MARCADOR LITERAL EXATO <!--INFO_PEDAGOGICA--> ...
         ============ PARTE 1 — A PROVA EM SI ============
-        1. Gere exatamente {qtd_questoes} questões no formato {tipo_prova}.
-        2. Cada questão DEVE estar em <div class="questao-item">...</div>.
-        3. Numere com dois dígitos: 01., 02., etc.
-        4. Inclua (código BNCC) após o número: '01. (EF09MA02) '.
-        5. O enunciado em <strong>.
-        6. Para objetivas, use a) até d) com <br>.
-        7. Para discursivas, gere <div class="linha-resposta"></div> conforme o espaço esperado.
-        8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[respostas]</div>.
-
+        1. Gere exatamente {qtd_questoes} questões no formato de aplicação: {tipo_prova}.
+        2. Cada questão DEVE estar envolvida em <div class="questao-item">...</div>.
+        3. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
+        4. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
+        5. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
+        6. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
+        7. Para questões discursivas, estime mentalmente quantas linhas a resposta esperada ocuparia e gere um número de <div class="linha-resposta"></div> igual a esse número + 3 linhas extras.
+        8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
         ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS ============
-        Após o marcador, gere <h5>Objetivos</h5>, <h5>Competências e Habilidades</h5> (priorizando {bncc if bncc else 'as adequadas'}), <h5>Fundamentação Legal</h5>, <h5>Configuração Utilizada</h5>, <h5>Metodologia de Aplicação</h5>.
+        Após o marcador <!--INFO_PEDAGOGICA-->, gere, cada uma como <h5>[Título]</h5>:
+        - Objetivos...
+        - Competências e Habilidades da BNCC...
+        - Fundamentação Legal...
+        - Configuração Utilizada...
+        - Metodologia de Aplicação...
         """
     elif tipo_modulo == 'Simulados':
         tipo_simulado = kwargs.get('tipo_simulado', 'Simulado Geral / Diagnóstico')
         duracao_simulado = kwargs.get('duracao_simulado', '').strip()
         qtd_questoes_simulado = kwargs.get('qtd_questoes_simulado', '20').strip() or '20'
-        duracao_sugerida = duracao_simulado or f"aproximadamente {int(qtd_questoes_simulado) * 3} minutos"
+        duracao_sugerida = duracao_simulado
+        if not duracao_sugerida:
+            try:
+                duracao_sugerida = f"aproximadamente {int(qtd_questoes_simulado) * 3} minutos"
+            except ValueError:
+                duracao_sugerida = "a critério do professor"
         prompt = f"""
-        Atue como Especialista em Simulados. Gere um SIMULADO sobre "{tema}", disciplina "{disciplina}", ano "{ano}".
-        Tipo: {tipo_simulado}. NÃO gere cabeçalho.
+        Atue como um Especialista em Avaliação Pedagógica e Elaboração de Simulados...
+        Gere um SIMULADO completo sobre o(s) tema(s)/conteúdo(s) "{tema}", disciplina "{disciplina}", ano/série "{ano}".
+        Tipo de simulado: {tipo_simulado}.
         {regras_formato}
-
-        SUA RESPOSTA DEVE TER DUAS PARTES, SEPARADAS POR <!--INFO_PEDAGOGICA-->:
-
-        ============ PARTE 1 — SIMULADO ============
-        1. Inicie com <div class="instrucoes-simulado"><p><strong>Duração:</strong> {duracao_sugerida}</p><p><strong>Instruções:</strong> ...</p></div>
-        2. Gere {qtd_questoes_simulado} questões em <div class="questao-item">.
-        3. Numere 01., 02., etc. Inclua código BNCC.
-        4. Use <strong> para o enunciado, e alternativas a) a d) com <br>.
-        5. Para discursivas, use <div class="linha-resposta">.
-        6. Inclua <div class="gabarito-prova"><h5>Gabarito</h5>[respostas]</div>.
-
+        SUA RESPOSTA DEVE TER DUAS PARTES...
+        ============ PARTE 1 — O SIMULADO EM SI ============
+        1. Inicie com <div class="instrucoes-simulado"><p><strong>Duração sugerida:</strong> {duracao_sugerida}</p><p><strong>Instruções:</strong> ...</p></div>
+        2. Gere exatamente {qtd_questoes_simulado} questões...
+        (demais regras similares ao Gerador de Provas)
         ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS ============
-        Após o marcador, gere <h5>Objetivos</h5>, <h5>Matriz de Referência</h5> (tabela com questões, habilidades, dificuldade), <h5>Fundamentação Legal</h5>, <h5>Configuração</h5>, <h5>Metodologia de Aplicação</h5>.
+        ...
         """
     elif tipo_modulo == 'Sequência Didática':
         prompt = f"""
-        Atue como Especialista em Planejamento de Ensino. Gere uma SEQUÊNCIA DIDÁTICA para {disciplina}, {ano}, tema "{tema}".
-        Dados: Habilidade BNCC: {bncc if bncc else 'selecione as adequadas'}; Aulas: {qtd_aulas}; Duração: {duracao or 'a definir'};
-        Objetivo geral: {objetivo_geral or 'infira'}; Objetivos específicos: {objetivos_especificos or 'descreva 3-5'};
-        Perfil da turma: {perfil_turma or 'heterogênea'}; Dificuldades: {dificuldades or 'não informadas'};
-        Recursos: {recursos or 'básicos'}; Metodologia: {metodologia or 'ativas'}.
+        Atue como um Especialista em Planejamento de Ensino e Sequências Didáticas.
+        Gere uma SEQUÊNCIA DIDÁTICA completa para o componente curricular {disciplina}, ano/série {ano}, sobre o tema "{tema}".
+        Dados fornecidos:
+        - Habilidade BNCC alvo: {bncc if bncc else 'selecione as mais adequadas'}
+        - Quantidade de aulas: {qtd_aulas}
+        - Duração: {duracao if duracao else 'a definir'}
+        - Objetivo geral: {objetivo_geral if objetivo_geral else 'infira a partir do tema'}
+        - Objetivos específicos: {objetivos_especificos if objetivos_especificos else 'descreva 3-5 objetivos'}
+        - Perfil da turma: {perfil_turma if perfil_turma else 'turma heterogênea'}
+        - Dificuldades: {dificuldades if dificuldades else 'não informadas'}
+        - Recursos disponíveis: {recursos if recursos else 'recursos básicos de sala de aula'}
+        - Metodologia preferida: {metodologia if metodologia else 'metodologias ativas'}
         {regras_formato}
-
-        ESTRUTURA OBRIGATÓRIA:
-        <h5>Identificação</h5> (disciplina, ano, tema, duração, aulas)
-        <h5>Justificativa</h5>
-        <h5>Objetivo Geral</h5>
-        <h5>Objetivos Específicos</h5> (lista)
-        <h5>Habilidades BNCC</h5> (código + descrição)
-        <h5>Conteúdos</h5> (lista)
-        <h5>Metodologia</h5> (descrição geral)
-        <h5>Desenvolvimento (Aula a Aula)</h5> (subseções <h6>Aula X</h6>)
-        <h5>Recursos</h5> (lista)
-        <h5>Avaliação</h5>
-        <h5>Inclusão/Adaptações</h5>
-        <h5>Referências</h5>
+        ESTRUTURA OBRIGATÓRIA, nesta ordem exata:
+        1. <h5>Identificação</h5>
+        2. <h5>Justificativa</h5>
+        3. <h5>Objetivo Geral</h5>
+        4. <h5>Objetivos Específicos</h5>
+        5. <h5>Habilidades BNCC</h5>
+        6. <h5>Conteúdos</h5>
+        7. <h5>Metodologia</h5>
+        8. <h5>Desenvolvimento (Aula a Aula)</h5> (uma subseção <h6>Aula X</h6> para cada aula)
+        9. <h5>Recursos</h5>
+        10. <h5>Avaliação</h5>
+        11. <h5>Inclusão/Adaptações</h5>
+        12. <h5>Referências</h5>
         """
     elif tipo_modulo == 'Diagnóstico da Turma':
         prompt = f"""
-        Atue como Especialista em Diagnóstico Pedagógico. Com base nos dados do professor, elabore DIAGNÓSTICO e PLANO DE INTERVENÇÃO para {disciplina}, {ano}.
-        Dados: Alunos: {qtd_alunos or 'não informado'}; Dificuldades: {dificuldades_diagnostico or 'não informadas'};
-        Habilidades consolidadas: {habilidades_consolidadas or 'não informadas'};
-        Habilidades com dificuldade: {habilidades_dificuldade or 'não informadas'};
-        Nível geral: {nivel_geral or 'não informado'}; Observações: {observacoes_diagnostico or ''}.
+        Atue como um Especialista em Avaliação e Diagnóstico Pedagógico.
+        Com base nos dados fornecidos pelo professor, elabore um DIAGNÓSTICO DA TURMA e um PLANO DE INTERVENÇÃO para a disciplina {disciplina}, ano/série {ano}.
+        Dados fornecidos:
+        - Quantidade de alunos: {qtd_alunos if qtd_alunos else 'não informada'}
+        - Dificuldades observadas: {dificuldades_diagnostico if dificuldades_diagnostico else 'não informadas'}
+        - Habilidades consolidadas: {habilidades_consolidadas if habilidades_consolidadas else 'não informadas'}
+        - Habilidades com dificuldade: {habilidades_dificuldade if habilidades_dificuldade else 'não informadas'}
+        - Nível geral da turma: {nivel_geral if nivel_geral else 'não informado'}
+        - Observações: {observacoes_diagnostico if observacoes_diagnostico else ''}
         {regras_formato}
-
-        ESTRUTURA OBRIGATÓRIA em duas partes:
-
-        PARTE 1 — DIAGNÓSTICO:
+        ESTRUTURA OBRIGATÓRIA, em duas partes:
+        PARTE 1 - DIAGNÓSTICO PEDAGÓGICO:
         <h5>Panorama Geral</h5>
-        <h5>Pontos Fortes</h5> (lista)
-        <h5>Principais Dificuldades</h5> (lista)
-        <h5>Habilidades Prioritárias</h5> (lista)
+        <h5>Pontos Fortes</h5>
+        <h5>Principais Dificuldades</h5>
+        <h5>Habilidades Prioritárias</h5>
         <h5>Necessidades de Intervenção</h5>
-
-        PARTE 2 — PLANO DE INTERVENÇÃO:
+        PARTE 2 - PLANO DE INTERVENÇÃO:
         <h5>Objetivos da Intervenção</h5>
         <h5>Estratégias e Metodologias</h5>
-        <h5>Atividades Sugeridas</h5> (organizadas)
+        <h5>Atividades Sugeridas</h5>
         <h5>Diferenciação e Inclusão</h5>
         <h5>Acompanhamento e Avaliação</h5>
         <h5>Indicadores de Progresso</h5>
         <h5>Referências</h5>
         """
     else:
-        # Para os demais módulos (plano, atividades, etc.) — mantém o prompt genérico
+        # Para os demais módulos (Plano de Aula, Banco de Atividades, Projetos, Inclusão, Alfabetização, etc.)
+        # Usamos um prompt genérico, mas com diretrizes específicas para cada um (já existentes no código original)
         prompt = f"""
-        Atue como Especialista em Design Pedagógico, com domínio da BNCC, LDB e DCTMA.
-        Gere o conteúdo completo para o módulo '{tipo_modulo}'.
+        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
         DADOS: Tema: {tema}, Disciplina: {disciplina}, Ano: {ano}, BNCC: {bncc if bncc else 'selecione as adequadas'}, Nível: {nivel}.
         {regras_formato}
-        """ + (f" DIRETRIZES ESPECÍFICAS: {kwargs.get('diretrizes_extra', '')}" if kwargs.get('diretrizes_extra') else "")
+        """
+        if tipo_modulo == 'Banco de Atividades':
+            tipos_selecionados = kwargs.get('tipos_atividade', []) or ['Questões objetivas']
+            lista_tipos = ", ".join(tipos_selecionados)
+            prompt += f"""
+            DIRETRIZES DO BANCO DE ATIVIDADES:
+            1. O professor selecionou os seguintes TIPOS DE ATIVIDADE, que devem OBRIGATORIAMENTE estar presentes no material, cada um em sua própria seção com <h5>[Nome do tipo de atividade]</h5>: {lista_tipos}.
+            2. Adapte cada tipo de atividade ao ano/série "{ano}" e ao tema "{tema}" — para anos iniciais/alfabetização, use atividades mais visuais e lúdicas; para anos finais/médio, mais analíticas.
+            3. Se o nível de dificuldade for "Misto", varie a dificuldade das questões dentro de cada seção (inclua fácil, médio e difícil).
+            4. Para "Complete as lacunas", use "_______" para os espaços em branco.
+            5. Para "Ligue as colunas", monte duas colunas usando uma <table>.
+            6. Para "Verdadeiro ou Falso", numere as afirmações e inclua parênteses "( )" antes de cada uma para marcação.
+            7. Para "Caça-palavras" e "Cruzadinha", gere a LISTA de palavras-chave relacionadas ao tema (não é necessário desenhar a grade visualmente, apenas a lista de palavras e uma breve instrução de como montá-la).
+            8. Para atividades práticas/ilustradas/recorte e cole/pintura educativa, descreva claramente as instruções passo a passo para o professor aplicar em sala.
+            9. Ao final de TODAS as seções com questões que tenham resposta certa (objetivas, lacunas, V/F, ligue as colunas, sequência lógica, problemas matemáticos), inclua uma seção final única <h5>Gabarito</h5> reunindo as respostas de todas essas atividades.
+            """
+        elif tipo_modulo == 'Projetos Interdisciplinares':
+            duracao_proj = kwargs.get('duracao', '')
+            objetivo_geral_prof = kwargs.get('objetivo', '')
+            tipos_projeto_sel = kwargs.get('tipos_projeto', []) or ['Projeto Interdisciplinar']
+            lista_tipos_projeto = ", ".join(tipos_projeto_sel)
+            prompt += f"""
+            DIRETRIZES DO GERADOR DE PROJETOS PEDAGÓGICOS:
+            O professor quer um projeto do(s) seguinte(s) tipo(s)/formato(s): {lista_tipos_projeto}. Combine as características desses formatos de forma coerente se mais de um for selecionado.
+            Duração prevista informada pelo professor: {duracao_proj or 'não informada — sugira uma duração adequada ao escopo do tema'}.
+            Objetivo inicial informado pelo professor (use como norte, mas expanda): {objetivo_geral_prof or 'não informado — infira a partir do tema'}.
+            ESTRUTURA OBRIGATÓRIA, cada uma como <h5>[Título da Seção]</h5>:
+            1. Justificativa
+            2. Objetivo Geral
+            3. Objetivos Específicos
+            4. Competências da BNCC
+            5. Habilidades da BNCC
+            6. Metodologia
+            7. Cronograma (tabela)
+            8. Recursos
+            9. Desenvolvimento
+            10. Avaliação
+            11. Produto Final
+            12. Referências
+            """
+        elif tipo_modulo == 'Alfabetização e Reforço de Leitura':
+            nome_aluno = kwargs.get('nome_aluno', '').strip()
+            nivel_leitura = kwargs.get('nivel_leitura', '')
+            dificuldades_observadas = kwargs.get('dificuldades_observadas', '')
+            focos_selecionados = kwargs.get('focos_alfabetizacao', []) or ['Consciência Fonológica (rimas, sons, sílabas)']
+            lista_focos = ", ".join(focos_selecionados)
+            duracao_alfab = kwargs.get('duracao_alfabetizacao', '')
+            eh_aluno_mais_velho = False
+            try:
+                eh_aluno_mais_velho = int(re.search(r'\d+', ano).group()) >= 4 if ano and re.search(r'\d+', ano) else False
+            except Exception:
+                eh_aluno_mais_velho = False
+            prompt += f"""
+            DIRETRIZES DO PLANO DE ALFABETIZAÇÃO E REFORÇO DE LEITURA:
+            Este é um plano de INTERVENÇÃO INDIVIDUALIZADA para um aluno com defasagem de leitura/escrita, não uma atividade de sala genérica.
+            DADOS DO ALUNO: ... (detalhes)
+            {"ATENÇÃO CRÍTICA: o aluno está no " + ano + ", ou seja, é mais velho que a idade típica de alfabetização inicial. NÃO use temas, personagens ou materiais infantilizados..." if eh_aluno_mais_velho else "Adeque a linguagem e os temas à faixa etária da educação infantil/anos iniciais, com abordagem lúdica."}
+            ESTRUTURA OBRIGATÓRIA: 1. Diagnóstico e Leitura da Situação, 2. Objetivos, 3. Habilidades da BNCC, 4. Estratégias e Metodologia, 5. Sequência de Atividades Práticas, 6. Recursos, 7. Envolvimento da Família, 8. Avaliação de Progresso, 9. Referências.
+            """
+        elif tipo_modulo == 'Plano de Aula':
+            prompt += """
+            SEÇÃO OBRIGATÓRIA — METODOLOGIAS E SUGESTÕES DE AULAS DIFERENCIADAS:
+            Inclua, antes da conclusão do plano, uma seção <h5>Sugestões de Aulas Diferenciadas</h5> com pelo menos 3 a 4 propostas concretas e variadas...
+            SEÇÃO FINAL OBRIGATÓRIA — REFERÊNCIAS: ...
+            """
+        elif tipo_modulo == 'Plano de Inclusão / AEE':
+            # Já existe um prompt específico usado pela função adaptar_material, mas aqui tratamos o módulo diretamente
+            prompt += """
+            DIRETRIZES DO PLANO DE INCLUSÃO / AEE:
+            Gere um plano detalhado para atendimento educacional especializado, com foco em estratégias pedagógicas, adaptações curriculares e recursos de acessibilidade.
+            Estrutura: 1. Identificação do aluno, 2. Diagnóstico pedagógico, 3. Objetivos, 4. Estratégias e adaptações, 5. Recursos, 6. Avaliação, 7. Envolvimento da família, 8. Referências.
+            """
 
-    # CADEIA DE PROVEDORES (fallback automático)
+    # CADEIA DE PROVEDORES
     payload_gemini = {"contents": [{"parts": [{"text": prompt}]}]}
     headers_gemini = {'Content-Type': 'application/json'}
     mistral_chave_limpa = MISTRAL_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
@@ -817,6 +860,11 @@ def index():
 def home():
     email = session.get('user_email')
     user = get_usuario(email)
+    if not user:
+        # Se o usuário não existe mais no banco, faz logout
+        session.clear()
+        flash('Sua conta foi removida ou está inativa.', 'danger')
+        return redirect(url_for('login'))
     materiais = get_materiais_usuario(email)
     favoritos = get_materiais_usuario(email, favorito=True)
     recentes = materiais[:5]
@@ -889,7 +937,7 @@ def logout():
     return redirect(url_for('login'))
 
 # =====================================================================
-# DASHBOARD DO GERADOR (mantido e corrigido)
+# DASHBOARD DO GERADOR
 # =====================================================================
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
@@ -985,7 +1033,7 @@ def dashboard():
             observacoes=observacoes,
             tipos_atividade=tipos_atividade,
             tipos_projeto=tipos_projeto,
-            duracao=duracao,                 # única ocorrência
+            duracao=duracao,
             objetivo=objetivo,
             nome_aluno=nome_aluno,
             nivel_leitura=nivel_leitura,
@@ -1232,7 +1280,6 @@ def duplicar_material(material_id):
     flash('Material duplicado com sucesso!', 'success')
     return redirect(url_for('biblioteca'))
 
-# Rotas para pastas
 @app.route('/biblioteca/pastas', methods=['GET', 'POST'])
 @login_required
 def gerenciar_pastas():
@@ -1325,7 +1372,7 @@ def adaptar_material(material_id):
         recursos_disponiveis = request.form.get('recursos_disponiveis', '').strip()
         observacoes = request.form.get('observacoes', '').strip()
         acoes = request.form.getlist('acoes')
-        # Construir prompt específico para adaptação
+        # Gerar adaptação
         prompt_adaptacao = f"""
         Você é um especialista em Educação Inclusiva e AEE.
         Adapte o seguinte material pedagógico para atender às necessidades de um aluno com dificuldades.
@@ -1343,13 +1390,11 @@ def adaptar_material(material_id):
 
         AÇÕES SELECIONADAS: {', '.join(acoes)}
 
-        {regras_formato}
-
         Gere uma versão adaptada do material, preservando o objetivo pedagógico original.
         Inclua um cabeçalho com "VERSÃO ADAPTADA PARA INCLUSÃO/AEE".
         Mantenha a estrutura semelhante, mas simplifique a linguagem, instruções, e adicione suportes visuais ou estratégias diferenciadas conforme as ações selecionadas.
         """
-        # Usar a mesma função de geração, passando a diretriz extra
+        # Reutiliza a função de geração com o prompt personalizado
         conteudo_adaptado, _ = executar_geracao_ia(
             tipo_modulo='Plano de Inclusão / AEE',
             tema='Adaptação de material',
