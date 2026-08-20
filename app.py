@@ -5,10 +5,19 @@ import random
 import time
 import requests
 import markdown as md
+from io import BytesIO
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect, generate_csrf
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_SECTION
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from htmldocx import HtmlToDocx
+from xhtml2pdf import pisa
 from bs4 import BeautifulSoup
 import bleach
 
@@ -181,6 +190,7 @@ def executar_geracao_ia(**kwargs):
     nivel = kwargs.get('nivel', 'Médio')
     nome_professor = kwargs.get('nome_professor', 'Professor(a)')
     nome_escola = kwargs.get('nome_escola', 'Instituição de Ensino')
+    # Campos específicos
     numero_plano = kwargs.get('numero_plano', '')
     bimestre = kwargs.get('bimestre', '1º BIM')
     data_inicio = kwargs.get('data_inicio', '')
@@ -197,6 +207,7 @@ def executar_geracao_ia(**kwargs):
     telefone_escola = kwargs.get('telefone_escola', '')
     email_escola = kwargs.get('email_escola', '')
     observacoes = kwargs.get('observacoes', '')
+    # Campos específicos de sequência didática
     qtd_aulas = kwargs.get('qtd_aulas', '5')
     duracao = kwargs.get('duracao', '')
     objetivo_geral = kwargs.get('objetivo_geral', '')
@@ -205,6 +216,7 @@ def executar_geracao_ia(**kwargs):
     dificuldades = kwargs.get('dificuldades', '')
     recursos = kwargs.get('recursos', '')
     metodologia = kwargs.get('metodologia', '')
+    # Campos de diagnóstico
     qtd_alunos = kwargs.get('qtd_alunos', '')
     dificuldades_diagnostico = kwargs.get('dificuldades_diagnostico', '')
     habilidades_consolidadas = kwargs.get('habilidades_consolidadas', '')
@@ -226,6 +238,7 @@ def executar_geracao_ia(**kwargs):
             chave_limpa = chave_limpa.split(")")[-1]
         chave_limpa = chave_limpa.strip()
 
+    # CONSTRUÇÃO DO PROMPT
     regras_formato = """
         REGRAS OBRIGATÓRIAS DE FORMATAÇÃO DA SAÍDA:
         - Responda ESTRITAMENTE em HTML puro e semântico (tags: h4, h5, p, strong, em, ul, ol, li, table, thead, tbody, tr, th, td, div).
@@ -242,71 +255,177 @@ def executar_geracao_ia(**kwargs):
         Dúvida ou Consulta do Professor: "{tema}"
         {regras_formato}
         """
+    elif tipo_modulo == 'Planejamento Bimestral':
+        numero_final = numero_plano.strip() or str(random.randint(10000, 99999))
+        ano_letivo_final = ano_letivo.strip() or str(datetime.now().year)
+        criado_em = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        turma_completa = f"{ano} | ({turma}) | {turno}".upper() if turma or turno else ano.upper()
+        periodo_execucao = f"{data_inicio} a {data_fim}" if data_inicio and data_fim else "[preencher período de execução]"
+        prompt = f"""
+        Atue como um Especialista em Planejamento Pedagógico Escolar, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere um PLANEJAMENTO BIMESTRAL completo e oficial, seguindo EXATAMENTE a estrutura, ordem de seções e nível de detalhamento abaixo — este é o modelo oficial usado pela Secretaria Municipal de Educação, e deve ser reproduzido fielmente.
+
+        {regras_formato}
+        REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No lugar exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
+
+        ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA:
+
+        1. <div class="doc-cabecalho-oficial">
+           Inclua, em formato de linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>):
+           INEP: {inep or '[preencher]'}
+           ESCOLA: {nome_escola}
+           ENDEREÇO: {endereco_escola or '[preencher endereço]'}
+           CIDADE: {cidade_escola or '[preencher cidade]'} ESTADO: {estado_escola}
+           ZONA: {zona_escola or '[preencher]'} TELEFONE: {telefone_escola or '[preencher]'} EMAIL: {email_escola or '[preencher]'}
+           </div>
+
+        2. <h2 class="doc-titulo-oficial">PLANO BIMESTRAL #{numero_final}</h2>
+
+        3. <div class="doc-metadata-oficial">
+           Em linhas rotuladas, exatamente nesta ordem:
+           BIMESTRAL // {modalidade}
+           {bimestre} {periodo_execucao}
+           TURMA: {turma_completa}
+           COMP. CURR.: {disciplina}
+           EXECUÇÃO: {periodo_execucao}
+           CRIADO EM: {criado_em}
+           PROFESSOR(A): {nome_professor}
+           ANO LETIVO: {ano_letivo_final}
+           </div>
+
+        4. <!--COMPETENCIAS_GERAIS_AQUI-->
+
+        5. <h5 class="doc-secao-titulo">Competências Específicas de {disciplina}</h5>
+           Liste, numeradas (1ª, 2ª, 3ª...), as competências específicas oficiais da BNCC para a área de conhecimento à qual "{disciplina}" pertence, voltadas ao Ensino Fundamental — Anos Finais.
+
+        6. <h5 class="doc-secao-titulo">Unidades Temáticas</h5>
+           Identifique a(s) unidade(s) temática(s) da BNCC relacionada(s) ao tema "{tema}" para a série/ano "{ano}".
+
+        7. <h5 class="doc-secao-titulo">Objetos de Conhecimento</h5>
+           Liste os objetos de conhecimento relacionados ao tema.
+
+        8. <h5 class="doc-secao-titulo">Habilidades</h5>
+           Liste as habilidades da BNCC pertinentes (formato: código - descrição), priorizando {bncc if bncc else 'as mais adequadas'}.
+
+        9. <h5 class="doc-secao-titulo">Sugestões Metodológicas</h5>
+           Lista <ul><li> com 8 a 10 sugestões práticas.
+
+        10. <h5 class="doc-secao-titulo">Avaliação</h5>
+            Lista <ul><li> com os instrumentos avaliativos.
+
+        11. <h5 class="doc-secao-titulo">Recursos</h5>
+            Lista <ul><li> com os recursos didáticos.
+
+        12. <h5 class="doc-secao-titulo">Referências</h5>
+            Liste em linhas simples, formato ABNT simplificado: BNCC, DCTMA, e bibliografia pertinente.
+
+        13. <h5 class="doc-secao-titulo">Observações Pertinentes</h5>
+            {f'Inclua o seguinte texto informado pelo professor: "{observacoes}"' if observacoes else 'Sem observações adicionais.'}
+        """
+    elif tipo_modulo == 'Gerador de Provas':
+        prompt = f"""
+        Atue como um Especialista em Avaliação Pedagógica. Gere uma PROVA/AVALIAÇÃO completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}".
+        NÃO gere cabeçalho — o sistema adiciona automaticamente.
+        {regras_formato}
+
+        SUA RESPOSTA DEVE TER DUAS PARTES, SEPARADAS PELO MARCADOR LITERAL <!--INFO_PEDAGOGICA-->:
+
+        ============ PARTE 1 — A PROVA EM SI ============
+        1. Gere exatamente {qtd_questoes} questões no formato {tipo_prova}.
+        2. Cada questão DEVE estar em <div class="questao-item">...</div>.
+        3. Numere com dois dígitos: 01., 02., etc.
+        4. Inclua (código BNCC) após o número: '01. (EF09MA02) '.
+        5. O enunciado em <strong>.
+        6. Para objetivas, use a) até d) com <br>.
+        7. Para discursivas, gere <div class="linha-resposta"></div> conforme o espaço esperado.
+        8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[respostas]</div>.
+
+        ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS ============
+        Após o marcador, gere <h5>Objetivos</h5>, <h5>Competências e Habilidades</h5> (priorizando {bncc if bncc else 'as adequadas'}), <h5>Fundamentação Legal</h5>, <h5>Configuração Utilizada</h5>, <h5>Metodologia de Aplicação</h5>.
+        """
+    elif tipo_modulo == 'Simulados':
+        tipo_simulado = kwargs.get('tipo_simulado', 'Simulado Geral / Diagnóstico')
+        duracao_simulado = kwargs.get('duracao_simulado', '').strip()
+        qtd_questoes_simulado = kwargs.get('qtd_questoes_simulado', '20').strip() or '20'
+        duracao_sugerida = duracao_simulado or f"aproximadamente {int(qtd_questoes_simulado) * 3} minutos"
+        prompt = f"""
+        Atue como Especialista em Simulados. Gere um SIMULADO sobre "{tema}", disciplina "{disciplina}", ano "{ano}".
+        Tipo: {tipo_simulado}. NÃO gere cabeçalho.
+        {regras_formato}
+
+        SUA RESPOSTA DEVE TER DUAS PARTES, SEPARADAS POR <!--INFO_PEDAGOGICA-->:
+
+        ============ PARTE 1 — SIMULADO ============
+        1. Inicie com <div class="instrucoes-simulado"><p><strong>Duração:</strong> {duracao_sugerida}</p><p><strong>Instruções:</strong> ...</p></div>
+        2. Gere {qtd_questoes_simulado} questões em <div class="questao-item">.
+        3. Numere 01., 02., etc. Inclua código BNCC.
+        4. Use <strong> para o enunciado, e alternativas a) a d) com <br>.
+        5. Para discursivas, use <div class="linha-resposta">.
+        6. Inclua <div class="gabarito-prova"><h5>Gabarito</h5>[respostas]</div>.
+
+        ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS ============
+        Após o marcador, gere <h5>Objetivos</h5>, <h5>Matriz de Referência</h5> (tabela com questões, habilidades, dificuldade), <h5>Fundamentação Legal</h5>, <h5>Configuração</h5>, <h5>Metodologia de Aplicação</h5>.
+        """
     elif tipo_modulo == 'Sequência Didática':
         prompt = f"""
-        Atue como um Especialista em Planejamento de Ensino e Sequências Didáticas.
-        Gere uma SEQUÊNCIA DIDÁTICA completa para o componente curricular {disciplina}, ano/série {ano}, sobre o tema "{tema}".
-        Dados fornecidos:
-        - Habilidade BNCC alvo: {bncc if bncc else 'selecione as mais adequadas'}
-        - Quantidade de aulas: {qtd_aulas}
-        - Duração: {duracao if duracao else 'a definir'}
-        - Objetivo geral: {objetivo_geral if objetivo_geral else 'infira a partir do tema'}
-        - Objetivos específicos: {objetivos_especificos if objetivos_especificos else 'descreva 3-5 objetivos'}
-        - Perfil da turma: {perfil_turma if perfil_turma else 'turma heterogênea'}
-        - Dificuldades: {dificuldades if dificuldades else 'não informadas'}
-        - Recursos disponíveis: {recursos if recursos else 'recursos básicos de sala de aula'}
-        - Metodologia preferida: {metodologia if metodologia else 'metodologias ativas'}
+        Atue como Especialista em Planejamento de Ensino. Gere uma SEQUÊNCIA DIDÁTICA para {disciplina}, {ano}, tema "{tema}".
+        Dados: Habilidade BNCC: {bncc if bncc else 'selecione as adequadas'}; Aulas: {qtd_aulas}; Duração: {duracao or 'a definir'};
+        Objetivo geral: {objetivo_geral or 'infira'}; Objetivos específicos: {objetivos_especificos or 'descreva 3-5'};
+        Perfil da turma: {perfil_turma or 'heterogênea'}; Dificuldades: {dificuldades or 'não informadas'};
+        Recursos: {recursos or 'básicos'}; Metodologia: {metodologia or 'ativas'}.
         {regras_formato}
-        ESTRUTURA OBRIGATÓRIA, nesta ordem exata:
-        1. <h5>Identificação</h5> (disciplina, ano, tema, duração, nº de aulas)
-        2. <h5>Justificativa</h5> (por que trabalhar este tema)
-        3. <h5>Objetivo Geral</h5>
-        4. <h5>Objetivos Específicos</h5> (lista <ul>)
-        5. <h5>Habilidades BNCC</h5> (código + descrição, priorizando a informada)
-        6. <h5>Conteúdos</h5> (lista <ul>)
-        7. <h5>Metodologia</h5> (descrição geral)
-        8. <h5>Desenvolvimento (Aula a Aula)</h5> (uma subseção <h6>Aula X</h6> para cada aula, com descrição detalhada)
-        9. <h5>Recursos</h5> (lista <ul>)
-        10. <h5>Avaliação</h5> (como será avaliado)
-        11. <h5>Inclusão/Adaptações</h5> (sugestões para alunos com necessidades)
-        12. <h5>Referências</h5> (BNCC, LDB, DCTMA e bibliografia pertinente)
+
+        ESTRUTURA OBRIGATÓRIA:
+        <h5>Identificação</h5> (disciplina, ano, tema, duração, aulas)
+        <h5>Justificativa</h5>
+        <h5>Objetivo Geral</h5>
+        <h5>Objetivos Específicos</h5> (lista)
+        <h5>Habilidades BNCC</h5> (código + descrição)
+        <h5>Conteúdos</h5> (lista)
+        <h5>Metodologia</h5> (descrição geral)
+        <h5>Desenvolvimento (Aula a Aula)</h5> (subseções <h6>Aula X</h6>)
+        <h5>Recursos</h5> (lista)
+        <h5>Avaliação</h5>
+        <h5>Inclusão/Adaptações</h5>
+        <h5>Referências</h5>
         """
     elif tipo_modulo == 'Diagnóstico da Turma':
         prompt = f"""
-        Atue como um Especialista em Avaliação e Diagnóstico Pedagógico.
-        Com base nos dados fornecidos pelo professor, elabore um DIAGNÓSTICO DA TURMA e um PLANO DE INTERVENÇÃO para a disciplina {disciplina}, ano/série {ano}.
-        Dados fornecidos:
-        - Quantidade de alunos: {qtd_alunos if qtd_alunos else 'não informada'}
-        - Dificuldades observadas: {dificuldades_diagnostico if dificuldades_diagnostico else 'não informadas'}
-        - Habilidades consolidadas: {habilidades_consolidadas if habilidades_consolidadas else 'não informadas'}
-        - Habilidades com dificuldade: {habilidades_dificuldade if habilidades_dificuldade else 'não informadas'}
-        - Nível geral da turma: {nivel_geral if nivel_geral else 'não informado'}
-        - Observações: {observacoes_diagnostico if observacoes_diagnostico else ''}
+        Atue como Especialista em Diagnóstico Pedagógico. Com base nos dados do professor, elabore DIAGNÓSTICO e PLANO DE INTERVENÇÃO para {disciplina}, {ano}.
+        Dados: Alunos: {qtd_alunos or 'não informado'}; Dificuldades: {dificuldades_diagnostico or 'não informadas'};
+        Habilidades consolidadas: {habilidades_consolidadas or 'não informadas'};
+        Habilidades com dificuldade: {habilidades_dificuldade or 'não informadas'};
+        Nível geral: {nivel_geral or 'não informado'}; Observações: {observacoes_diagnostico or ''}.
         {regras_formato}
-        ESTRUTURA OBRIGATÓRIA, em duas partes:
-        PARTE 1 - DIAGNÓSTICO PEDAGÓGICO:
+
+        ESTRUTURA OBRIGATÓRIA em duas partes:
+
+        PARTE 1 — DIAGNÓSTICO:
         <h5>Panorama Geral</h5>
-        <h5>Pontos Fortes</h5> (lista <ul>)
-        <h5>Principais Dificuldades</h5> (lista <ul>)
-        <h5>Habilidades Prioritárias</h5> (lista <ul>)
-        <h5>Necessidades de Intervenção</h5> (descrição)
-        PARTE 2 - PLANO DE INTERVENÇÃO:
+        <h5>Pontos Fortes</h5> (lista)
+        <h5>Principais Dificuldades</h5> (lista)
+        <h5>Habilidades Prioritárias</h5> (lista)
+        <h5>Necessidades de Intervenção</h5>
+
+        PARTE 2 — PLANO DE INTERVENÇÃO:
         <h5>Objetivos da Intervenção</h5>
         <h5>Estratégias e Metodologias</h5>
-        <h5>Atividades Sugeridas</h5> (organizadas por eixo)
+        <h5>Atividades Sugeridas</h5> (organizadas)
         <h5>Diferenciação e Inclusão</h5>
         <h5>Acompanhamento e Avaliação</h5>
         <h5>Indicadores de Progresso</h5>
         <h5>Referências</h5>
         """
     else:
+        # Para os demais módulos (plano, atividades, etc.) — mantém o prompt genérico
         prompt = f"""
-        Atue como um Especialista em Design Pedagógico e Elaboração de Conteúdo Escolar Avançado, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
-        Gere o conteúdo completo e detalhado para o documento estruturado do módulo '{tipo_modulo}'.
+        Atue como Especialista em Design Pedagógico, com domínio da BNCC, LDB e DCTMA.
+        Gere o conteúdo completo para o módulo '{tipo_modulo}'.
         DADOS: Tema: {tema}, Disciplina: {disciplina}, Ano: {ano}, BNCC: {bncc if bncc else 'selecione as adequadas'}, Nível: {nivel}.
         {regras_formato}
         """ + (f" DIRETRIZES ESPECÍFICAS: {kwargs.get('diretrizes_extra', '')}" if kwargs.get('diretrizes_extra') else "")
 
+    # CADEIA DE PROVEDORES (fallback automático)
     payload_gemini = {"contents": [{"parts": [{"text": prompt}]}]}
     headers_gemini = {'Content-Type': 'application/json'}
     mistral_chave_limpa = MISTRAL_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
@@ -366,7 +485,7 @@ def executar_geracao_ia(**kwargs):
     return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de provedores esgotada)"), ''
 
 # =====================================================================
-# EXPORTAÇÃO — DOCX e PDF (COM IMPORTAÇÕES CORRIGIDAS)
+# EXPORTAÇÃO — DOCX e PDF (mantido igual)
 # =====================================================================
 def _definir_colunas_secao(section, num_colunas):
     sectPr = section._sectPr
@@ -399,16 +518,6 @@ def _adicionar_no_docx(documento, node):
     documento.add_paragraph("")
 
 def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
-    # Importações movidas para dentro da função para evitar crash na inicialização
-    from docx import Document
-    from docx.shared import Pt
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.enum.section import WD_SECTION
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-    from htmldocx import HtmlToDocx
-    from io import BytesIO
-
     documento = Document()
     p_escola = documento.add_paragraph()
     p_escola.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -481,10 +590,6 @@ def gerar_docx(titulo, escola, professor, html_conteudo, tipo_modulo='', discipl
     return buffer
 
 def gerar_pdf(titulo, escola, professor, html_conteudo, tipo_modulo='', disciplina='', ano=''):
-    # Importação movida para dentro da função
-    from xhtml2pdf import pisa
-    from io import BytesIO
-
     if tipo_modulo in ('Gerador de Provas', 'Simulados'):
         rotulo_titulo_pdf = "Avaliação de" if tipo_modulo == 'Gerador de Provas' else "Simulado de"
         bloco_cabecalho = f"""
@@ -537,6 +642,7 @@ DB_PATH = os.environ.get('DATABASE_PATH', 'database.db')
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # Tabela usuarios com novas colunas
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -550,12 +656,14 @@ def init_db():
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    # Adicionar colunas se não existirem (migração)
     for col in ['role', 'ativo', 'created_at', 'updated_at']:
         try:
             cursor.execute(f"ALTER TABLE usuarios ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
             pass
 
+    # Verificar se existe usuário admin, senão criar um padrão
     cursor.execute("SELECT * FROM usuarios WHERE email = 'admin@professor.ia'")
     if not cursor.fetchone():
         senha_hash = generate_password_hash('admin123')
@@ -565,6 +673,7 @@ def init_db():
         ''', (senha_hash,))
         print("Usuário admin criado: admin@professor.ia / admin123")
 
+    # Tabela materiais (já existe, adicionar coluna pasta_id se não existir)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS materiais (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -586,6 +695,7 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # Tabela pastas
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS pastas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -595,6 +705,7 @@ def init_db():
         )
     ''')
 
+    # Tabela banco_questoes (já existe, não precisa mexer)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS banco_questoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -778,7 +889,7 @@ def logout():
     return redirect(url_for('login'))
 
 # =====================================================================
-# DASHBOARD DO GERADOR (mantido)
+# DASHBOARD DO GERADOR (mantido e corrigido)
 # =====================================================================
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
@@ -788,6 +899,7 @@ def dashboard():
         form_type = 'plano'
     config_modulo = MODULOS[form_type]
     conteudo = ""
+    # Coleta de parâmetros do formulário
     tema = request.form.get('tema', '').strip()
     disciplina = request.form.get('disciplina', '').strip()
     ano = request.form.get('ano', '').strip()
@@ -795,6 +907,7 @@ def dashboard():
     tipo_prova = request.form.get('tipo_prova', '').strip()
     qtd_questoes = request.form.get('qtd_questoes', '').strip()
     nivel = request.form.get('nivel', '').strip()
+    # Campos específicos
     numero_plano = request.form.get('numero_plano', '').strip()
     bimestre = request.form.get('bimestre', '1º BIM').strip()
     data_inicio = request.form.get('data_inicio', '').strip()
@@ -823,6 +936,7 @@ def dashboard():
     tipo_simulado = request.form.get('tipo_simulado', 'Simulado Geral / Diagnóstico').strip()
     duracao_simulado = request.form.get('duracao_simulado', '').strip()
     qtd_questoes_simulado = request.form.get('qtd_questoes_simulado', '20').strip()
+    # Novos campos para sequência didática
     qtd_aulas = request.form.get('qtd_aulas', '5').strip()
     objetivo_geral = request.form.get('objetivo_geral', '').strip()
     objetivos_especificos = request.form.get('objetivos_especificos', '').strip()
@@ -830,6 +944,7 @@ def dashboard():
     dificuldades = request.form.get('dificuldades', '').strip()
     recursos = request.form.get('recursos', '').strip()
     metodologia = request.form.get('metodologia', '').strip()
+    # Diagnóstico
     qtd_alunos = request.form.get('qtd_alunos', '').strip()
     dificuldades_diagnostico = request.form.get('dificuldades_diagnostico', '').strip()
     habilidades_consolidadas = request.form.get('habilidades_consolidadas', '').strip()
@@ -870,7 +985,7 @@ def dashboard():
             observacoes=observacoes,
             tipos_atividade=tipos_atividade,
             tipos_projeto=tipos_projeto,
-            duracao=duracao,
+            duracao=duracao,                 # única ocorrência
             objetivo=objetivo,
             nome_aluno=nome_aluno,
             nivel_leitura=nivel_leitura,
@@ -880,8 +995,8 @@ def dashboard():
             tipo_simulado=tipo_simulado,
             duracao_simulado=duracao_simulado,
             qtd_questoes_simulado=qtd_questoes_simulado,
+            # Novos (sem duplicação)
             qtd_aulas=qtd_aulas,
-            duracao=duracao,
             objetivo_geral=objetivo_geral,
             objetivos_especificos=objetivos_especificos,
             perfil_turma=perfil_turma,
@@ -895,6 +1010,7 @@ def dashboard():
             nivel_geral=nivel_geral,
             observacoes_diagnostico=observacoes_diagnostico
         )
+        # Salvar na biblioteca
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -997,7 +1113,7 @@ def assistente():
     return render_template('assistente.html', resposta=resposta, name=session.get('user_name', ''))
 
 # =====================================================================
-# BIBLIOTECA 2.0 (com filtros, pastas, duplicar)
+# BIBLIOTECA 2.0
 # =====================================================================
 @app.route('/biblioteca')
 @login_required
@@ -1116,6 +1232,7 @@ def duplicar_material(material_id):
     flash('Material duplicado com sucesso!', 'success')
     return redirect(url_for('biblioteca'))
 
+# Rotas para pastas
 @app.route('/biblioteca/pastas', methods=['GET', 'POST'])
 @login_required
 def gerenciar_pastas():
@@ -1208,11 +1325,14 @@ def adaptar_material(material_id):
         recursos_disponiveis = request.form.get('recursos_disponiveis', '').strip()
         observacoes = request.form.get('observacoes', '').strip()
         acoes = request.form.getlist('acoes')
+        # Construir prompt específico para adaptação
         prompt_adaptacao = f"""
         Você é um especialista em Educação Inclusiva e AEE.
         Adapte o seguinte material pedagógico para atender às necessidades de um aluno com dificuldades.
+
         MATERIAL ORIGINAL:
         {material['conteudo_html']}
+
         INFORMAÇÕES DO ALUNO:
         - Dificuldades observadas: {dificuldades}
         - Barreiras de aprendizagem: {barreiras}
@@ -1220,12 +1340,16 @@ def adaptar_material(material_id):
         - Nível do aluno: {nivel_aluno}
         - Recursos disponíveis: {recursos_disponiveis}
         - Observações: {observacoes}
+
         AÇÕES SELECIONADAS: {', '.join(acoes)}
+
         {regras_formato}
+
         Gere uma versão adaptada do material, preservando o objetivo pedagógico original.
         Inclua um cabeçalho com "VERSÃO ADAPTADA PARA INCLUSÃO/AEE".
         Mantenha a estrutura semelhante, mas simplifique a linguagem, instruções, e adicione suportes visuais ou estratégias diferenciadas conforme as ações selecionadas.
         """
+        # Usar a mesma função de geração, passando a diretriz extra
         conteudo_adaptado, _ = executar_geracao_ia(
             tipo_modulo='Plano de Inclusão / AEE',
             tema='Adaptação de material',
@@ -1235,6 +1359,7 @@ def adaptar_material(material_id):
             nome_escola=session.get('user_school', 'Instituição de Ensino'),
             diretrizes_extra=prompt_adaptacao
         )
+        # Salvar como novo material
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''
@@ -1336,7 +1461,7 @@ def admin_role_usuario(id):
     return redirect(url_for('admin_usuarios'))
 
 # =====================================================================
-# BANCO DE QUESTÕES (mantido)
+# BANCO DE QUESTÕES
 # =====================================================================
 @app.route('/banco-questoes')
 @login_required
