@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }} - Início</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --azul-950: #060f24;
+            --azul-900: #0c1d3d;
+            --azul-800: #123a7a;
+            --azul-700: #1b4da6;
+            --azul-600: #2563eb;
+            --azul-500: #3b82f6;
+            --azul-100: #dce9fb;
+            --azul-50:  #f2f6fc;
+            --selo-ouro: #b3811f;
+            --ouro-400: #d4a743;
+            --ouro-100: #fbf3df;
+            --tinta: #0f1f3d;
+            --tinta-suave: #52627e;
+            --borda: #dfe7f4;
+            --fundo: #eef2f9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--fundo);
+            color: var(--tinta);
+        }
+        h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        h4,h5,h6 { font-family: 'Inter', sans-serif; font-weight: 800; }
+
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
+
+        .sidebar {
+            background-color: #ffffff;
+            border-right: 1px solid var(--borda);
+            min-height: 100vh;
+            padding: 0 !important;
+        }
+        .sidebar-brand {
+            position: relative;
+            background: linear-gradient(140deg, var(--azul-950) 0%, var(--azul-900) 55%, var(--azul-800) 100%);
+            padding: 1.5rem 1.25rem;
+            color: #fff;
+        }
+        .sidebar-brand::after {
+            content: "";
+            position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--ouro-400) 25%, var(--ouro-400) 75%, transparent);
+            opacity: .8;
+        }
+        .sidebar-brand h5 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; font-size: 1.1rem; }
+        .sidebar-brand .icone {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(212, 167, 67, 0.45);
+            color: var(--ouro-400);
+            display: inline-flex; align-items: center; justify-content: center;
+            margin-right: 8px;
+        }
+        .sidebar-brand .selo-legal {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em;
+            color: var(--ouro-400); margin-top: 9px;
+        }
+        .sidebar-body { padding: 1.25rem; animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both; }
+
+        .nav-link-premium {
+            display: flex; align-items: center;
+            padding: 0.65rem 0.9rem;
+            color: var(--tinta-suave);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 0.2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            position: relative;
+            transition: all 0.18s ease;
+        }
+        .nav-link-premium:hover { background-color: var(--azul-50); color: var(--azul-900); transform: translateX(2px); }
+        .nav-link-premium.active {
+            background: linear-gradient(135deg, var(--azul-800), var(--azul-600));
+            color: #fff;
+            box-shadow: 0 6px 14px -6px rgba(27,77,166,0.5);
+        }
+        .nav-link-premium.active:hover { transform: none; }
+        .nav-link-premium i { width: 1.2rem; margin-right: 0.7rem; }
+        .nav-link-premium.desabilitado { opacity: .45; cursor: default; pointer-events: none; }
+        .badge-em-breve {
+            font-size: 0.58rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+            background: var(--ouro-100); color: var(--selo-ouro);
+            border-radius: 99px; padding: 2px 7px; margin-left: auto;
+        }
+
+        .conteudo-principal { padding: 2rem 2.25rem; animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; }
+
+        .eyebrow {
+            font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+            color: var(--selo-ouro); display: flex; align-items: center; gap: 6px; margin-bottom: .35rem;
+        }
+        .eyebrow::before { content: ""; width: 16px; height: 1px; background: var(--selo-ouro); display: inline-block; }
+
+        .cabecalho-inicio {
+            background: linear-gradient(120deg, var(--azul-950) 0%, var(--azul-900) 55%, var(--azul-800) 100%);
+            border-radius: 18px;
+            padding: 2rem 2.25rem;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.75rem;
+        }
+        .cabecalho-inicio::after {
+            content: "";
+            position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(212,167,67,.18), transparent 70%);
+        }
+        .cabecalho-inicio h1 { font-size: 1.8rem; margin: 0 0 .35rem; position: relative; z-index: 1; }
+        .cabecalho-inicio p { color: #b9c9e8; margin: 0; position: relative; z-index: 1; }
+        .pill-stat {
+            display: inline-flex; align-items: baseline; gap: 6px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(212,167,67,0.3);
+            border-radius: 12px; padding: .6rem 1rem; margin-top: 1.1rem; margin-right: .6rem;
+            position: relative; z-index: 1;
+        }
+        .pill-stat strong { font-family: 'Fraunces', serif; font-size: 1.3rem; color: var(--ouro-400); }
+        .pill-stat span { font-size: .72rem; color: #cfe0fb; text-transform: uppercase; letter-spacing: .04em; }
+
+        .card-continuar {
+            background: #fff;
+            border: 1px solid var(--borda);
+            border-left: 4px solid var(--ouro-400);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+            box-shadow: 0 1px 2px rgba(10,31,63,0.04);
+            margin-bottom: 1.75rem;
+        }
+        .card-continuar .btn-continuar {
+            background: linear-gradient(135deg, var(--azul-800), var(--azul-600));
+            color: #fff; font-weight: 700; border: none; border-radius: 9px; padding: .55rem 1.2rem;
+            text-decoration: none; white-space: nowrap;
+        }
+        .card-continuar .btn-continuar:hover { filter: brightness(1.06); color: #fff; }
+
+        .secao-titulo { font-size: 1.05rem; font-weight: 800; color: var(--tinta); margin-bottom: 1rem; }
+
+        .grid-atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .85rem; margin-bottom: 2rem; }
+        .card-atalho {
+            background: #fff; border: 1px solid var(--borda); border-radius: 14px;
+            padding: 1.1rem 1.2rem; text-decoration: none; color: var(--tinta);
+            transition: transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s ease, border-color .18s ease;
+            display: flex; flex-direction: column; gap: .55rem;
+        }
+        .card-atalho:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -18px rgba(10,31,63,0.28); border-color: var(--azul-100); color: var(--tinta); }
+        .card-atalho .icone-atalho {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: var(--azul-50); color: var(--azul-700);
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+        .card-atalho .nome-atalho { font-weight: 700; font-size: .92rem; }
+        .card-atalho .qtd-atalho { font-size: .74rem; color: var(--tinta-suave); }
+        .card-atalho.em-breve { opacity: .55; cursor: default; }
+        .card-atalho.em-breve .icone-atalho { background: #f1f1f1; color: #9aa5b8; }
+        .card-atalho.em-breve .badge-em-breve {
+            align-self: flex-start;
+            font-size: 0.58rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+            background: var(--ouro-100); color: var(--selo-ouro); border-radius: 99px; padding: 2px 8px;
+        }
+
+        .lista-recentes { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.1rem 1.25rem; }
+        .item-recente {
+            display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+            padding: .6rem 0; border-bottom: 1px solid var(--borda);
+            text-decoration: none; color: var(--tinta);
+        }
+        .item-recente:last-child { border-bottom: none; }
+        .item-recente:hover .titulo-recente { color: var(--azul-700); }
+        .titulo-recente { font-weight: 700; font-size: .87rem; transition: color .15s ease; }
+        .meta-recente { font-size: .74rem; color: var(--tinta-suave); }
+        .badge-tipo-mini {
+            background: var(--azul-50); color: var(--azul-800); font-weight: 700; font-size: .64rem;
+            padding: .2rem .5rem; border-radius: 6px; white-space: nowrap;
+        }
+        .estado-vazio-mini { text-align: center; padding: 1.75rem 1rem; color: var(--tinta-suave); font-size: .85rem; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- BARRA LATERAL -->
+        <div class="col-md-3 col-lg-2 sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="d-flex align-items-center">
+                    <span class="icone"><i class="fa-solid fa-graduation-cap"></i></span>
+                    <h5>{{ app_name }}</h5>
+                </div>
+                <div class="selo-legal"><i class="fa-solid fa-shield-halved"></i> BNCC · LDB · DCTMA</div>
+            </div>
+
+            <div class="sidebar-body">
+                <nav class="nav flex-column mb-2">
+                    <a class="nav-link-premium active" href="{{ url_for('inicio') }}">
+                        <i class="fa-solid fa-house"></i> Início
+                    </a>
+                </nav>
+
+                <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Módulos do Sistema</p>
+                <nav class="nav flex-column">
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='plano') }}"><i class="fa-solid fa-book"></i> Plano de Aula</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='bimestral') }}"><i class="fa-solid fa-calendar-check"></i> Plan. Bimestral</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='atividades') }}"><i class="fa-solid fa-list-check"></i> Banco de Atividades</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='avaliacoes') }}"><i class="fa-solid fa-file-signature"></i> Gerador de Provas</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='simulados') }}"><i class="fa-solid fa-clipboard-question"></i> Simulados</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='duvidas') }}"><i class="fa-solid fa-circle-question"></i> Tira-Dúvidas IA</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='relatorios') }}"><i class="fa-solid fa-chart-line"></i> Relatórios</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='inclusao') }}"><i class="fa-solid fa-hands-asl-interpreting"></i> Plano AEE</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='projetos') }}"><i class="fa-solid fa-diagram-project"></i> Projetos</a>
+                    <a class="nav-link-premium" href="{{ url_for('dashboard', form_type='alfabetizacao') }}"><i class="fa-solid fa-spell-check"></i> Alfabetização / Reforço</a>
+                </nav>
+
+                <hr class="my-3">
+                <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">Meus Materiais</p>
+                <nav class="nav flex-column">
+                    <a class="nav-link-premium" href="{{ url_for('biblioteca') }}"><i class="fa-solid fa-book-bookmark"></i> Biblioteca / Histórico</a>
+                    <a class="nav-link-premium" href="{{ url_for('biblioteca', favoritos=1) }}"><i class="fa-solid fa-star"></i> Favoritos</a>
+                    <a class="nav-link-premium" href="{{ url_for('banco_questoes') }}"><i class="fa-solid fa-database"></i> Banco de Questões</a>
+                </nav>
+
+                <hr class="my-4">
+                <div class="small mb-3">
+                    <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
+                    <p class="mb-0 text-muted" style="font-size: .78rem;">{{ school }}</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link-premium text-danger">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair
+                </a>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO -->
+        <div class="col-md-9 col-lg-10">
+            <div class="conteudo-principal">
+
+                <div class="cabecalho-inicio">
+                    <div class="eyebrow" style="color:#e8c878;">Painel do professor</div>
+                    <h1>{{ saudacao }}, {{ name.split(' ')[0] if name else 'professor' }}.</h1>
+                    <p>{{ school }}</p>
+                    <div>
+                        <div class="pill-stat"><strong>{{ total_materiais }}</strong> <span>materiais criados</span></div>
+                        <div class="pill-stat"><strong>{{ total_favoritos }}</strong> <span>favoritos</span></div>
+                    </div>
+                </div>
+
+                {% if continuar %}
+                <div class="card-continuar">
+                    <div>
+                        <div class="eyebrow" style="margin-bottom:.15rem;">Continuar de onde parei</div>
+                        <p class="fw-bold mb-0" style="font-size: 1rem;">{{ continuar.titulo }}</p>
+                        <p class="text-muted small mb-0">{{ continuar.tipo_modulo }} • {{ continuar.disciplina }}{% if continuar.ano %} • {{ continuar.ano }}{% endif %} • {{ continuar.criado_em }}</p>
+                    </div>
+                    <a href="{{ url_for('ver_material', material_id=continuar.id) }}" class="btn-continuar">
+                        <i class="fa-solid fa-arrow-right me-1"></i> Continuar
+                    </a>
+                </div>
+                {% endif %}
+
+                <div class="secao-titulo">Atalhos rápidos</div>
+                <div class="grid-atalhos">
+                    {% for a in atalhos_ativos %}
+                    <a href="{{ url_for('dashboard', form_type=a.chave) }}" class="card-atalho">
+                        <span class="icone-atalho"><i class="fa-solid {{ a.icone }}"></i></span>
+                        <span class="nome-atalho">{{ a.nome }}</span>
+                        <span class="qtd-atalho">{{ a.qtd }} material{{ 'is' if a.qtd != 1 else '' }}</span>
+                    </a>
+                    {% endfor %}
+                    {% for a in atalhos_em_breve %}
+                    <div class="card-atalho em-breve">
+                        <span class="icone-atalho"><i class="fa-solid {{ a.icone }}"></i></span>
+                        <span class="nome-atalho">{{ a.nome }}</span>
+                        <span class="badge-em-breve">Em breve</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="secao-titulo">Materiais recentes</div>
+                        <div class="lista-recentes">
+                            {% if materiais_recentes %}
+                                {% for m in materiais_recentes %}
+                                <a href="{{ url_for('ver_material', material_id=m.id) }}" class="item-recente">
+                                    <div>
+                                        <div class="titulo-recente">{{ m.titulo }}</div>
+                                        <div class="meta-recente">{{ m.disciplina }}{% if m.ano %} • {{ m.ano }}{% endif %} • {{ m.criado_em }}</div>
+                                    </div>
+                                    <span class="badge-tipo-mini">{{ m.tipo_modulo }}</span>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="estado-vazio-mini"><i class="fa-solid fa-folder-open mb-2" style="font-size:1.5rem; color:var(--azul-500);"></i><br>Nenhum material gerado ainda.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="secao-titulo">Favoritos</div>
+                        <div class="lista-recentes">
+                            {% if favoritos_recentes %}
+                                {% for m in favoritos_recentes %}
+                                <a href="{{ url_for('ver_material', material_id=m.id) }}" class="item-recente">
+                                    <div>
+                                        <div class="titulo-recente">{{ m.titulo }}</div>
+                                        <div class="meta-recente">{{ m.disciplina }}{% if m.ano %} • {{ m.ano }}{% endif %} • {{ m.criado_em }}</div>
+                                    </div>
+                                    <span class="badge-tipo-mini">{{ m.tipo_modulo }}</span>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="estado-vazio-mini"><i class="fa-solid fa-star mb-2" style="font-size:1.5rem; color:var(--ouro-400);"></i><br>Marque materiais como favoritos para vê-los aqui.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

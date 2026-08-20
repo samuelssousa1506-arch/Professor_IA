@@ -62,6 +62,9 @@
                     <i class="fa-solid fa-star me-1"></i> {% if material.favorito %}Favoritado{% else %}Favoritar{% endif %}
                 </button>
             </form>
+            <form action="{{ url_for('duplicar_material', material_id=material.id) }}" method="POST">
+                <button type="submit" class="btn btn-outline-secondary fw-bold" style="border-radius: 9px;"><i class="fa-solid fa-copy me-1"></i> Duplicar</button>
+            </form>
             <a href="{{ url_for('exportar_material', material_id=material.id, formato='pdf') }}" class="btn btn-outline-danger fw-bold"><i class="fa-solid fa-file-pdf me-1"></i> PDF</a>
             <a href="{{ url_for('exportar_material', material_id=material.id, formato='docx') }}" class="btn btn-outline-primary fw-bold"><i class="fa-solid fa-file-word me-1"></i> Word</a>
             <button onclick="window.print();" class="btn btn-imprimir-material"><i class="fa-solid fa-print me-1"></i> Imprimir</button>
