@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Biblioteca - Professor IA{% endblock %}
+{% block title %}Biblioteca - Professor IA 2.0{% endblock %}
 {% block head %}
 <style>
     .cabecalho-secao {
@@ -22,6 +22,28 @@
         margin-bottom: .35rem;
     }
     .eyebrow::before { content: ""; width: 16px; height: 1px; background: var(--selo-ouro); display: inline-block; }
+
+    .filtro-box {
+        background: #fff;
+        border: 1px solid var(--borda);
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 2px rgba(10,31,63,0.03);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .filtro-box .form-control, .filtro-box .form-select {
+        border-radius: 8px;
+        border-color: var(--borda);
+        font-size: 0.85rem;
+        padding: 0.35rem 0.65rem;
+        min-width: 120px;
+        flex: 1 0 auto;
+    }
+    .filtro-box .btn { border-radius: 8px; }
 
     .card-material {
         position: relative;
@@ -46,33 +68,6 @@
         border-color: var(--azul-100);
     }
     .card-material:hover::before { opacity: 1; }
-
-    .tab-filtro {
-        display: inline-flex;
-        gap: 8px;
-        margin-bottom: 1.5rem;
-        background: #fff;
-        border: 1px solid var(--borda);
-        padding: 5px;
-        border-radius: 11px;
-    }
-    .tab-filtro a {
-        padding: 0.5rem 1.1rem;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 0.85rem;
-        text-decoration: none;
-        color: var(--tinta-suave);
-        background: transparent;
-        border: 1px solid transparent;
-        transition: all .18s ease;
-    }
-    .tab-filtro a:hover { color: var(--azul-800); }
-    .tab-filtro a.active {
-        background: linear-gradient(135deg, var(--azul-800), var(--azul-600));
-        color: #fff;
-        box-shadow: 0 6px 14px -6px rgba(27,77,166,0.5);
-    }
     .badge-tipo {
         background: var(--azul-50);
         color: var(--azul-800);
@@ -84,44 +79,96 @@
     }
     .card-material .btn { transition: transform .15s ease, filter .15s ease; }
     .card-material .btn:hover { transform: translateY(-1px); }
+
+    .pasta-label {
+        display: inline-block;
+        font-size: 0.7rem;
+        background: #f0f2f5;
+        padding: 0.1rem 0.6rem;
+        border-radius: 10px;
+        color: var(--tinta-suave);
+    }
+    .mover-form { display: inline; }
+    .mover-form select { font-size: 0.75rem; padding: 0.15rem 0.4rem; border-radius: 6px; border: 1px solid var(--borda); }
 </style>
 {% endblock %}
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid py-3">
     <div class="cabecalho-secao">
         <div>
             <div class="eyebrow">Acervo pessoal</div>
             <h3 class="fw-bold mb-1" style="color: var(--tinta); font-family:'Fraunces',serif;">Biblioteca &amp; Histórico</h3>
-            <p class="text-muted small mb-0">Todo material gerado fica salvo aqui automaticamente. Marque como favorito para encontrar mais rápido.</p>
+            <p class="text-muted small mb-0">Todos os materiais gerados ficam salvos automaticamente. Organize em pastas, favorite e duplique.</p>
         </div>
+        <a href="{{ url_for('gerenciar_pastas') }}" class="btn btn-outline-secondary btn-sm"><i class="fa-regular fa-folder"></i> Gerenciar Pastas</a>
     </div>
 
-    <div class="tab-filtro">
-        <a href="{{ url_for('biblioteca') }}" class="{% if not apenas_favoritos %}active{% endif %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Todos</a>
-        <a href="{{ url_for('biblioteca', favoritos=1) }}" class="{% if apenas_favoritos %}active{% endif %}"><i class="fa-solid fa-star me-1"></i> Favoritos</a>
-    </div>
+    <!-- Barra de pesquisa e filtros -->
+    <form method="GET" class="filtro-box" id="form-filtro">
+        <input type="text" name="search" class="form-control" placeholder="Pesquisar..." value="{{ search }}">
+        <input type="text" name="disciplina" class="form-control" placeholder="Disciplina" value="{{ disciplina }}">
+        <input type="text" name="ano" class="form-control" placeholder="Ano" value="{{ ano }}">
+        <select name="tipo" class="form-select">
+            <option value="">Todos os tipos</option>
+            {% for key, mod in MODULOS.items() %}
+                <option value="{{ mod.nome }}" {% if tipo == mod.nome %}selected{% endif %}>{{ mod.nome }}</option>
+            {% endfor %}
+        </select>
+        <select name="favorito" class="form-select">
+            <option value="">Favoritos</option>
+            <option value="1" {% if favorito == '1' %}selected{% endif %}>Sim</option>
+            <option value="0" {% if favorito == '0' %}selected{% endif %}>Não</option>
+        </select>
+        <select name="pasta" class="form-select">
+            <option value="">Sem pasta</option>
+            {% for p in pastas %}
+                <option value="{{ p.id }}" {% if pasta_id == p.id %}selected{% endif %}>{{ p.nome }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Filtrar</button>
+        <a href="{{ url_for('biblioteca') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+    </form>
 
     {% if materiais %}
         {% for m in materiais %}
-        <div class="card-material d-flex justify-content-between align-items-center flex-wrap gap-2" style="animation-delay: {{ (loop.index0 * 0.04)|round(2) }}s;">
-            <div>
-                <span class="badge-tipo">{{ m.tipo_modulo }}</span>
-                <h6 class="fw-bold mt-2 mb-1">{{ m.titulo }}</h6>
-                <p class="text-muted small mb-0">{{ m.disciplina }} • {{ m.ano }} • {{ m.criado_em }}</p>
+        <div class="card-material d-flex justify-content-between align-items-start flex-wrap gap-2" style="animation-delay: {{ (loop.index0 * 0.04)|round(2) }}s;">
+            <div style="flex: 1;">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="badge-tipo">{{ m.tipo_modulo }}</span>
+                    {% if m.favorito %}<span class="badge bg-warning text-dark"><i class="fa-solid fa-star"></i></span>{% endif %}
+                    {% if m.pasta_id %}
+                        <span class="pasta-label"><i class="fa-regular fa-folder"></i> {{ pastas|selectattr('id', 'equalto', m.pasta_id)|map(attribute='nome')|first or 'Pasta' }}</span>
+                    {% endif %}
+                </div>
+                <h6 class="fw-bold mt-2 mb-1">{{ m.titulo or 'Sem título' }}</h6>
+                <p class="text-muted small mb-1">{{ m.disciplina }} • {{ m.ano }} • {{ m.criado_em }}</p>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    <a href="{{ url_for('ver_material', material_id=m.id) }}" class="btn btn-sm btn-outline-primary fw-bold"><i class="fa-regular fa-eye"></i> Ver</a>
+                    <a href="{{ url_for('exportar_material', material_id=m.id, formato='pdf') }}" class="btn btn-sm btn-outline-danger"><i class="fa-regular fa-file-pdf"></i></a>
+                    <a href="{{ url_for('exportar_material', material_id=m.id, formato='docx') }}" class="btn btn-sm btn-outline-primary"><i class="fa-regular fa-file-word"></i></a>
+                    <form action="{{ url_for('duplicar_material', material_id=m.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Duplicar"><i class="fa-regular fa-copy"></i></button>
+                    </form>
+                    <!-- Mover para pasta -->
+                    <form action="{{ url_for('mover_material', material_id=m.id) }}" method="POST" class="mover-form">
+                        <select name="pasta_id" onchange="this.form.submit()" class="form-select form-select-sm" style="display:inline-block; width:auto;">
+                            <option value="">Mover...</option>
+                            <option value="">Sem pasta</option>
+                            {% for p in pastas %}
+                                <option value="{{ p.id }}" {% if m.pasta_id == p.id %}selected{% endif %}>{{ p.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-shrink-0">
                 <form action="{{ url_for('favoritar_material', material_id=m.id) }}" method="POST">
                     <button type="submit" class="btn btn-sm {% if m.favorito %}btn-warning{% else %}btn-outline-secondary{% endif %}">
                         <i class="fa-solid fa-star"></i>
                     </button>
                 </form>
-                <a href="{{ url_for('ver_material', material_id=m.id) }}" class="btn btn-sm btn-outline-primary fw-bold">
-                    <i class="fa-solid fa-eye me-1"></i> Abrir
-                </a>
-                <a href="{{ url_for('exportar_material', material_id=m.id, formato='pdf') }}" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-file-pdf"></i></a>
-                <a href="{{ url_for('exportar_material', material_id=m.id, formato='docx') }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-word"></i></a>
                 <form action="{{ url_for('excluir_material', material_id=m.id) }}" method="POST" onsubmit="return confirm('Excluir este material permanentemente?');">
-                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa-regular fa-trash"></i></button>
                 </form>
             </div>
         </div>
@@ -129,7 +176,7 @@
     {% else %}
         <div class="text-center py-5 text-muted">
             <i class="fa-solid fa-box-open mb-3" style="font-size: 2.5rem; color: var(--azul-500);"></i>
-            <p>Nenhum material {% if apenas_favoritos %}favoritado{% else %}gerado{% endif %} ainda.</p>
+            <p>Nenhum material encontrado com os filtros atuais.</p>
         </div>
     {% endif %}
 </div>
