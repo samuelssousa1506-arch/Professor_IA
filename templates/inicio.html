@@ -235,6 +235,11 @@
                 </nav>
 
                 <hr class="my-4">
+                {% if session.user_role == 'desenvolvedor' %}
+                <a href="{{ url_for('central_desenvolvimento') }}" class="nav-link-premium mb-2" style="background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff;">
+                    <i class="fa-solid fa-code"></i> Central de Desenvolvimento
+                </a>
+                {% endif %}
                 <div class="small mb-3">
                     <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
                     <p class="mb-0 text-muted" style="font-size: .78rem;">{{ school }}</p>

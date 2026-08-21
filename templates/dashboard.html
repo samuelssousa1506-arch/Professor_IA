@@ -559,6 +559,9 @@
                     <a class="nav-link-premium {% if form_type == 'simulados' %}active{% endif %}" href="{{ url_for('dashboard', form_type='simulados') }}">
                         <i class="fa-solid fa-clipboard-question"></i> Simulados
                     </a>
+                    <a class="nav-link-premium {% if form_type == 'sequencia' %}active{% endif %}" href="{{ url_for('dashboard', form_type='sequencia') }}">
+                        <i class="fa-solid fa-layer-group"></i> Sequência Didática
+                    </a>
                     <a class="nav-link-premium {% if form_type == 'duvidas' %}active{% endif %}" href="{{ url_for('dashboard', form_type='duvidas') }}">
                         <i class="fa-solid fa-circle-question"></i> Tira-Dúvidas IA
                     </a>
@@ -591,6 +594,11 @@
                 </nav>
 
                 <hr class="my-4">
+                {% if session.user_role == 'desenvolvedor' %}
+                <a href="{{ url_for('central_desenvolvimento') }}" class="nav-link-premium mb-2" style="background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff;">
+                    <i class="fa-solid fa-code"></i> Central de Desenvolvimento
+                </a>
+                {% endif %}
                 <div class="small mb-3">
                     <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
                     <p class="mb-0 text-truncate text-muted" style="font-size: 0.8rem;">{{ school }}</p>
@@ -828,6 +836,43 @@
                         </div>
                         {% endfor %}
                     </div>
+                </div>
+                {% endif %}
+
+                {% if form_type == 'sequencia' %}
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label-premium">QUANTIDADE DE AULAS</label>
+                        <input type="number" min="1" max="20" class="form-control form-control-premium" name="quantidade_aulas" value="{{ quantidade_aulas if quantidade_aulas else '5' }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium">DURAÇÃO DE CADA AULA</label>
+                        <input type="text" class="form-control form-control-premium" name="duracao" value="{{ duracao }}" placeholder="Ex: 50 minutos">
+                    </div>
+                </div>
+                <div class="mb-2 mt-1">
+                    <label class="form-label-premium">OBJETIVO GERAL (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="objetivo" value="{{ objetivo }}" placeholder="Deixe em branco para a IA sugerir">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">OBJETIVOS ESPECÍFICOS (OPCIONAL)</label>
+                    <textarea class="form-control form-control-premium" name="objetivos_especificos" rows="2" placeholder="Um por linha, ou deixe em branco para a IA sugerir">{{ objetivos_especificos }}</textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">PERFIL DA TURMA (OPCIONAL)</label>
+                    <textarea class="form-control form-control-premium" name="perfil_turma" rows="2" placeholder="Ex: turma numerosa, boa participação oral, pouco hábito de leitura...">{{ perfil_turma }}</textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">DIFICULDADES DA TURMA (OPCIONAL)</label>
+                    <textarea class="form-control form-control-premium" name="dificuldades_turma" rows="2" placeholder="Ex: dificuldade de concentração, interpretação de texto...">{{ dificuldades_turma }}</textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">RECURSOS DISPONÍVEIS (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="recursos_disponiveis" value="{{ recursos_disponiveis }}" placeholder="Ex: projetor, sala de informática...">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label-premium">METODOLOGIA PREFERIDA (OPCIONAL)</label>
+                    <input type="text" class="form-control form-control-premium" name="metodologia_preferida" value="{{ metodologia_preferida }}" placeholder="Ex: sala de aula invertida, gamificação...">
                 </div>
                 {% endif %}
 

@@ -41,6 +41,7 @@ MODULOS = {
     'atividades': {'nome': 'Banco de Atividades', 'icone': 'fa-list-check'},
     'avaliacoes': {'nome': 'Gerador de Provas', 'icone': 'fa-file-signature'},
     'simulados': {'nome': 'Simulados', 'icone': 'fa-clipboard-question'},
+    'sequencia': {'nome': 'Sequência Didática', 'icone': 'fa-layer-group'},
     'duvidas': {'nome': 'Tira-Dúvidas com IA', 'icone': 'fa-circle-question'},
     'relatorios': {'nome': 'Relatórios Pedagógicos', 'icone': 'fa-chart-line'},
     'inclusao': {'nome': 'Plano de Inclusão / AEE', 'icone': 'fa-hands-asl-interpreting'},
@@ -383,6 +384,44 @@ def executar_geracao_ia(**kwargs):
         - Ano/Série Escolar: {ano}
         - Tema Central / Objeto de Estudo: {tema}
         - Código de Habilidade BNCC Alvo: {bncc}
+        """
+    elif tipo_modulo == 'Sequência Didática':
+        quantidade_aulas = kwargs.get('quantidade_aulas', '5').strip() or '5'
+        duracao_aula = kwargs.get('duracao', '').strip()
+        objetivo_geral_informado = kwargs.get('objetivo', '').strip()
+        objetivos_especificos = kwargs.get('objetivos_especificos', '').strip()
+        perfil_turma = kwargs.get('perfil_turma', '').strip()
+        dificuldades_turma = kwargs.get('dificuldades_turma', '').strip()
+        recursos_disponiveis = kwargs.get('recursos_disponiveis', '').strip()
+        metodologia_preferida = kwargs.get('metodologia_preferida', '').strip()
+
+        try:
+            qtd_aulas_num = max(1, min(int(quantidade_aulas), 20))
+        except ValueError:
+            qtd_aulas_num = 5
+
+        prompt = f"""
+        Atue como um Especialista em Planejamento Pedagógico, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+        Gere uma SEQUÊNCIA DIDÁTICA completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}", com exatamente {qtd_aulas_num} aula(s).
+
+        {regras_formato}
+        REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No local exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
+
+        ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA, cada uma como <h5 class="doc-secao-titulo">[Título]</h5> seguida do conteúdo:
+
+        1. Identificação — em linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>): Disciplina: {disciplina}; Ano/Série: {ano}; Duração total: {qtd_aulas_num} aula(s){f', {duracao_aula} cada' if duracao_aula else ''}; Professor(a): {nome_professor}; Escola: {nome_escola}.
+        2. Tema — apresente o tema "{tema}" de forma clara, contextualizando sua relevância para o ano/série informado.
+        3. Justificativa — um parágrafo explicando por que este tema é importante para os alunos desta etapa, com base pedagógica.
+        4. Objetivo Geral — {f'considere o objetivo informado pelo professor: "{objetivo_geral_informado}"' if objetivo_geral_informado else 'formule um objetivo geral claro e mensurável para a sequência'}.
+        5. Objetivos Específicos — lista <ul><li> com 3 a 6 objetivos específicos. {f'Considere os informados pelo professor: "{objetivos_especificos}"' if objetivos_especificos else 'Elabore objetivos coerentes com o objetivo geral e o tema.'}
+        6. Habilidades BNCC — liste as habilidades da BNCC pertinentes (formato: código - descrição completa). Priorize o código informado pelo professor ({bncc if bncc else 'nenhum código específico informado — selecione os mais adequados ao tema e ano/série'}).
+        7. Conteúdos — lista <ul><li> com os conteúdos conceituais, procedimentais e atitudinais trabalhados ao longo da sequência.
+        8. Metodologia — descreva a abordagem metodológica geral da sequência. {f'O professor indicou preferência por: "{metodologia_preferida}"' if metodologia_preferida else 'Escolha uma abordagem ativa e adequada ao tema (ex: sala de aula invertida, aprendizagem baseada em problemas, rotação por estações).'}
+        9. Desenvolvimento Aula por Aula — use <div class="questao-item"> para cada aula (uma div por aula). Gere exatamente {qtd_aulas_num} blocos, cada um no formato "<strong>Aula 1 — [nome curto da etapa, ex: Introdução]</strong>" seguido de um parágrafo descrevendo o que será feito naquela aula (atividades, tempo estimado, interação com os alunos). Distribua a progressão pedagógica de forma lógica ao longo das aulas (ex: introdução → desenvolvimento → prática → sistematização → avaliação, adaptando à quantidade de aulas informada).
+        10. Recursos — lista <ul><li> com os recursos didáticos necessários. {f'O professor tem disponível: "{recursos_disponiveis}"' if recursos_disponiveis else 'Sugira recursos comuns e acessíveis à realidade escolar pública.'}
+        11. Avaliação — lista <ul><li> com os instrumentos e critérios de avaliação da aprendizagem ao longo da sequência.
+        12. Inclusão/Adaptações — sugestões de adaptação para alunos com dificuldades de aprendizagem ou necessidades específicas, SEM realizar qualquer diagnóstico médico ou clínico — trabalhe apenas com orientações pedagógicas gerais. {f'Perfil da turma informado pelo professor: "{perfil_turma}".' if perfil_turma else ''} {f'Dificuldades observadas: "{dificuldades_turma}".' if dificuldades_turma else ''}
+        13. Referências — em linhas simples (sem bullets), formato ABNT simplificado, citando BNCC (2018), a LDB (Lei nº 9.394/96) e, se pertinente, o DCTMA.
         """
     elif tipo_modulo == 'Gerador de Provas':
         prompt = f"""
@@ -952,9 +991,13 @@ def init_db():
     cursor.execute("UPDATE usuarios SET created_at = ? WHERE created_at IS NULL OR created_at = ''", (agora,))
     cursor.execute("UPDATE usuarios SET updated_at = ? WHERE updated_at IS NULL OR updated_at = ''", (agora,))
 
-    # 2. A conta semente do desenvolvedor vira o primeiro Administrador.
+    # 2. A conta semente vira o primeiro Desenvolvedor (nível de acesso mais alto,
+    #    acima de Admin — substitui o antigo papel "admin" que nunca chegou a ter
+    #    UI própria). Contas que já eram 'admin' também sobem para 'desenvolvedor',
+    #    sem perder nenhum dado.
+    cursor.execute("UPDATE usuarios SET role = 'desenvolvedor' WHERE role = 'admin'")
     cursor.execute(
-        "UPDATE usuarios SET role = 'admin' WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com' AND role != 'admin'"
+        "UPDATE usuarios SET role = 'desenvolvedor' WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com' AND role != 'desenvolvedor'"
     )
 
     # 3. Migração de senhas em texto puro para hash seguro (werkzeug/pbkdf2).
@@ -989,15 +1032,16 @@ def requer_login(f):
         return f(*args, **kwargs)
     return decorada
 
-def requer_admin(f):
-    """Protege rotas administrativas no BACKEND (não apenas escondendo botões
-    na interface). Bloqueia com 403 qualquer usuário que não seja admin —
-    inclusive um professor que tente acessar a URL diretamente."""
+def requer_desenvolvedor(f):
+    """Protege as rotas da Central de Desenvolvimento no BACKEND (não apenas
+    escondendo o menu na interface). Bloqueia com 403 qualquer usuário que não
+    seja Desenvolvedor — inclusive um professor que tente acessar a URL
+    diretamente. Desenvolvedor é o nível de acesso mais alto do sistema."""
     @wraps(f)
     def decorada(*args, **kwargs):
         if not session.get('logged_in'):
             return redirect(url_for('login'))
-        if session.get('user_role') != 'admin':
+        if session.get('user_role') != 'desenvolvedor':
             abort(403)
         return f(*args, **kwargs)
     return decorada
@@ -1005,6 +1049,35 @@ def requer_admin(f):
 # =====================================================================
 # ROTAS FLASK
 # =====================================================================
+@app.errorhandler(403)
+def acesso_negado(e):
+    return render_template(
+        'erro_acesso.html',
+        app_name="Professor IA",
+        name=session.get('user_name', ''), school=session.get('user_school', '')
+    ), 403
+
+@app.route('/desenvolvedor')
+@requer_desenvolvedor
+def central_desenvolvimento():
+    modulos = [
+        {'nome': 'Dashboard Técnico', 'icone': 'fa-chart-line', 'descricao': 'Indicadores reais de uso, geração de materiais e status do sistema.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Laboratório', 'icone': 'fa-flask', 'descricao': 'Teste prompts e modelos de IA sem afetar dados reais dos professores.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Central de IA', 'icone': 'fa-robot', 'descricao': 'Status da API, métricas de uso e editor de prompts com versionamento.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Gerenciador de Funcionalidades', 'icone': 'fa-toggle-on', 'descricao': 'Ative ou desative módulos do sistema para todos os professores.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Logs do Sistema', 'icone': 'fa-scroll', 'descricao': 'Histórico de ações dos usuários, com filtros por data, módulo e status.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Central de Erros', 'icone': 'fa-triangle-exclamation', 'descricao': 'Monitoramento de falhas do sistema, classificadas por gravidade.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Backups', 'icone': 'fa-database', 'descricao': 'Backup manual do banco de dados e histórico de versões salvas.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Controle de Versões', 'icone': 'fa-box-archive', 'descricao': 'Histórico de versões do Professor IA e o que mudou em cada uma.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Feature Flags', 'icone': 'fa-flag', 'descricao': 'Libere funcionalidades novas de forma controlada, por perfil ou usuário.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Usuários e Permissões', 'icone': 'fa-users-gear', 'descricao': 'Gerencie contas de professores: ativar, bloquear, redefinir senha, papel.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Configurações Técnicas', 'icone': 'fa-gears', 'descricao': 'Parâmetros técnicos gerais da plataforma.', 'disponivel': False, 'url': '#'},
+    ]
+    return render_template(
+        'central_dev.html', modulos=modulos,
+        name=session.get('user_name', ''), school=session.get('user_school', '')
+    )
+
 @app.route('/')
 def index():
     if not session.get('logged_in'):
@@ -1116,7 +1189,6 @@ def inicio():
     # Módulos da v2.0 ainda não implementados — aparecem no dashboard como prévia,
     # desabilitados, para não gerar um link quebrado.
     atalhos_em_breve = [
-        {'nome': 'Sequência Didática', 'icone': 'fa-layer-group'},
         {'nome': 'Diagnóstico da Turma', 'icone': 'fa-chart-pie'},
         {'nome': 'Assistente Pedagógico', 'icone': 'fa-comments'},
     ]
@@ -1196,6 +1268,14 @@ def dashboard():
     duracao_simulado = request.form.get('duracao_simulado', '').strip()
     qtd_questoes_simulado = request.form.get('qtd_questoes_simulado', '20').strip()
 
+    # Campos específicos da Sequência Didática
+    quantidade_aulas = request.form.get('quantidade_aulas', '5').strip()
+    objetivos_especificos = request.form.get('objetivos_especificos', '').strip()
+    perfil_turma = request.form.get('perfil_turma', '').strip()
+    dificuldades_turma = request.form.get('dificuldades_turma', '').strip()
+    recursos_disponiveis = request.form.get('recursos_disponiveis', '').strip()
+    metodologia_preferida = request.form.get('metodologia_preferida', '').strip()
+
     material_id = None
     info_pedagogica = ""
 
@@ -1239,7 +1319,13 @@ def dashboard():
             duracao_alfabetizacao=duracao_alfabetizacao,
             tipo_simulado=tipo_simulado,
             duracao_simulado=duracao_simulado,
-            qtd_questoes_simulado=qtd_questoes_simulado
+            qtd_questoes_simulado=qtd_questoes_simulado,
+            quantidade_aulas=quantidade_aulas,
+            objetivos_especificos=objetivos_especificos,
+            perfil_turma=perfil_turma,
+            dificuldades_turma=dificuldades_turma,
+            recursos_disponiveis=recursos_disponiveis,
+            metodologia_preferida=metodologia_preferida
         )
 
         # Registra automaticamente no Histórico / Biblioteca

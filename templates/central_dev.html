@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Desenvolvimento - Professor IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-950: #060f24; --azul-900: #0c1d3d; --azul-800: #123a7a;
+            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-500: #3b82f6;
+            --azul-100: #dce9fb; --azul-50: #f2f6fc;
+            --selo-ouro: #b3811f; --ouro-400: #d4a743; --ouro-100: #fbf3df;
+            --tinta: #0f1f3d; --tinta-suave: #52627e; --borda: #dfe7f4; --fundo: #eef2f9;
+            --verde: #16a34a; --verde-bg: #ecfdf3;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
+        h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .sidebar { background-color: #ffffff; border-right: 1px solid var(--borda); min-height: 100vh; padding: 0 !important; }
+        .sidebar-brand {
+            position: relative;
+            background: linear-gradient(140deg, #1a0c30 0%, #2c1052 55%, #3a1568 100%);
+            padding: 1.5rem 1.25rem; color: #fff;
+        }
+        .sidebar-brand::after {
+            content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #a78bfa 25%, #a78bfa 75%, transparent); opacity: .8;
+        }
+        .sidebar-brand h5 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; font-size: 1.05rem; }
+        .sidebar-brand .icone {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(167, 139, 250, 0.5);
+            color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px;
+        }
+        .sidebar-brand .tag-modo {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+            color: #c4b5fd; margin-top: 9px;
+        }
+        .sidebar-body { padding: 1.25rem; animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both; }
+        .nav-link-premium {
+            display: flex; align-items: center; padding: 0.6rem 0.85rem; color: var(--tinta-suave);
+            text-decoration: none; border-radius: 8px; margin-bottom: 0.2rem; font-weight: 600; font-size: 0.87rem;
+            transition: all 0.18s ease;
+        }
+        .nav-link-premium:hover { background-color: #f5f3ff; color: #5b21b6; }
+        .nav-link-premium.active { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; }
+        .nav-link-premium i { width: 1.2rem; margin-right: 0.65rem; }
+        .nav-link-premium.desabilitado { opacity: .4; pointer-events: none; }
+
+        .conteudo-principal { padding: 2rem 2.25rem; animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; }
+        .cabecalho-dev {
+            background: linear-gradient(120deg, #1a0c30 0%, #2c1052 55%, #3a1568 100%);
+            border-radius: 18px; padding: 1.9rem 2.2rem; color: #fff; margin-bottom: 1.75rem; position: relative; overflow: hidden;
+        }
+        .cabecalho-dev::after {
+            content: ""; position: absolute; right: -50px; top: -50px; width: 200px; height: 200px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(167,139,250,.18), transparent 70%);
+        }
+        .cabecalho-dev .eyebrow { color: #c4b5fd; font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:.35rem; }
+        .cabecalho-dev h1 { font-size: 1.6rem; margin: 0 0 .3rem; position: relative; z-index: 1; }
+        .cabecalho-dev p { color: #cbd5e1; margin: 0; font-size: .88rem; position: relative; z-index: 1; }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(167,139,250,0.35);
+            border-radius: 99px; padding: .45rem .9rem; margin-top: 1rem; margin-right: .5rem;
+            font-size: .76rem; position: relative; z-index: 1;
+        }
+        .dot-verde { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block; box-shadow: 0 0 0 3px rgba(74,222,128,.2); }
+
+        .grid-modulos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }
+        .card-modulo-dev {
+            background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.25rem 1.35rem;
+            text-decoration: none; color: var(--tinta); display: flex; flex-direction: column; gap: .6rem;
+            transition: transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s ease, border-color .18s ease;
+        }
+        .card-modulo-dev:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -18px rgba(10,31,63,0.28); border-color: #ddd6fe; color: var(--tinta); }
+        .card-modulo-dev .icone-modulo {
+            width: 42px; height: 42px; border-radius: 11px; background: #f5f3ff; color: #6d28d9;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+        }
+        .card-modulo-dev .nome-modulo { font-weight: 800; font-size: .95rem; }
+        .card-modulo-dev .desc-modulo { font-size: .78rem; color: var(--tinta-suave); line-height: 1.4; }
+        .card-modulo-dev.em-breve { opacity: .55; cursor: default; }
+        .card-modulo-dev.em-breve .icone-modulo { background: #f1f1f1; color: #9aa5b8; }
+        .badge-status {
+            align-self: flex-start; font-size: 0.6rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+            border-radius: 99px; padding: 3px 9px;
+        }
+        .badge-em-breve { background: var(--ouro-100); color: var(--selo-ouro); }
+        .badge-disponivel { background: var(--verde-bg); color: var(--verde); }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="d-flex align-items-center">
+                    <span class="icone"><i class="fa-solid fa-code"></i></span>
+                    <h5>Central de Dev.</h5>
+                </div>
+                <div class="tag-modo"><i class="fa-solid fa-terminal"></i> Modo Desenvolvedor</div>
+            </div>
+            <div class="sidebar-body">
+                <nav class="nav flex-column mb-3">
+                    <a class="nav-link-premium" href="{{ url_for('inicio') }}"><i class="fa-solid fa-arrow-left"></i> Painel do Professor</a>
+                </nav>
+                <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Central de Desenvolvimento</p>
+                <nav class="nav flex-column">
+                    <a class="nav-link-premium active" href="{{ url_for('central_desenvolvimento') }}"><i class="fa-solid fa-grip"></i> Visão Geral</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flask"></i> Laboratório</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-robot"></i> Central de IA</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-toggle-on"></i> Funcionalidades</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-scroll"></i> Logs do Sistema</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-triangle-exclamation"></i> Central de Erros</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-database"></i> Backups</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-box-archive"></i> Versões</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flag"></i> Feature Flags</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-users-gear"></i> Usuários e Permissões</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-gears"></i> Configurações Técnicas</a>
+                </nav>
+                <hr class="my-4">
+                <div class="small mb-3">
+                    <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
+                    <p class="mb-0 text-muted" style="font-size: .78rem;">Desenvolvedor</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link-premium text-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10">
+            <div class="conteudo-principal">
+                <div class="cabecalho-dev">
+                    <div class="eyebrow">Acesso restrito · Nível Desenvolvedor</div>
+                    <h1>Central de Desenvolvimento</h1>
+                    <p>Ferramentas técnicas de manutenção, monitoramento e configuração do Professor IA. Nada aqui é visível para professores.</p>
+                    <div>
+                        <span class="status-pill"><span class="dot-verde"></span> Sistema operacional</span>
+                        <span class="status-pill mono"><i class="fa-solid fa-code-branch"></i> Professor IA 2.0</span>
+                    </div>
+                </div>
+
+                <div class="grid-modulos">
+                    {% for m in modulos %}
+                    {% if m.disponivel %}
+                    <a href="{{ m.url }}" class="card-modulo-dev">
+                    {% else %}
+                    <div class="card-modulo-dev em-breve">
+                    {% endif %}
+                        <span class="icone-modulo"><i class="fa-solid {{ m.icone }}"></i></span>
+                        <span class="nome-modulo">{{ m.nome }}</span>
+                        <span class="desc-modulo">{{ m.descricao }}</span>
+                        {% if m.disponivel %}
+                        <span class="badge-status badge-disponivel">Disponível</span>
+                        {% else %}
+                        <span class="badge-status badge-em-breve">Em breve</span>
+                        {% endif %}
+                    {% if m.disponivel %}
+                    </a>
+                    {% else %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
