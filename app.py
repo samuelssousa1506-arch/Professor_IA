@@ -252,6 +252,7 @@ def executar_geracao_ia(**kwargs):
     nivel = kwargs.get('nivel', 'Médio')
     nome_professor = kwargs.get('nome_professor', 'Professor(a)')
     nome_escola = kwargs.get('nome_escola', 'Instituição de Ensino')
+    usuario_email = kwargs.get('usuario_email', '')
 
     # Campos específicos do Planejamento Bimestral (formato oficial SEMED)
     numero_plano = kwargs.get('numero_plano', '')
@@ -272,7 +273,8 @@ def executar_geracao_ia(**kwargs):
     observacoes = kwargs.get('observacoes', '')
 
     if not GEMINI_API_KEY:
-        return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render."), ''
+        registrar_erro(tipo_modulo, usuario_email, "GEMINI_API_KEY ausente no painel do Render.", nivel='critico')
+        return obter_fallback_pedagogico(tipo_modulo, tema, "A variável GEMINI_API_KEY está ausente no painel do Render."), '', False
 
     # -----------------------------------------------------------------
     # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
@@ -692,7 +694,7 @@ def executar_geracao_ia(**kwargs):
                         bloco_gabarito_tela = f'<div class="gabarito-tela">{gabarito_extraido}</div>' if gabarito_extraido else ''
                         info_pedagogica = (bloco_gabarito_tela + parte_info.strip()).strip()
 
-                    return texto_gerado, info_pedagogica
+                    return texto_gerado, info_pedagogica, True
 
                 # Erros temporários: sobrecarga (503) ou limite de requisições (429).
                 # Tenta de novo no mesmo provedor com backoff progressivo antes de trocar.
@@ -715,7 +717,8 @@ def executar_geracao_ia(**kwargs):
                     continue
                 break  # esgotou tentativas neste provedor -> tenta o próximo da cascata
 
-    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de provedores esgotada)"), ''
+    registrar_erro(tipo_modulo, usuario_email, ultimo_erro + " (cascata de provedores esgotada)", nivel='atencao')
+    return obter_fallback_pedagogico(tipo_modulo, tema, ultimo_erro + " (cascata de provedores esgotada)"), '', False
 
 # =====================================================================
 # EXPORTAÇÃO — DOCX e PDF (preservando cabeçalhos, tabelas, listas, negrito)
@@ -1018,6 +1021,72 @@ def init_db():
 
 init_db()
 
+def init_db_dev():
+    """Tabelas da Central de Desenvolvimento — separado de init_db() para deixar
+    claro que são aditivas e específicas dessa área técnica, sem mexer no schema
+    principal do sistema."""
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS system_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_email TEXT,
+            nome_usuario TEXT,
+            modulo TEXT,
+            acao TEXT,
+            detalhes TEXT,
+            status TEXT DEFAULT 'sucesso',
+            criado_em TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS system_errors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            modulo TEXT,
+            usuario_email TEXT,
+            mensagem TEXT,
+            nivel TEXT DEFAULT 'aviso',
+            status TEXT DEFAULT 'aberto',
+            criado_em TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db_dev()
+
+def registrar_log(usuario_email, nome_usuario, modulo, acao, detalhes='', status='sucesso'):
+    """Registra uma ação no histórico técnico (Logs do Sistema). Nunca deve
+    derrubar a requisição principal caso o log falhe — por isso o try/except
+    silencioso: perder um log é aceitável, quebrar a geração de um material
+    para o professor não é."""
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO system_logs (usuario_email, nome_usuario, modulo, acao, detalhes, status, criado_em)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (usuario_email, nome_usuario, modulo, acao, detalhes, status, datetime.now().strftime('%d/%m/%Y %H:%M:%S')))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def registrar_erro(modulo, usuario_email, mensagem, nivel='aviso'):
+    """Registra uma falha na Central de Erros. nivel: 'info' | 'aviso' | 'atencao' | 'critico'."""
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO system_errors (modulo, usuario_email, mensagem, nivel, status, criado_em)
+            VALUES (?, ?, ?, ?, 'aberto', ?)
+        ''', (modulo, usuario_email, mensagem, nivel, datetime.now().strftime('%d/%m/%Y %H:%M:%S')))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
 # =====================================================================
 # CONTROLE DE ACESSO (RBAC) — decorators para proteger rotas
 # =====================================================================
@@ -1061,12 +1130,12 @@ def acesso_negado(e):
 @requer_desenvolvedor
 def central_desenvolvimento():
     modulos = [
-        {'nome': 'Dashboard Técnico', 'icone': 'fa-chart-line', 'descricao': 'Indicadores reais de uso, geração de materiais e status do sistema.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Dashboard Técnico', 'icone': 'fa-chart-line', 'descricao': 'Indicadores reais de uso, geração de materiais e status do sistema.', 'disponivel': True, 'url': url_for('dev_dashboard_tecnico')},
         {'nome': 'Laboratório', 'icone': 'fa-flask', 'descricao': 'Teste prompts e modelos de IA sem afetar dados reais dos professores.', 'disponivel': False, 'url': '#'},
         {'nome': 'Central de IA', 'icone': 'fa-robot', 'descricao': 'Status da API, métricas de uso e editor de prompts com versionamento.', 'disponivel': False, 'url': '#'},
         {'nome': 'Gerenciador de Funcionalidades', 'icone': 'fa-toggle-on', 'descricao': 'Ative ou desative módulos do sistema para todos os professores.', 'disponivel': False, 'url': '#'},
-        {'nome': 'Logs do Sistema', 'icone': 'fa-scroll', 'descricao': 'Histórico de ações dos usuários, com filtros por data, módulo e status.', 'disponivel': False, 'url': '#'},
-        {'nome': 'Central de Erros', 'icone': 'fa-triangle-exclamation', 'descricao': 'Monitoramento de falhas do sistema, classificadas por gravidade.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Logs do Sistema', 'icone': 'fa-scroll', 'descricao': 'Histórico de ações dos usuários, com filtros por data, módulo e status.', 'disponivel': True, 'url': url_for('dev_logs')},
+        {'nome': 'Central de Erros', 'icone': 'fa-triangle-exclamation', 'descricao': 'Monitoramento de falhas do sistema, classificadas por gravidade.', 'disponivel': True, 'url': url_for('dev_erros')},
         {'nome': 'Backups', 'icone': 'fa-database', 'descricao': 'Backup manual do banco de dados e histórico de versões salvas.', 'disponivel': False, 'url': '#'},
         {'nome': 'Controle de Versões', 'icone': 'fa-box-archive', 'descricao': 'Histórico de versões do Professor IA e o que mudou em cada uma.', 'disponivel': False, 'url': '#'},
         {'nome': 'Feature Flags', 'icone': 'fa-flag', 'descricao': 'Libere funcionalidades novas de forma controlada, por perfil ou usuário.', 'disponivel': False, 'url': '#'},
@@ -1077,6 +1146,183 @@ def central_desenvolvimento():
         'central_dev.html', modulos=modulos,
         name=session.get('user_name', ''), school=session.get('user_school', '')
     )
+
+def _parse_data_log(texto):
+    """Converte 'dd/mm/AAAA HH:MM:SS' (formato usado em todo o sistema) para datetime.
+    Retorna None se não conseguir — nunca derruba a página por causa de uma data mal formada."""
+    if not texto:
+        return None
+    for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y %H:%M'):
+        try:
+            return datetime.strptime(texto, fmt)
+        except ValueError:
+            continue
+    return None
+
+@app.route('/desenvolvedor/dashboard-tecnico')
+@requer_desenvolvedor
+def dev_dashboard_tecnico():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM usuarios")
+    total_usuarios = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM usuarios WHERE ativo = 1")
+    usuarios_ativos = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(DISTINCT escola) FROM usuarios WHERE escola != ''")
+    total_escolas = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM usuarios WHERE role = 'professor' AND ativo = 1")
+    professores_ativos = cursor.fetchone()[0]
+
+    # Materiais gerados por módulo (dados reais — nada fictício)
+    cursor.execute("SELECT tipo_modulo, COUNT(*) as qtd FROM materiais GROUP BY tipo_modulo")
+    contagem_modulo = {row['tipo_modulo']: row['qtd'] for row in cursor.fetchall()}
+    cursor.execute("SELECT COUNT(*) FROM materiais")
+    total_materiais_gerados = cursor.fetchone()[0]
+
+    # Erros nas últimas 24h — o campo criado_em é texto (dd/mm/AAAA HH:MM:SS), então
+    # filtramos em Python em vez de confiar em comparação de string no SQLite.
+    cursor.execute("SELECT criado_em, nivel FROM system_errors")
+    agora = datetime.now()
+    erros_24h = 0
+    for row in cursor.fetchall():
+        dt = _parse_data_log(row['criado_em'])
+        if dt and (agora - dt) <= timedelta(hours=24):
+            erros_24h += 1
+
+    # Uso dos últimos 7 dias, por módulo — para o gráfico
+    cursor.execute("SELECT tipo_modulo, criado_em FROM materiais")
+    todos_materiais = cursor.fetchall()
+    conn.close()
+
+    dias = [(agora - timedelta(days=i)).date() for i in range(6, -1, -1)]
+    uso_por_dia = {d: 0 for d in dias}
+    for row in todos_materiais:
+        dt = _parse_data_log(row['criado_em'])
+        if dt and dt.date() in uso_por_dia:
+            uso_por_dia[dt.date()] += 1
+    maximo_uso = max(uso_por_dia.values()) if uso_por_dia and max(uso_por_dia.values()) > 0 else 1
+    grafico_uso = [
+        {
+            'label': d.strftime('%d/%m'),
+            'valor': uso_por_dia[d],
+            'altura_pct': round((uso_por_dia[d] / maximo_uso) * 100)
+        }
+        for d in dias
+    ]
+
+    # Status do banco de dados — checagem real, não suposição
+    try:
+        conn_teste = sqlite3.connect('database.db')
+        conn_teste.execute("SELECT 1")
+        conn_teste.close()
+        status_banco = True
+    except Exception:
+        status_banco = False
+
+    return render_template(
+        'dev_dashboard.html',
+        name=session.get('user_name', ''),
+        total_usuarios=total_usuarios, usuarios_ativos=usuarios_ativos,
+        total_escolas=total_escolas, professores_ativos=professores_ativos,
+        total_materiais_gerados=total_materiais_gerados,
+        planejamentos=contagem_modulo.get('Plano de Aula', 0) + contagem_modulo.get('Planejamento Bimestral', 0),
+        atividades=contagem_modulo.get('Banco de Atividades', 0),
+        provas=contagem_modulo.get('Gerador de Provas', 0) + contagem_modulo.get('Simulados', 0),
+        sequencias=contagem_modulo.get('Sequência Didática', 0),
+        consultas_ia=contagem_modulo.get('Tira-Dúvidas com IA', 0),
+        erros_24h=erros_24h,
+        gemini_configurado=bool(GEMINI_API_KEY),
+        mistral_configurado=bool(MISTRAL_API_KEY),
+        status_banco=status_banco,
+        grafico_uso=grafico_uso,
+    )
+
+@app.route('/desenvolvedor/logs')
+@requer_desenvolvedor
+def dev_logs():
+    filtro_data = request.args.get('data', '').strip()
+    filtro_usuario = request.args.get('usuario', '').strip()
+    filtro_modulo = request.args.get('modulo', '').strip()
+    filtro_status = request.args.get('status', '').strip()
+
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    condicoes = []
+    parametros = []
+    if filtro_usuario:
+        condicoes.append("(usuario_email LIKE ? OR nome_usuario LIKE ?)")
+        parametros.extend([f"%{filtro_usuario}%", f"%{filtro_usuario}%"])
+    if filtro_modulo:
+        condicoes.append("modulo = ?")
+        parametros.append(filtro_modulo)
+    if filtro_status:
+        condicoes.append("status = ?")
+        parametros.append(filtro_status)
+    if filtro_data:
+        try:
+            data_fmt = datetime.strptime(filtro_data, '%Y-%m-%d').strftime('%d/%m/%Y')
+            condicoes.append("substr(criado_em, 1, 10) = ?")
+            parametros.append(data_fmt)
+        except ValueError:
+            pass
+
+    where = f"WHERE {' AND '.join(condicoes)}" if condicoes else ""
+    cursor.execute(f"SELECT * FROM system_logs {where} ORDER BY id DESC LIMIT 300", parametros)
+    logs = cursor.fetchall()
+
+    cursor.execute("SELECT DISTINCT modulo FROM system_logs WHERE modulo != '' ORDER BY modulo")
+    modulos_disponiveis = [row['modulo'] for row in cursor.fetchall()]
+    conn.close()
+
+    return render_template(
+        'dev_logs.html', logs=logs, modulos_disponiveis=modulos_disponiveis,
+        filtro_data=filtro_data, filtro_usuario=filtro_usuario, filtro_modulo=filtro_modulo, filtro_status=filtro_status,
+        name=session.get('user_name', '')
+    )
+
+@app.route('/desenvolvedor/erros')
+@requer_desenvolvedor
+def dev_erros():
+    filtro_nivel = request.args.get('nivel', '').strip()
+    filtro_status = request.args.get('status', '').strip()
+
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    condicoes = []
+    parametros = []
+    if filtro_nivel:
+        condicoes.append("nivel = ?")
+        parametros.append(filtro_nivel)
+    if filtro_status:
+        condicoes.append("status = ?")
+        parametros.append(filtro_status)
+
+    where = f"WHERE {' AND '.join(condicoes)}" if condicoes else ""
+    cursor.execute(f"SELECT * FROM system_errors {where} ORDER BY id DESC LIMIT 300", parametros)
+    erros = cursor.fetchall()
+    conn.close()
+
+    return render_template(
+        'dev_erros.html', erros=erros, filtro_nivel=filtro_nivel, filtro_status=filtro_status,
+        name=session.get('user_name', '')
+    )
+
+@app.route('/desenvolvedor/erros/<int:erro_id>/resolver', methods=['POST'])
+@requer_desenvolvedor
+def dev_resolver_erro(erro_id):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE system_errors SET status = 'resolvido' WHERE id = ?", (erro_id,))
+    conn.commit()
+    conn.close()
+    registrar_log(session.get('user_email', ''), session.get('user_name', ''), 'Central de Erros', f'Marcou erro #{erro_id} como resolvido')
+    return redirect(url_for('dev_erros'))
 
 @app.route('/')
 def index():
@@ -1100,6 +1346,7 @@ def login():
         if user and check_password_hash(user[2], password):
             if not user[4]:  # ativo == 0
                 conn.close()
+                registrar_log(email, user[0], 'Autenticação', 'Tentativa de login', 'Conta desativada', status='erro')
                 erro = "Esta conta foi desativada. Entre em contato com o administrador."
                 return render_template('login.html', erro=erro, sucesso=sucesso)
 
@@ -1110,9 +1357,11 @@ def login():
             session['user_school'] = user[1]
             session['user_role'] = user[3] or 'professor'
             conn.close()
+            registrar_log(email, user[0], 'Autenticação', 'Login', status='sucesso')
             return redirect(url_for('inicio'))
         else:
             conn.close()
+            registrar_log(email, '', 'Autenticação', 'Tentativa de login', 'Credenciais inválidas', status='erro')
             erro = "E-mail ou senha incorretos."
     return render_template('login.html', erro=erro, sucesso=sucesso)
 
@@ -1281,7 +1530,7 @@ def dashboard():
 
     pode_gerar = tema or (form_type == 'alfabetizacao' and (nivel_leitura or dificuldades_observadas or nome_aluno))
     if request.method == 'POST' and pode_gerar:
-        conteudo, info_pedagogica = executar_geracao_ia(
+        conteudo, info_pedagogica, geracao_sucesso = executar_geracao_ia(
             tipo_modulo=config_modulo['nome'],
             disciplina=disciplina,
             ano=ano,
@@ -1292,6 +1541,7 @@ def dashboard():
             nivel=nivel,
             nome_professor=session.get('user_name', 'Professor(a)'),
             nome_escola=session.get('user_school', 'Instituição de Ensino'),
+            usuario_email=session.get('user_email', ''),
             numero_plano=numero_plano,
             bimestre=bimestre,
             data_inicio=data_inicio,
@@ -1326,6 +1576,13 @@ def dashboard():
             dificuldades_turma=dificuldades_turma,
             recursos_disponiveis=recursos_disponiveis,
             metodologia_preferida=metodologia_preferida
+        )
+
+        registrar_log(
+            session.get('user_email', ''), session.get('user_name', ''),
+            config_modulo['nome'], f"Gerou {config_modulo['nome'].lower()}",
+            detalhes=f"Tema: {tema[:120]}" if tema else '',
+            status='sucesso' if geracao_sucesso else 'erro'
         )
 
         # Registra automaticamente no Histórico / Biblioteca

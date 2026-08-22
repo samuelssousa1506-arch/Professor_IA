@@ -114,12 +114,12 @@
                 <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Central de Desenvolvimento</p>
                 <nav class="nav flex-column">
                     <a class="nav-link-premium active" href="{{ url_for('central_desenvolvimento') }}"><i class="fa-solid fa-grip"></i> Visão Geral</a>
-                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_dashboard_tecnico') }}"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flask"></i> Laboratório</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-robot"></i> Central de IA</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-toggle-on"></i> Funcionalidades</a>
-                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-scroll"></i> Logs do Sistema</a>
-                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-triangle-exclamation"></i> Central de Erros</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_logs') }}"><i class="fa-solid fa-scroll"></i> Logs do Sistema</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_erros') }}"><i class="fa-solid fa-triangle-exclamation"></i> Central de Erros</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-database"></i> Backups</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-box-archive"></i> Versões</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flag"></i> Feature Flags</a>

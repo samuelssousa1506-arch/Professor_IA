@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs do Sistema - Professor IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-950: #060f24; --azul-900: #0c1d3d; --azul-800: #123a7a;
+            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-100: #dce9fb; --azul-50: #f2f6fc;
+            --tinta: #0f1f3d; --tinta-suave: #52627e; --borda: #dfe7f4; --fundo: #eef2f9;
+            --verde: #16a34a; --verde-bg: #ecfdf3; --vermelho: #dc2626; --vermelho-bg: #fef2f2;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
+        h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .sidebar { background-color: #ffffff; border-right: 1px solid var(--borda); min-height: 100vh; padding: 0 !important; }
+        .sidebar-brand { position: relative; background: linear-gradient(140deg, #1a0c30 0%, #2c1052 55%, #3a1568 100%); padding: 1.5rem 1.25rem; color: #fff; }
+        .sidebar-brand::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, #a78bfa 25%, #a78bfa 75%, transparent); opacity: .8; }
+        .sidebar-brand h5 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; font-size: 1.05rem; }
+        .sidebar-brand .icone { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(167, 139, 250, 0.5); color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; }
+        .sidebar-brand .tag-modo { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #c4b5fd; margin-top: 9px; }
+        .sidebar-body { padding: 1.25rem; animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both; }
+        .nav-link-premium { display: flex; align-items: center; padding: 0.6rem 0.85rem; color: var(--tinta-suave); text-decoration: none; border-radius: 8px; margin-bottom: 0.2rem; font-weight: 600; font-size: 0.87rem; transition: all 0.18s ease; }
+        .nav-link-premium:hover { background-color: #f5f3ff; color: #5b21b6; }
+        .nav-link-premium.active { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; }
+        .nav-link-premium i { width: 1.2rem; margin-right: 0.65rem; }
+        .nav-link-premium.desabilitado { opacity: .4; pointer-events: none; }
+
+        .conteudo-principal { padding: 2rem 2.25rem; animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; }
+        .eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7c3aed; display: flex; align-items: center; gap: 6px; margin-bottom: .35rem; }
+        .eyebrow::before { content: ""; width: 16px; height: 1px; background: #7c3aed; display: inline-block; }
+
+        .painel-filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.1rem 1.3rem; margin-bottom: 1.25rem; }
+        .painel-filtros .form-control, .painel-filtros .form-select { font-size: .85rem; }
+
+        .tabela-logs { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
+        .tabela-logs table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        .tabela-logs th { background: var(--azul-50); color: var(--azul-900); font-weight: 700; text-align: left; padding: .7rem 1rem; font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; }
+        .tabela-logs td { padding: .65rem 1rem; border-top: 1px solid var(--borda); vertical-align: top; }
+        .badge-status-log { font-size: .68rem; font-weight: 700; padding: .25rem .6rem; border-radius: 6px; }
+        .badge-sucesso { background: var(--verde-bg); color: var(--verde); }
+        .badge-erro { background: var(--vermelho-bg); color: var(--vermelho); }
+        .estado-vazio { text-align: center; padding: 3rem 1rem; color: var(--tinta-suave); }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="d-flex align-items-center">
+                    <span class="icone"><i class="fa-solid fa-code"></i></span>
+                    <h5>Central de Dev.</h5>
+                </div>
+                <div class="tag-modo"><i class="fa-solid fa-terminal"></i> Modo Desenvolvedor</div>
+            </div>
+            <div class="sidebar-body">
+                <nav class="nav flex-column mb-3">
+                    <a class="nav-link-premium" href="{{ url_for('inicio') }}"><i class="fa-solid fa-arrow-left"></i> Painel do Professor</a>
+                </nav>
+                <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Central de Desenvolvimento</p>
+                <nav class="nav flex-column">
+                    <a class="nav-link-premium" href="{{ url_for('central_desenvolvimento') }}"><i class="fa-solid fa-grip"></i> Visão Geral</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_dashboard_tecnico') }}"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flask"></i> Laboratório</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-robot"></i> Central de IA</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-toggle-on"></i> Funcionalidades</a>
+                    <a class="nav-link-premium active" href="{{ url_for('dev_logs') }}"><i class="fa-solid fa-scroll"></i> Logs do Sistema</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_erros') }}"><i class="fa-solid fa-triangle-exclamation"></i> Central de Erros</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-database"></i> Backups</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-box-archive"></i> Versões</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flag"></i> Feature Flags</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-users-gear"></i> Usuários e Permissões</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-gears"></i> Configurações Técnicas</a>
+                </nav>
+                <hr class="my-4">
+                <div class="small mb-3">
+                    <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
+                    <p class="mb-0 text-muted" style="font-size: .78rem;">Desenvolvedor</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link-premium text-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10">
+            <div class="conteudo-principal">
+                <div class="eyebrow">Central de Desenvolvimento</div>
+                <h3 class="fw-bold mb-1">Logs do Sistema</h3>
+                <p class="text-muted small mb-4">Histórico de ações realizadas na plataforma (últimas 300).</p>
+
+                <form method="GET" class="painel-filtros row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-uppercase" style="font-size:.65rem; color:var(--tinta-suave);">Usuário</label>
+                        <input type="text" class="form-control form-control-sm" name="usuario" value="{{ filtro_usuario }}" placeholder="Nome ou e-mail...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-uppercase" style="font-size:.65rem; color:var(--tinta-suave);">Módulo</label>
+                        <select class="form-select form-select-sm" name="modulo">
+                            <option value="">Todos</option>
+                            {% for m in modulos_disponiveis %}
+                            <option value="{{ m }}" {% if filtro_modulo == m %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-uppercase" style="font-size:.65rem; color:var(--tinta-suave);">Status</label>
+                        <select class="form-select form-select-sm" name="status">
+                            <option value="">Todos</option>
+                            <option value="sucesso" {% if filtro_status == 'sucesso' %}selected{% endif %}>Sucesso</option>
+                            <option value="erro" {% if filtro_status == 'erro' %}selected{% endif %}>Erro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-uppercase" style="font-size:.65rem; color:var(--tinta-suave);">Data</label>
+                        <input type="date" class="form-control form-control-sm" name="data" value="{{ filtro_data }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-sm w-100 fw-bold text-white" style="background: linear-gradient(135deg, #4c1d95, #6d28d9); border: none;"><i class="fa-solid fa-filter me-1"></i>Filtrar</button>
+                    </div>
+                </form>
+
+                <div class="tabela-logs">
+                    {% if logs %}
+                    <table>
+                        <thead>
+                            <tr><th>Data/Hora</th><th>Usuário</th><th>Módulo</th><th>Ação</th><th>Detalhes</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td class="mono" style="white-space:nowrap;">{{ log['criado_em'] }}</td>
+                                <td>{{ log['nome_usuario'] or log['usuario_email'] or '—' }}</td>
+                                <td>{{ log['modulo'] }}</td>
+                                <td>{{ log['acao'] }}</td>
+                                <td class="text-muted">{{ log['detalhes'] or '—' }}</td>
+                                <td><span class="badge-status-log {{ 'badge-sucesso' if log['status'] == 'sucesso' else 'badge-erro' }}">{{ log['status']|capitalize }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="estado-vazio"><i class="fa-solid fa-scroll mb-2" style="font-size:1.8rem;"></i><br>Nenhum log encontrado com esses filtros.</div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
