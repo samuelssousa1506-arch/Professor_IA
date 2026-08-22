@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Técnico - Professor IA</title>
+    <title>Central de IA - Professor IA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --azul-950: #060f24; --azul-900: #0c1d3d; --azul-800: #123a7a;
-            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-500: #3b82f6;
-            --azul-100: #dce9fb; --azul-50: #f2f6fc;
-            --selo-ouro: #b3811f; --ouro-400: #d4a743; --ouro-100: #fbf3df;
+            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-100: #dce9fb; --azul-50: #f2f6fc;
             --tinta: #0f1f3d; --tinta-suave: #52627e; --borda: #dfe7f4; --fundo: #eef2f9;
             --verde: #16a34a; --verde-bg: #ecfdf3; --vermelho: #dc2626; --vermelho-bg: #fef2f2;
+            --ouro-400: #d4a743; --ouro-100: #fbf3df; --selo-ouro: #b3811f;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
         h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
@@ -38,25 +37,34 @@
         .eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7c3aed; display: flex; align-items: center; gap: 6px; margin-bottom: .35rem; }
         .eyebrow::before { content: ""; width: 16px; height: 1px; background: #7c3aed; display: inline-block; }
 
-        .grid-indicadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .85rem; margin-bottom: 1.75rem; }
-        .card-indicador { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.1rem 1.25rem; }
-        .card-indicador .valor { font-family: 'Fraunces', serif; font-size: 1.7rem; font-weight: 600; color: var(--tinta); line-height: 1; }
-        .card-indicador .rotulo { font-size: .74rem; color: var(--tinta-suave); margin-top: .35rem; }
-        .card-indicador.destaque-erro .valor { color: var(--vermelho); }
-
-        .painel-status { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.1rem 1.3rem; margin-bottom: 1.75rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .painel-status { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.1rem 1.3rem; margin-bottom: 1.25rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
         .item-status { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 600; }
         .dot-status { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
         .dot-verde { background: var(--verde); box-shadow: 0 0 0 3px var(--verde-bg); }
         .dot-vermelho { background: var(--vermelho); box-shadow: 0 0 0 3px var(--vermelho-bg); }
 
+        .grid-indicadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .85rem; margin-bottom: 1.75rem; }
+        .card-indicador { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.1rem 1.25rem; }
+        .card-indicador .valor { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 600; color: var(--tinta); line-height: 1; }
+        .card-indicador .rotulo { font-size: .72rem; color: var(--tinta-suave); margin-top: .35rem; }
+        .card-indicador.destaque-erro .valor { color: var(--vermelho); }
+        .card-indicador.destaque-sucesso .valor { color: var(--verde); }
+
         .secao-titulo { font-size: 1.05rem; font-weight: 800; color: var(--tinta); margin-bottom: 1rem; }
-        .painel-grafico { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.5rem 1.75rem; }
-        .grafico-barras { display: flex; align-items: flex-end; gap: 14px; height: 160px; padding-top: 1rem; }
-        .barra-coluna { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
-        .barra { width: 60%; background: linear-gradient(180deg, #8b5cf6, #6d28d9); border-radius: 6px 6px 2px 2px; min-height: 3px; transition: height .4s cubic-bezier(.22,.61,.36,1); position: relative; }
-        .barra .valor-barra { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: .72rem; font-weight: 700; color: var(--tinta-suave); white-space: nowrap; }
-        .rotulo-barra { font-size: .7rem; color: var(--tinta-suave); margin-top: .5rem; }
+        .tabela-provedores { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; margin-bottom: 1.75rem; }
+        .tabela-provedores table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        .tabela-provedores th { background: var(--azul-50); color: var(--azul-900); font-weight: 700; text-align: left; padding: .65rem 1rem; font-size: .72rem; text-transform: uppercase; }
+        .tabela-provedores td { padding: .6rem 1rem; border-top: 1px solid var(--borda); }
+
+        .card-prompt { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: .85rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .badge-versao { background: #f5f3ff; color: #6d28d9; font-weight: 800; font-size: .7rem; padding: .25rem .6rem; border-radius: 6px; }
+        .meta-prompt { font-size: .78rem; color: var(--tinta-suave); margin-top: .2rem; }
+        .btn-editar-prompt { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; font-weight: 700; border: none; border-radius: 9px; padding: .5rem 1.1rem; text-decoration: none; font-size: .85rem; }
+        .btn-editar-prompt:hover { color: #fff; filter: brightness(1.08); }
+        .btn-historico { color: var(--tinta-suave); text-decoration: none; font-size: .8rem; font-weight: 600; }
+        .btn-historico:hover { color: #6d28d9; }
+
+        .aviso-nao-migrado { background: var(--ouro-100); border: 1px solid #eddca4; border-radius: 12px; padding: .9rem 1.1rem; font-size: .82rem; color: var(--selo-ouro); margin-bottom: 1.75rem; }
     </style>
 </head>
 <body>
@@ -77,9 +85,9 @@
                 <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Central de Desenvolvimento</p>
                 <nav class="nav flex-column">
                     <a class="nav-link-premium" href="{{ url_for('central_desenvolvimento') }}"><i class="fa-solid fa-grip"></i> Visão Geral</a>
-                    <a class="nav-link-premium active" href="{{ url_for('dev_dashboard_tecnico') }}"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_dashboard_tecnico') }}"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-flask"></i> Laboratório</a>
-                    <a class="nav-link-premium" href="{{ url_for('dev_central_ia') }}"><i class="fa-solid fa-robot"></i> Central de IA</a>
+                    <a class="nav-link-premium active" href="{{ url_for('dev_central_ia') }}"><i class="fa-solid fa-robot"></i> Central de IA</a>
                     <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-toggle-on"></i> Funcionalidades</a>
                     <a class="nav-link-premium" href="{{ url_for('dev_logs') }}"><i class="fa-solid fa-scroll"></i> Logs do Sistema</a>
                     <a class="nav-link-premium" href="{{ url_for('dev_erros') }}"><i class="fa-solid fa-triangle-exclamation"></i> Central de Erros</a>
@@ -101,42 +109,66 @@
         <div class="col-md-9 col-lg-10">
             <div class="conteudo-principal">
                 <div class="eyebrow">Central de Desenvolvimento</div>
-                <h3 class="fw-bold mb-1">Dashboard Técnico</h3>
-                <p class="text-muted small mb-4">Indicadores reais do sistema — sem números fictícios.</p>
+                <h3 class="fw-bold mb-1">Central de IA</h3>
+                <p class="text-muted small mb-4">Status dos provedores, métricas reais de uso e os prompts que geram todo o conteúdo do sistema.</p>
 
                 <div class="painel-status">
-                    <div class="item-status"><span class="dot-status {{ 'dot-verde' if status_banco else 'dot-vermelho' }}"></span> Banco de dados: {{ 'Operacional' if status_banco else 'Indisponível' }}</div>
                     <div class="item-status"><span class="dot-status {{ 'dot-verde' if gemini_configurado else 'dot-vermelho' }}"></span> Gemini: {{ 'Chave configurada' if gemini_configurado else 'Chave ausente' }}</div>
                     <div class="item-status"><span class="dot-status {{ 'dot-verde' if mistral_configurado else 'dot-vermelho' }}"></span> Mistral: {{ 'Chave configurada' if mistral_configurado else 'Chave ausente' }}</div>
                 </div>
 
                 <div class="grid-indicadores">
-                    <div class="card-indicador"><div class="valor">{{ total_usuarios }}</div><div class="rotulo">Usuários cadastrados</div></div>
-                    <div class="card-indicador"><div class="valor">{{ usuarios_ativos }}</div><div class="rotulo">Usuários ativos</div></div>
-                    <div class="card-indicador"><div class="valor">{{ total_escolas }}</div><div class="rotulo">Escolas cadastradas</div></div>
-                    <div class="card-indicador"><div class="valor">{{ professores_ativos }}</div><div class="rotulo">Professores ativos</div></div>
-                    <div class="card-indicador"><div class="valor">{{ total_materiais_gerados }}</div><div class="rotulo">Materiais gerados</div></div>
-                    <div class="card-indicador"><div class="valor">{{ planejamentos }}</div><div class="rotulo">Planejamentos</div></div>
-                    <div class="card-indicador"><div class="valor">{{ atividades }}</div><div class="rotulo">Atividades</div></div>
-                    <div class="card-indicador"><div class="valor">{{ provas }}</div><div class="rotulo">Provas/Simulados</div></div>
-                    <div class="card-indicador"><div class="valor">{{ sequencias }}</div><div class="rotulo">Sequências didáticas</div></div>
-                    <div class="card-indicador"><div class="valor">{{ consultas_ia }}</div><div class="rotulo">Consultas Tira-Dúvidas</div></div>
-                    <div class="card-indicador destaque-erro"><div class="valor">{{ erros_24h }}</div><div class="rotulo">Erros nas últimas 24h</div></div>
+                    <div class="card-indicador"><div class="valor">{{ total_requisicoes }}</div><div class="rotulo">Requisições totais</div></div>
+                    <div class="card-indicador destaque-sucesso"><div class="valor">{{ requisicoes_sucesso }}</div><div class="rotulo">Sucesso</div></div>
+                    <div class="card-indicador destaque-erro"><div class="valor">{{ requisicoes_erro }}</div><div class="rotulo">Erros</div></div>
+                    <div class="card-indicador"><div class="valor">{{ tempo_medio_ms if tempo_medio_ms else '—' }}{% if tempo_medio_ms %}<span style="font-size:.9rem;">ms</span>{% endif %}</div><div class="rotulo">Tempo médio de resposta</div></div>
+                    <div class="card-indicador"><div class="valor" style="font-size:1.15rem;">{{ tokens_entrada_total if tokens_entrada_total else '—' }}</div><div class="rotulo">Tokens de entrada (quando informado pela API)</div></div>
+                    <div class="card-indicador"><div class="valor" style="font-size:1.15rem;">{{ tokens_saida_total if tokens_saida_total else '—' }}</div><div class="rotulo">Tokens de saída (quando informado pela API)</div></div>
                 </div>
 
-                <div class="secao-titulo">Uso do Professor IA — últimos 7 dias</div>
-                <div class="painel-grafico">
-                    <div class="grafico-barras">
-                        {% for dia in grafico_uso %}
-                        <div class="barra-coluna">
-                            <div class="barra" style="height: {{ dia.altura_pct }}%;">
-                                <span class="valor-barra">{{ dia.valor }}</span>
-                            </div>
-                            <div class="rotulo-barra">{{ dia.label }}</div>
+                <div class="secao-titulo">Uso por provedor</div>
+                <div class="tabela-provedores">
+                    {% if uso_por_provedor %}
+                    <table>
+                        <thead><tr><th>Provedor</th><th>Requisições</th><th>Sucesso</th><th>Taxa de sucesso</th></tr></thead>
+                        <tbody>
+                            {% for p in uso_por_provedor %}
+                            <tr>
+                                <td class="mono fw-bold">{{ p['provedor'] }}</td>
+                                <td>{{ p['qtd'] }}</td>
+                                <td>{{ p['sucessos'] or 0 }}</td>
+                                <td>{{ (((p['sucessos'] or 0) / p['qtd']) * 100) | round(1) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center text-muted py-4" style="font-size:.85rem;">Nenhuma requisição de IA registrada ainda.</div>
+                    {% endif %}
+                </div>
+
+                <div class="secao-titulo">Prompts do Sistema</div>
+                <div class="aviso-nao-migrado">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    Migrados para edição nesta fase: <strong>Tira-Dúvidas com IA</strong>, <strong>Gerador de Provas</strong> e <strong>Sequência Didática</strong>.
+                    Ainda usando o prompt fixo do código (não editável por aqui): {{ modulos_nao_migrados | join(', ') }}.
+                </div>
+
+                {% for p in prompts %}
+                <div class="card-prompt">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold">{{ p['nome_exibicao'] }}</span>
+                            <span class="badge-versao">v{{ p['versao'] }}</span>
                         </div>
-                        {% endfor %}
+                        <div class="meta-prompt">Atualizado em {{ p['atualizado_em'] }} por {{ p['atualizado_por'] }}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <a href="{{ url_for('dev_historico_prompt', modulo_chave=p['modulo_chave']) }}" class="btn-historico"><i class="fa-solid fa-clock-rotate-left me-1"></i>Histórico</a>
+                        <a href="{{ url_for('dev_editar_prompt', modulo_chave=p['modulo_chave']) }}" class="btn-editar-prompt"><i class="fa-solid fa-pen-to-square me-1"></i>Editar</a>
                     </div>
                 </div>
+                {% endfor %}
 
             </div>
         </div>

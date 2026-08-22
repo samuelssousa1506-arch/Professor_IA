@@ -11,6 +11,8 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
+from jinja2.sandbox import SandboxedEnvironment
+from jinja2 import StrictUndefined, TemplateSyntaxError, UndefinedError
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -303,13 +305,8 @@ def executar_geracao_ia(**kwargs):
         - Use <table class="tabela-bncc"> quando fizer sentido organizar habilidades BNCC, cronogramas ou critérios de avaliação em formato tabular.
     """
     if tipo_modulo == 'Tira-Dúvidas com IA':
-        prompt = f"""
-        Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
-        Responda com total precisão técnica fundamentando-se OBRIGATORIAMENTE em: BNCC (Base Nacional Comum Curricular), LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e, quando pertinente, na Seção da Educação da Constituição Federal.
-        Sempre que citar um desses documentos, indique de forma explícita o artigo, competência ou eixo correspondente.
-        Dúvida ou Consulta do Professor: "{tema}"
-        {regras_formato}
-        """
+        template_ativo = obter_prompt_ativo('duvidas')
+        prompt = renderizar_prompt(template_ativo, {'tema': tema, 'regras_formato': regras_formato})
     elif tipo_modulo == 'Planejamento Bimestral':
         numero_final = numero_plano.strip() or str(random.randint(10000, 99999))
         ano_letivo_final = ano_letivo.strip() or str(datetime.now().year)
@@ -402,57 +399,21 @@ def executar_geracao_ia(**kwargs):
         except ValueError:
             qtd_aulas_num = 5
 
-        prompt = f"""
-        Atue como um Especialista em Planejamento Pedagógico, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
-        Gere uma SEQUÊNCIA DIDÁTICA completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}", com exatamente {qtd_aulas_num} aula(s).
-
-        {regras_formato}
-        REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No local exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
-
-        ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA, cada uma como <h5 class="doc-secao-titulo">[Título]</h5> seguida do conteúdo:
-
-        1. Identificação — em linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>): Disciplina: {disciplina}; Ano/Série: {ano}; Duração total: {qtd_aulas_num} aula(s){f', {duracao_aula} cada' if duracao_aula else ''}; Professor(a): {nome_professor}; Escola: {nome_escola}.
-        2. Tema — apresente o tema "{tema}" de forma clara, contextualizando sua relevância para o ano/série informado.
-        3. Justificativa — um parágrafo explicando por que este tema é importante para os alunos desta etapa, com base pedagógica.
-        4. Objetivo Geral — {f'considere o objetivo informado pelo professor: "{objetivo_geral_informado}"' if objetivo_geral_informado else 'formule um objetivo geral claro e mensurável para a sequência'}.
-        5. Objetivos Específicos — lista <ul><li> com 3 a 6 objetivos específicos. {f'Considere os informados pelo professor: "{objetivos_especificos}"' if objetivos_especificos else 'Elabore objetivos coerentes com o objetivo geral e o tema.'}
-        6. Habilidades BNCC — liste as habilidades da BNCC pertinentes (formato: código - descrição completa). Priorize o código informado pelo professor ({bncc if bncc else 'nenhum código específico informado — selecione os mais adequados ao tema e ano/série'}).
-        7. Conteúdos — lista <ul><li> com os conteúdos conceituais, procedimentais e atitudinais trabalhados ao longo da sequência.
-        8. Metodologia — descreva a abordagem metodológica geral da sequência. {f'O professor indicou preferência por: "{metodologia_preferida}"' if metodologia_preferida else 'Escolha uma abordagem ativa e adequada ao tema (ex: sala de aula invertida, aprendizagem baseada em problemas, rotação por estações).'}
-        9. Desenvolvimento Aula por Aula — use <div class="questao-item"> para cada aula (uma div por aula). Gere exatamente {qtd_aulas_num} blocos, cada um no formato "<strong>Aula 1 — [nome curto da etapa, ex: Introdução]</strong>" seguido de um parágrafo descrevendo o que será feito naquela aula (atividades, tempo estimado, interação com os alunos). Distribua a progressão pedagógica de forma lógica ao longo das aulas (ex: introdução → desenvolvimento → prática → sistematização → avaliação, adaptando à quantidade de aulas informada).
-        10. Recursos — lista <ul><li> com os recursos didáticos necessários. {f'O professor tem disponível: "{recursos_disponiveis}"' if recursos_disponiveis else 'Sugira recursos comuns e acessíveis à realidade escolar pública.'}
-        11. Avaliação — lista <ul><li> com os instrumentos e critérios de avaliação da aprendizagem ao longo da sequência.
-        12. Inclusão/Adaptações — sugestões de adaptação para alunos com dificuldades de aprendizagem ou necessidades específicas, SEM realizar qualquer diagnóstico médico ou clínico — trabalhe apenas com orientações pedagógicas gerais. {f'Perfil da turma informado pelo professor: "{perfil_turma}".' if perfil_turma else ''} {f'Dificuldades observadas: "{dificuldades_turma}".' if dificuldades_turma else ''}
-        13. Referências — em linhas simples (sem bullets), formato ABNT simplificado, citando BNCC (2018), a LDB (Lei nº 9.394/96) e, se pertinente, o DCTMA.
-        """
+        template_ativo = obter_prompt_ativo('sequencia')
+        prompt = renderizar_prompt(template_ativo, {
+            'tema': tema, 'disciplina': disciplina, 'ano': ano, 'regras_formato': regras_formato,
+            'qtd_aulas': qtd_aulas_num, 'duracao_aula': duracao_aula, 'bncc': bncc,
+            'nome_professor': nome_professor, 'nome_escola': nome_escola,
+            'objetivo_geral_informado': objetivo_geral_informado, 'objetivos_especificos': objetivos_especificos,
+            'perfil_turma': perfil_turma, 'dificuldades_turma': dificuldades_turma,
+            'recursos_disponiveis': recursos_disponiveis, 'metodologia_preferida': metodologia_preferida,
+        })
     elif tipo_modulo == 'Gerador de Provas':
-        prompt = f"""
-        Atue como um Especialista em Avaliação Pedagógica, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
-        Gere uma PROVA/AVALIAÇÃO completa sobre o tema "{tema}", disciplina "{disciplina}", ano/série "{ano}".
-        NÃO gere nenhum cabeçalho com nome de escola, professor, aluno ou data — isso já é adicionado automaticamente pelo sistema.
-
-        {regras_formato}
-
-        SUA RESPOSTA DEVE TER DUAS PARTES, NESTA ORDEM, SEPARADAS PELO MARCADOR LITERAL EXATO <!--INFO_PEDAGOGICA--> (sem nenhum texto ao redor do marcador):
-
-        ============ PARTE 1 — A PROVA EM SI (vai para o documento impresso/exportado) ============
-        1. Gere exatamente {qtd_questoes} questões no formato de aplicação: {tipo_prova}.
-        2. Cada questão DEVE estar envolvida em <div class="questao-item">...</div> (uma div por questão, isso é obrigatório para a diagramação em colunas).
-        3. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
-        4. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
-        5. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
-        6. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
-        7. Para questões discursivas ou subjetivas, estime mentalmente quantas linhas a resposta esperada ocuparia (com base na complexidade da pergunta) e gere um número de <div class="linha-resposta"></div> igual a esse número + 3 linhas extras (exemplo: se a resposta esperada ocupa cerca de 5 linhas, gere 8 divs). Nunca gere menos de 5 linhas no total, para garantir espaço confortável ao aluno.
-        8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
-
-        ============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS (fica visível só na tela do sistema, NUNCA é exportada/impressa) ============
-        Após o marcador <!--INFO_PEDAGOGICA-->, gere, cada uma como <h5>[Título]</h5>:
-        - Objetivos: o que se espera avaliar com esta prova.
-        - Competências e Habilidades da BNCC: competência(s) geral(is) e habilidade(s) específica(s) (código + descrição) trabalhadas, priorizando o código informado ({bncc if bncc else 'nenhum informado — selecione os mais adequados ao tema'}).
-        - Fundamentação Legal: artigo pertinente da LDB (Lei 9.394/96) e eixo/orientação do DCTMA relacionados ao tema.
-        - Configuração Utilizada: resuma em lista os parâmetros desta prova — Disciplina: {disciplina}; Ano/Série: {ano}; Nível: {nivel}; Formato: {tipo_prova}; Quantidade de questões: {qtd_questoes}.
-        - Metodologia de Aplicação: sugestões de como aplicar esta avaliação em sala (tempo sugerido, orientações antes da aplicação, critérios de correção).
-        """
+        template_ativo = obter_prompt_ativo('avaliacoes')
+        prompt = renderizar_prompt(template_ativo, {
+            'tema': tema, 'disciplina': disciplina, 'ano': ano, 'regras_formato': regras_formato,
+            'qtd_questoes': qtd_questoes, 'tipo_prova': tipo_prova, 'bncc': bncc, 'nivel': nivel,
+        })
     elif tipo_modulo == 'Simulados':
         tipo_simulado = kwargs.get('tipo_simulado', 'Simulado Geral / Diagnóstico')
         duracao_simulado = kwargs.get('duracao_simulado', '').strip()
@@ -669,13 +630,30 @@ def executar_geracao_ia(**kwargs):
             continue  # chave não configurada para este provedor -> pula direto para o próximo
 
         for tentativa in range(1, MAX_TENTATIVAS_POR_PROVEDOR + 1):
+            _inicio_requisicao = time.time()
             try:
                 response = requests.post(
                     provedor["url"], headers=provedor["headers"], json=provedor["payload"], timeout=60
                 )
+                _duracao_ms = int((time.time() - _inicio_requisicao) * 1000)
 
                 if response.status_code == 200:
                     resultado = response.json()
+
+                    # Consumo de tokens — captura de forma tolerante, cada provedor expõe
+                    # esse dado num formato diferente (ou pode nem enviar).
+                    tokens_entrada = tokens_saida = None
+                    try:
+                        if 'usageMetadata' in resultado:  # formato Gemini
+                            tokens_entrada = resultado['usageMetadata'].get('promptTokenCount')
+                            tokens_saida = resultado['usageMetadata'].get('candidatesTokenCount')
+                        elif 'usage' in resultado:  # formato Mistral (compatível OpenAI)
+                            tokens_entrada = resultado['usage'].get('prompt_tokens')
+                            tokens_saida = resultado['usage'].get('completion_tokens')
+                    except Exception:
+                        pass
+                    registrar_requisicao_ia(tipo_modulo, provedor['nome'], True, _duracao_ms, tokens_entrada, tokens_saida)
+
                     texto_gerado = provedor["extrair"](resultado)
                     texto_gerado = texto_gerado.replace("```html", "").replace("```", "").strip()
                     texto_gerado = sanitizar_saida_html(texto_gerado)
@@ -696,6 +674,8 @@ def executar_geracao_ia(**kwargs):
 
                     return texto_gerado, info_pedagogica, True
 
+                registrar_requisicao_ia(tipo_modulo, provedor['nome'], False, _duracao_ms)
+
                 # Erros temporários: sobrecarga (503) ou limite de requisições (429).
                 # Tenta de novo no mesmo provedor com backoff progressivo antes de trocar.
                 if response.status_code in (503, 429):
@@ -711,6 +691,8 @@ def executar_geracao_ia(**kwargs):
                 break
 
             except Exception as e:
+                _duracao_ms = int((time.time() - _inicio_requisicao) * 1000)
+                registrar_requisicao_ia(tipo_modulo, provedor['nome'], False, _duracao_ms)
                 ultimo_erro = f"Falha de conexão física - Provedor {provedor['nome']}: {str(e)}"
                 if tentativa < MAX_TENTATIVAS_POR_PROVEDOR:
                     time.sleep(2 * tentativa)
@@ -1051,10 +1033,207 @@ def init_db_dev():
             criado_em TEXT
         )
     ''')
+
+    # --- Central de IA: prompts editáveis com versionamento ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ai_prompts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            modulo_chave TEXT UNIQUE NOT NULL,
+            nome_exibicao TEXT NOT NULL,
+            template TEXT NOT NULL,
+            variaveis_disponiveis TEXT,
+            versao INTEGER NOT NULL DEFAULT 1,
+            atualizado_em TEXT,
+            atualizado_por TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ai_prompt_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            modulo_chave TEXT NOT NULL,
+            versao INTEGER NOT NULL,
+            template TEXT NOT NULL,
+            criado_em TEXT,
+            criado_por TEXT
+        )
+    ''')
+
+    # --- Central de IA: métricas reais de cada chamada à IA ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ai_requisicoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            modulo TEXT,
+            provedor TEXT,
+            sucesso INTEGER,
+            duracao_ms INTEGER,
+            tokens_entrada INTEGER,
+            tokens_saida INTEGER,
+            criado_em TEXT
+        )
+    ''')
+
     conn.commit()
     conn.close()
 
 init_db_dev()
+
+# =====================================================================
+# CENTRAL DE IA — renderização segura de prompts editáveis (sandbox)
+# =====================================================================
+# Os prompts de alguns módulos passam a ser editáveis pelo Desenvolvedor via
+# interface, guardados no banco (ai_prompts). Para permitir edição com
+# segurança — sem abrir brecha de execução de código — a renderização usa o
+# SandboxedEnvironment do Jinja2: permite {{ variavel }}, {% if %} e {% for %}
+# de verdade, mas bloqueia acesso a atributos internos perigosos
+# (__class__, __globals__, etc.) mesmo que alguém tente inserir isso no texto
+# do prompt. StrictUndefined faz uma variável não informada estourar erro
+# claro em vez de silenciosamente virar texto vazio ou quebrado.
+_jinja_sandbox = SandboxedEnvironment(undefined=StrictUndefined)
+
+def renderizar_prompt(template_texto, contexto):
+    modelo = _jinja_sandbox.from_string(template_texto)
+    return modelo.render(**contexto)
+
+def validar_prompt_template(template_texto, contexto_exemplo):
+    """Tenta renderizar com dados de exemplo ANTES de salvar. Se der erro,
+    a interface recusa o salvamento e mostra a mensagem exata — evita que um
+    prompt quebrado vá para produção e falhe pros professores só na hora real
+    de gerar um material."""
+    try:
+        renderizar_prompt(template_texto, contexto_exemplo)
+        return True, ""
+    except TemplateSyntaxError as e:
+        return False, f"Erro de sintaxe no template: {e}"
+    except UndefinedError as e:
+        return False, f"Variável usada no prompt mas não disponível: {e}"
+    except Exception as e:
+        return False, f"Erro ao validar o template: {e}"
+
+def registrar_requisicao_ia(modulo, provedor, sucesso, duracao_ms, tokens_entrada=None, tokens_saida=None):
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO ai_requisicoes (modulo, provedor, sucesso, duracao_ms, tokens_entrada, tokens_saida, criado_em)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (modulo, provedor, 1 if sucesso else 0, duracao_ms, tokens_entrada, tokens_saida, datetime.now().strftime('%d/%m/%Y %H:%M:%S')))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+# Contexto de exemplo usado para validar qualquer prompt antes de salvar —
+# cobre o superconjunto de variáveis usadas pelos módulos já migrados.
+CONTEXTO_EXEMPLO_VALIDACAO = {
+    'tema': 'Fotossíntese', 'disciplina': 'Ciências', 'ano': '7º ano', 'bncc': 'EF07CI08',
+    'nivel': 'Médio', 'regras_formato': '[regras de formatação HTML]',
+    'qtd_questoes': '10', 'tipo_prova': 'Múltipla Escolha',
+    'quantidade_aulas': '5', 'qtd_aulas': 5, 'duracao_aula': '50 minutos',
+    'objetivo_geral_informado': '', 'objetivos_especificos': '', 'perfil_turma': '',
+    'dificuldades_turma': '', 'recursos_disponiveis': '', 'metodologia_preferida': '',
+    'nome_professor': 'Professor(a) Exemplo', 'nome_escola': 'Escola Exemplo',
+}
+
+# Definição dos módulos migrados para o sistema de prompts editáveis, com as
+# variáveis que cada um disponibiliza (mostrado na tela de edição) e o
+# template padrão de fábrica — usado apenas para semear o banco na primeira
+# vez; depois disso, quem manda é o que está salvo em ai_prompts.
+PROMPTS_PADRAO_FABRICA = {
+    'duvidas': {
+        'nome_exibicao': 'Tira-Dúvidas com IA',
+        'variaveis': ['tema', 'regras_formato'],
+        'template': """Você é um Consultor Jurídico-Pedagógico especialista e expert em Legislação Educacional Brasileira.
+Responda com total precisão técnica fundamentando-se OBRIGATORIAMENTE em: BNCC (Base Nacional Comum Curricular), LDB (Lei nº 9.394/96), DCTMA (Documento Curricular do Território Maranhense) e, quando pertinente, na Seção da Educação da Constituição Federal.
+Sempre que citar um desses documentos, indique de forma explícita o artigo, competência ou eixo correspondente.
+Dúvida ou Consulta do Professor: "{{ tema }}"
+{{ regras_formato }}"""
+    },
+    'avaliacoes': {
+        'nome_exibicao': 'Gerador de Provas',
+        'variaveis': ['tema', 'disciplina', 'ano', 'regras_formato', 'qtd_questoes', 'tipo_prova', 'bncc', 'nivel'],
+        'template': """Atue como um Especialista em Avaliação Pedagógica, com domínio profundo da BNCC, da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+Gere uma PROVA/AVALIAÇÃO completa sobre o tema "{{ tema }}", disciplina "{{ disciplina }}", ano/série "{{ ano }}".
+NÃO gere nenhum cabeçalho com nome de escola, professor, aluno ou data — isso já é adicionado automaticamente pelo sistema.
+
+{{ regras_formato }}
+
+SUA RESPOSTA DEVE TER DUAS PARTES, NESTA ORDEM, SEPARADAS PELO MARCADOR LITERAL EXATO <!--INFO_PEDAGOGICA--> (sem nenhum texto ao redor do marcador):
+
+============ PARTE 1 — A PROVA EM SI (vai para o documento impresso/exportado) ============
+1. Gere exatamente {{ qtd_questoes }} questões no formato de aplicação: {{ tipo_prova }}.
+2. Cada questão DEVE estar envolvida em <div class="questao-item">...</div> (uma div por questão, isso é obrigatório para a diagramação em colunas).
+3. Utilize estritamente numeração sequencial de dois dígitos seguida de ponto (Exemplo: 01., 02., 03.).
+4. Sempre inclua a diretriz BNCC entre parênteses logo após o número. Exemplo: '01. (EF09MA02) '.
+5. Todo o texto do enunciado da pergunta DEVE estar encapsulado dentro da tag HTML <strong>...</strong>.
+6. Para questões objetivas, organize alternativas perfeitamente alinhadas verticalmente de a) até d) separadas por quebras de linha <br>.
+7. Para questões discursivas ou subjetivas, estime mentalmente quantas linhas a resposta esperada ocuparia (com base na complexidade da pergunta) e gere um número de <div class="linha-resposta"></div> igual a esse número + 3 linhas extras (exemplo: se a resposta esperada ocupa cerca de 5 linhas, gere 8 divs). Nunca gere menos de 5 linhas no total, para garantir espaço confortável ao aluno.
+8. Após a última questão, inclua <div class="gabarito-prova"><h5>Gabarito</h5>[resposta correta de cada questão, apenas número + alternativa, de forma resumida]</div>.
+
+============ PARTE 2 — INFORMAÇÕES PEDAGÓGICAS (fica visível só na tela do sistema, NUNCA é exportada/impressa) ============
+Após o marcador <!--INFO_PEDAGOGICA-->, gere, cada uma como <h5>[Título]</h5>:
+- Objetivos: o que se espera avaliar com esta prova.
+- Competências e Habilidades da BNCC: competência(s) geral(is) e habilidade(s) específica(s) (código + descrição) trabalhadas, priorizando o código informado ({{ bncc if bncc else 'nenhum informado — selecione os mais adequados ao tema' }}).
+- Fundamentação Legal: artigo pertinente da LDB (Lei 9.394/96) e eixo/orientação do DCTMA relacionados ao tema.
+- Configuração Utilizada: resuma em lista os parâmetros desta prova — Disciplina: {{ disciplina }}; Ano/Série: {{ ano }}; Nível: {{ nivel }}; Formato: {{ tipo_prova }}; Quantidade de questões: {{ qtd_questoes }}.
+- Metodologia de Aplicação: sugestões de como aplicar esta avaliação em sala (tempo sugerido, orientações antes da aplicação, critérios de correção)."""
+    },
+    'sequencia': {
+        'nome_exibicao': 'Sequência Didática',
+        'variaveis': ['tema', 'disciplina', 'ano', 'regras_formato', 'qtd_aulas', 'duracao_aula', 'bncc',
+                      'nome_professor', 'nome_escola', 'objetivo_geral_informado', 'objetivos_especificos',
+                      'perfil_turma', 'dificuldades_turma', 'recursos_disponiveis', 'metodologia_preferida'],
+        'template': """Atue como um Especialista em Planejamento Pedagógico, com domínio profundo da BNCC (Base Nacional Comum Curricular), da LDB (Lei nº 9.394/96) e do DCTMA (Documento Curricular do Território Maranhense).
+Gere uma SEQUÊNCIA DIDÁTICA completa sobre o tema "{{ tema }}", disciplina "{{ disciplina }}", ano/série "{{ ano }}", com exatamente {{ qtd_aulas }} aula(s).
+
+{{ regras_formato }}
+REGRA ADICIONAL CRÍTICA: Não gere você mesmo a seção "Competências Gerais da Educação Básica". No local exato indicado abaixo, insira apenas o marcador literal <!--COMPETENCIAS_GERAIS_AQUI--> (sem nenhum texto ao redor, sem tags H5, apenas o comentário HTML). Esse marcador será substituído automaticamente pelo sistema pelo texto oficial completo.
+
+ESTRUTURA OBRIGATÓRIA DO DOCUMENTO, NESTA ORDEM EXATA, cada uma como <h5 class="doc-secao-titulo">[Título]</h5> seguida do conteúdo:
+
+1. Identificação — em linhas rotuladas (<p><strong>RÓTULO:</strong> valor</p>): Disciplina: {{ disciplina }}; Ano/Série: {{ ano }}; Duração total: {{ qtd_aulas }} aula(s){% if duracao_aula %}, {{ duracao_aula }} cada{% endif %}; Professor(a): {{ nome_professor }}; Escola: {{ nome_escola }}.
+2. Tema — apresente o tema "{{ tema }}" de forma clara, contextualizando sua relevância para o ano/série informado.
+3. Justificativa — um parágrafo explicando por que este tema é importante para os alunos desta etapa, com base pedagógica.
+4. Objetivo Geral — {% if objetivo_geral_informado %}considere o objetivo informado pelo professor: "{{ objetivo_geral_informado }}"{% else %}formule um objetivo geral claro e mensurável para a sequência{% endif %}.
+5. Objetivos Específicos — lista <ul><li> com 3 a 6 objetivos específicos. {% if objetivos_especificos %}Considere os informados pelo professor: "{{ objetivos_especificos }}"{% else %}Elabore objetivos coerentes com o objetivo geral e o tema.{% endif %}
+6. Habilidades BNCC — liste as habilidades da BNCC pertinentes (formato: código - descrição completa). Priorize o código informado pelo professor ({{ bncc if bncc else 'nenhum código específico informado — selecione os mais adequados ao tema e ano/série' }}).
+7. Conteúdos — lista <ul><li> com os conteúdos conceituais, procedimentais e atitudinais trabalhados ao longo da sequência.
+8. Metodologia — descreva a abordagem metodológica geral da sequência. {% if metodologia_preferida %}O professor indicou preferência por: "{{ metodologia_preferida }}"{% else %}Escolha uma abordagem ativa e adequada ao tema (ex: sala de aula invertida, aprendizagem baseada em problemas, rotação por estações).{% endif %}
+9. Desenvolvimento Aula por Aula — use <div class="questao-item"> para cada aula (uma div por aula). Gere exatamente {{ qtd_aulas }} blocos, cada um no formato "<strong>Aula 1 — [nome curto da etapa, ex: Introdução]</strong>" seguido de um parágrafo descrevendo o que será feito naquela aula (atividades, tempo estimado, interação com os alunos). Distribua a progressão pedagógica de forma lógica ao longo das aulas (ex: introdução → desenvolvimento → prática → sistematização → avaliação, adaptando à quantidade de aulas informada).
+10. Recursos — lista <ul><li> com os recursos didáticos necessários. {% if recursos_disponiveis %}O professor tem disponível: "{{ recursos_disponiveis }}"{% else %}Sugira recursos comuns e acessíveis à realidade escolar pública.{% endif %}
+11. Avaliação — lista <ul><li> com os instrumentos e critérios de avaliação da aprendizagem ao longo da sequência.
+12. Inclusão/Adaptações — sugestões de adaptação para alunos com dificuldades de aprendizagem ou necessidades específicas, SEM realizar qualquer diagnóstico médico ou clínico — trabalhe apenas com orientações pedagógicas gerais. {% if perfil_turma %}Perfil da turma informado pelo professor: "{{ perfil_turma }}".{% endif %} {% if dificuldades_turma %}Dificuldades observadas: "{{ dificuldades_turma }}".{% endif %}
+13. Referências — em linhas simples (sem bullets), formato ABNT simplificado, citando BNCC (2018), a LDB (Lei nº 9.394/96) e, se pertinente, o DCTMA."""
+    },
+}
+
+def obter_prompt_ativo(modulo_chave):
+    """Busca o template ativo no banco. Se ainda não existir (primeira vez),
+    semeia com o padrão de fábrica — nunca sobrescreve uma versão já salva."""
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ai_prompts WHERE modulo_chave = ?", (modulo_chave,))
+    row = cursor.fetchone()
+    if row:
+        conn.close()
+        return row['template']
+
+    padrao = PROMPTS_PADRAO_FABRICA.get(modulo_chave)
+    if not padrao:
+        conn.close()
+        return None
+    agora = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    cursor.execute('''
+        INSERT INTO ai_prompts (modulo_chave, nome_exibicao, template, variaveis_disponiveis, versao, atualizado_em, atualizado_por)
+        VALUES (?, ?, ?, ?, 1, ?, ?)
+    ''', (modulo_chave, padrao['nome_exibicao'], padrao['template'], ','.join(padrao['variaveis']), agora, 'Sistema (padrão de fábrica)'))
+    cursor.execute('''
+        INSERT INTO ai_prompt_versions (modulo_chave, versao, template, criado_em, criado_por)
+        VALUES (?, 1, ?, ?, ?)
+    ''', (modulo_chave, padrao['template'], agora, 'Sistema (padrão de fábrica)'))
+    conn.commit()
+    conn.close()
+    return padrao['template']
 
 def registrar_log(usuario_email, nome_usuario, modulo, acao, detalhes='', status='sucesso'):
     """Registra uma ação no histórico técnico (Logs do Sistema). Nunca deve
@@ -1132,7 +1311,7 @@ def central_desenvolvimento():
     modulos = [
         {'nome': 'Dashboard Técnico', 'icone': 'fa-chart-line', 'descricao': 'Indicadores reais de uso, geração de materiais e status do sistema.', 'disponivel': True, 'url': url_for('dev_dashboard_tecnico')},
         {'nome': 'Laboratório', 'icone': 'fa-flask', 'descricao': 'Teste prompts e modelos de IA sem afetar dados reais dos professores.', 'disponivel': False, 'url': '#'},
-        {'nome': 'Central de IA', 'icone': 'fa-robot', 'descricao': 'Status da API, métricas de uso e editor de prompts com versionamento.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Central de IA', 'icone': 'fa-robot', 'descricao': 'Status da API, métricas de uso e editor de prompts com versionamento.', 'disponivel': True, 'url': url_for('dev_central_ia')},
         {'nome': 'Gerenciador de Funcionalidades', 'icone': 'fa-toggle-on', 'descricao': 'Ative ou desative módulos do sistema para todos os professores.', 'disponivel': False, 'url': '#'},
         {'nome': 'Logs do Sistema', 'icone': 'fa-scroll', 'descricao': 'Histórico de ações dos usuários, com filtros por data, módulo e status.', 'disponivel': True, 'url': url_for('dev_logs')},
         {'nome': 'Central de Erros', 'icone': 'fa-triangle-exclamation', 'descricao': 'Monitoramento de falhas do sistema, classificadas por gravidade.', 'disponivel': True, 'url': url_for('dev_erros')},
@@ -1323,6 +1502,146 @@ def dev_resolver_erro(erro_id):
     conn.close()
     registrar_log(session.get('user_email', ''), session.get('user_name', ''), 'Central de Erros', f'Marcou erro #{erro_id} como resolvido')
     return redirect(url_for('dev_erros'))
+
+@app.route('/desenvolvedor/central-ia')
+@requer_desenvolvedor
+def dev_central_ia():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM ai_requisicoes")
+    total_requisicoes = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM ai_requisicoes WHERE sucesso = 1")
+    requisicoes_sucesso = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM ai_requisicoes WHERE sucesso = 0")
+    requisicoes_erro = cursor.fetchone()[0]
+    cursor.execute("SELECT AVG(duracao_ms) FROM ai_requisicoes WHERE sucesso = 1")
+    tempo_medio_row = cursor.fetchone()[0]
+    tempo_medio_ms = round(tempo_medio_row) if tempo_medio_row else None
+    cursor.execute("SELECT SUM(tokens_entrada), SUM(tokens_saida) FROM ai_requisicoes")
+    soma_tokens = cursor.fetchone()
+    tokens_entrada_total = soma_tokens[0]
+    tokens_saida_total = soma_tokens[1]
+
+    cursor.execute("SELECT provedor, COUNT(*) as qtd, SUM(sucesso) as sucessos FROM ai_requisicoes GROUP BY provedor ORDER BY qtd DESC")
+    uso_por_provedor = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM ai_prompts ORDER BY nome_exibicao")
+    prompts_migrados = {row['modulo_chave']: row for row in cursor.fetchall()}
+    conn.close()
+
+    # Garante que os 3 módulos migrados já tenham uma linha semeada, mesmo se
+    # ainda ninguém salvou nada (primeira visita à tela).
+    lista_prompts = []
+    for chave, info in PROMPTS_PADRAO_FABRICA.items():
+        if chave not in prompts_migrados:
+            obter_prompt_ativo(chave)  # semeia
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ai_prompts ORDER BY nome_exibicao")
+    lista_prompts = cursor.fetchall()
+    conn.close()
+
+    modulos_nao_migrados = [
+        cfg['nome'] for chave, cfg in MODULOS.items()
+        if chave not in PROMPTS_PADRAO_FABRICA
+    ]
+
+    return render_template(
+        'dev_central_ia.html',
+        name=session.get('user_name', ''),
+        total_requisicoes=total_requisicoes, requisicoes_sucesso=requisicoes_sucesso, requisicoes_erro=requisicoes_erro,
+        tempo_medio_ms=tempo_medio_ms, tokens_entrada_total=tokens_entrada_total, tokens_saida_total=tokens_saida_total,
+        uso_por_provedor=uso_por_provedor, prompts=lista_prompts, modulos_nao_migrados=modulos_nao_migrados,
+        gemini_configurado=bool(GEMINI_API_KEY), mistral_configurado=bool(MISTRAL_API_KEY),
+    )
+
+@app.route('/desenvolvedor/central-ia/prompts/<modulo_chave>', methods=['GET', 'POST'])
+@requer_desenvolvedor
+def dev_editar_prompt(modulo_chave):
+    if modulo_chave not in PROMPTS_PADRAO_FABRICA:
+        abort(404)
+
+    erro_validacao = None
+    sucesso_salvar = request.args.get('sucesso') == '1'
+
+    if request.method == 'POST':
+        novo_template = request.form.get('template', '')
+        valido, mensagem_erro = validar_prompt_template(novo_template, CONTEXTO_EXEMPLO_VALIDACAO)
+
+        if not valido:
+            erro_validacao = mensagem_erro
+        else:
+            conn = sqlite3.connect('database.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT versao FROM ai_prompts WHERE modulo_chave = ?", (modulo_chave,))
+            row = cursor.fetchone()
+            versao_atual = row[0] if row else 0
+            nova_versao = versao_atual + 1
+            agora = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            autor = session.get('user_name', 'Desenvolvedor')
+
+            cursor.execute('''
+                UPDATE ai_prompts SET template = ?, versao = ?, atualizado_em = ?, atualizado_por = ?
+                WHERE modulo_chave = ?
+            ''', (novo_template, nova_versao, agora, autor, modulo_chave))
+            cursor.execute('''
+                INSERT INTO ai_prompt_versions (modulo_chave, versao, template, criado_em, criado_por)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (modulo_chave, nova_versao, novo_template, agora, autor))
+            conn.commit()
+            conn.close()
+
+            registrar_log(session.get('user_email', ''), autor, 'Central de IA', f'Editou o prompt de {PROMPTS_PADRAO_FABRICA[modulo_chave]["nome_exibicao"]}', detalhes=f'Nova versão: v{nova_versao}')
+            return redirect(url_for('dev_editar_prompt', modulo_chave=modulo_chave, sucesso=1))
+
+    obter_prompt_ativo(modulo_chave)  # garante que existe (semeia se for a primeira vez)
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ai_prompts WHERE modulo_chave = ?", (modulo_chave,))
+    prompt_info = cursor.fetchone()
+
+    carregar_versao = request.args.get('carregar_versao', type=int)
+    versao_carregada = None
+    if request.method == 'GET' and carregar_versao:
+        cursor.execute("SELECT * FROM ai_prompt_versions WHERE modulo_chave = ? AND versao = ?", (modulo_chave, carregar_versao))
+        versao_carregada = cursor.fetchone()
+    conn.close()
+
+    if request.method == 'POST':
+        template_exibido = request.form.get('template', prompt_info['template'])
+    elif versao_carregada:
+        template_exibido = versao_carregada['template']
+    else:
+        template_exibido = prompt_info['template']
+
+    return render_template(
+        'dev_editar_prompt.html',
+        name=session.get('user_name', ''),
+        modulo_chave=modulo_chave, prompt_info=prompt_info, template_exibido=template_exibido,
+        variaveis=PROMPTS_PADRAO_FABRICA[modulo_chave]['variaveis'],
+        erro_validacao=erro_validacao, sucesso_salvar=sucesso_salvar,
+        versao_carregada=carregar_versao if versao_carregada else None,
+    )
+
+@app.route('/desenvolvedor/central-ia/prompts/<modulo_chave>/historico')
+@requer_desenvolvedor
+def dev_historico_prompt(modulo_chave):
+    if modulo_chave not in PROMPTS_PADRAO_FABRICA:
+        abort(404)
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ai_prompt_versions WHERE modulo_chave = ? ORDER BY versao DESC", (modulo_chave,))
+    versoes = cursor.fetchall()
+    conn.close()
+    return render_template(
+        'dev_historico_prompt.html', name=session.get('user_name', ''),
+        modulo_chave=modulo_chave, nome_exibicao=PROMPTS_PADRAO_FABRICA[modulo_chave]['nome_exibicao'], versoes=versoes,
+    )
 
 @app.route('/')
 def index():

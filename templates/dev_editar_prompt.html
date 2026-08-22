@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Prompt - {{ prompt_info['nome_exibicao'] }} - Professor IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-950: #060f24; --azul-900: #0c1d3d; --azul-800: #123a7a;
+            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-100: #dce9fb; --azul-50: #f2f6fc;
+            --tinta: #0f1f3d; --tinta-suave: #52627e; --borda: #dfe7f4; --fundo: #eef2f9;
+            --verde: #16a34a; --verde-bg: #ecfdf3; --vermelho: #dc2626; --vermelho-bg: #fef2f2;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
+        h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .sidebar { background-color: #ffffff; border-right: 1px solid var(--borda); min-height: 100vh; padding: 0 !important; }
+        .sidebar-brand { position: relative; background: linear-gradient(140deg, #1a0c30 0%, #2c1052 55%, #3a1568 100%); padding: 1.5rem 1.25rem; color: #fff; }
+        .sidebar-brand::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, #a78bfa 25%, #a78bfa 75%, transparent); opacity: .8; }
+        .sidebar-brand h5 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; font-size: 1.05rem; }
+        .sidebar-brand .icone { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(167, 139, 250, 0.5); color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; }
+        .sidebar-brand .tag-modo { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #c4b5fd; margin-top: 9px; }
+        .sidebar-body { padding: 1.25rem; animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both; }
+        .nav-link-premium { display: flex; align-items: center; padding: 0.6rem 0.85rem; color: var(--tinta-suave); text-decoration: none; border-radius: 8px; margin-bottom: 0.2rem; font-weight: 600; font-size: 0.87rem; transition: all 0.18s ease; }
+        .nav-link-premium:hover { background-color: #f5f3ff; color: #5b21b6; }
+        .nav-link-premium.active { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; }
+        .nav-link-premium i { width: 1.2rem; margin-right: 0.65rem; }
+        .nav-link-premium.desabilitado { opacity: .4; pointer-events: none; }
+
+        .conteudo-principal { padding: 2rem 2.25rem; animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; max-width: 980px; }
+        .eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7c3aed; display: flex; align-items: center; gap: 6px; margin-bottom: .35rem; }
+        .eyebrow::before { content: ""; width: 16px; height: 1px; background: #7c3aed; display: inline-block; }
+
+        .badge-versao { background: #f5f3ff; color: #6d28d9; font-weight: 800; font-size: .72rem; padding: .3rem .7rem; border-radius: 6px; }
+        .chip-variavel { background: var(--azul-50); color: var(--azul-800); font-family: 'JetBrains Mono', monospace; font-size: .76rem; font-weight: 600; padding: .3rem .6rem; border-radius: 6px; display: inline-block; margin: 0 6px 6px 0; }
+        .painel-variaveis { background: #fff; border: 1px solid var(--borda); border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.25rem; }
+        .textarea-prompt { font-family: 'JetBrains Mono', monospace; font-size: .85rem; line-height: 1.6; border-radius: 12px; border: 1px solid var(--borda); padding: 1.25rem; min-height: 420px; }
+        .textarea-prompt:focus { border-color: #8b5cf6; box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.15); }
+        .btn-salvar-prompt { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; font-weight: 700; border: none; border-radius: 9px; padding: .65rem 1.4rem; }
+        .btn-salvar-prompt:hover { color: #fff; filter: brightness(1.08); }
+        .aviso-restauracao { background: #fefce8; border: 1px solid #fde68a; color: #92400e; border-radius: 10px; padding: .8rem 1rem; font-size: .82rem; margin-bottom: 1.25rem; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="d-flex align-items-center">
+                    <span class="icone"><i class="fa-solid fa-code"></i></span>
+                    <h5>Central de Dev.</h5>
+                </div>
+                <div class="tag-modo"><i class="fa-solid fa-terminal"></i> Modo Desenvolvedor</div>
+            </div>
+            <div class="sidebar-body">
+                <nav class="nav flex-column mb-3">
+                    <a class="nav-link-premium" href="{{ url_for('dev_central_ia') }}"><i class="fa-solid fa-arrow-left"></i> Central de IA</a>
+                </nav>
+                <hr class="my-3">
+                <div class="small mb-3">
+                    <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
+                    <p class="mb-0 text-muted" style="font-size: .78rem;">Desenvolvedor</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link-premium text-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10">
+            <div class="conteudo-principal">
+                <div class="eyebrow">Central de IA · Prompts do Sistema</div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h3 class="fw-bold m-0">{{ prompt_info['nome_exibicao'] }}</h3>
+                    <span class="badge-versao">v{{ prompt_info['versao'] }} atual</span>
+                </div>
+                <p class="text-muted small mb-4">Atualizado em {{ prompt_info['atualizado_em'] }} por {{ prompt_info['atualizado_por'] }} · <a href="{{ url_for('dev_historico_prompt', modulo_chave=modulo_chave) }}" class="text-decoration-none">ver histórico completo</a></p>
+
+                {% if versao_carregada %}
+                <div class="aviso-restauracao"><i class="fa-solid fa-clock-rotate-left me-1"></i> Você está visualizando a <strong>versão {{ versao_carregada }}</strong> do histórico. Nada foi alterado ainda — salve para tornar esta versão a atual (isso cria uma nova versão v{{ prompt_info['versao'] + 1 }}, o histórico não é sobrescrito).</div>
+                {% endif %}
+
+                {% if sucesso_salvar %}
+                <div class="alert alert-success" style="border-radius:10px;"><i class="fa-solid fa-circle-check me-1"></i> Prompt salvo com sucesso como v{{ prompt_info['versao'] }}. Já está valendo para novas gerações.</div>
+                {% endif %}
+                {% if erro_validacao %}
+                <div class="alert alert-danger" style="border-radius:10px;"><i class="fa-solid fa-triangle-exclamation me-1"></i> <strong>Não foi possível salvar:</strong> {{ erro_validacao }}</div>
+                {% endif %}
+
+                <div class="painel-variaveis">
+                    <div class="fw-bold small mb-2" style="color: var(--tinta-suave); text-transform: uppercase; letter-spacing: .04em; font-size: .7rem;">Variáveis disponíveis neste prompt</div>
+                    {% for v in variaveis %}
+                    <span class="chip-variavel">{{ '{{ ' + v + ' }}' }}</span>
+                    {% endfor %}
+                    <div class="text-muted small mt-2">Use <span class="mono">{% raw %}{% if variavel %}...{% endif %}{% endraw %}</span> para trechos condicionais. Qualquer outra variável ou expressão (ex: acessar atributos com ponto) é bloqueada por segurança e vai gerar erro ao salvar.</div>
+                </div>
+
+                <form method="POST" id="form-prompt">
+                    <textarea name="template" id="campo-template" class="form-control textarea-prompt" spellcheck="false">{{ template_exibido }}</textarea>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <a href="{{ url_for('dev_central_ia') }}" class="text-muted text-decoration-none small">Cancelar</a>
+                        <button type="button" class="btn btn-salvar-prompt" data-bs-toggle="modal" data-bs-target="#modalConfirmar">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Nova Versão
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalConfirmar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 14px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Confirmar alteração</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Isso vai criar a <strong>versão v{{ prompt_info['versao'] + 1 }}</strong> do prompt de <strong>{{ prompt_info['nome_exibicao'] }}</strong> e passa a valer imediatamente para <strong>todas as próximas gerações</strong> deste módulo, para todos os professores.</p>
+                <p class="text-muted small mb-0">O sistema testa o prompt com dados de exemplo antes de salvar — se houver erro de sintaxe ou variável inválida, nada é alterado e você verá a mensagem exata do erro.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Voltar e revisar</button>
+                <button type="submit" form="form-prompt" class="btn btn-salvar-prompt">Confirmar e Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico - {{ nome_exibicao }} - Professor IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-950: #060f24; --azul-900: #0c1d3d; --azul-800: #123a7a;
+            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-100: #dce9fb; --azul-50: #f2f6fc;
+            --tinta: #0f1f3d; --tinta-suave: #52627e; --borda: #dfe7f4; --fundo: #eef2f9;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
+        h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .sidebar { background-color: #ffffff; border-right: 1px solid var(--borda); min-height: 100vh; padding: 0 !important; }
+        .sidebar-brand { position: relative; background: linear-gradient(140deg, #1a0c30 0%, #2c1052 55%, #3a1568 100%); padding: 1.5rem 1.25rem; color: #fff; }
+        .sidebar-brand::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, #a78bfa 25%, #a78bfa 75%, transparent); opacity: .8; }
+        .sidebar-brand h5 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; font-size: 1.05rem; }
+        .sidebar-brand .icone { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(167, 139, 250, 0.5); color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; }
+        .sidebar-brand .tag-modo { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #c4b5fd; margin-top: 9px; }
+        .sidebar-body { padding: 1.25rem; animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both; }
+        .nav-link-premium { display: flex; align-items: center; padding: 0.6rem 0.85rem; color: var(--tinta-suave); text-decoration: none; border-radius: 8px; margin-bottom: 0.2rem; font-weight: 600; font-size: 0.87rem; transition: all 0.18s ease; }
+        .nav-link-premium:hover { background-color: #f5f3ff; color: #5b21b6; }
+        .nav-link-premium i { width: 1.2rem; margin-right: 0.65rem; }
+
+        .conteudo-principal { padding: 2rem 2.25rem; animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; max-width: 900px; }
+        .eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7c3aed; display: flex; align-items: center; gap: 6px; margin-bottom: .35rem; }
+        .eyebrow::before { content: ""; width: 16px; height: 1px; background: #7c3aed; display: inline-block; }
+
+        .card-versao { background: #fff; border: 1px solid var(--borda); border-radius: 14px; margin-bottom: .85rem; overflow: hidden; }
+        .card-versao summary { padding: 1rem 1.25rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .card-versao summary::-webkit-details-marker { display: none; }
+        .badge-versao-item { background: #f5f3ff; color: #6d28d9; font-weight: 800; font-size: .72rem; padding: .3rem .65rem; border-radius: 6px; }
+        .badge-mais-recente { background: #ecfdf3; color: #16a34a; font-weight: 800; font-size: .64rem; padding: .2rem .55rem; border-radius: 6px; text-transform: uppercase; margin-left: 6px; }
+        .meta-versao { font-size: .78rem; color: var(--tinta-suave); }
+        .corpo-versao { padding: 0 1.25rem 1.25rem; }
+        .prevoia-template { background: var(--azul-50); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: .78rem; white-space: pre-wrap; max-height: 320px; overflow-y: auto; color: var(--tinta); }
+        .btn-restaurar { font-size: .78rem; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="d-flex align-items-center">
+                    <span class="icone"><i class="fa-solid fa-code"></i></span>
+                    <h5>Central de Dev.</h5>
+                </div>
+                <div class="tag-modo"><i class="fa-solid fa-terminal"></i> Modo Desenvolvedor</div>
+            </div>
+            <div class="sidebar-body">
+                <nav class="nav flex-column mb-3">
+                    <a class="nav-link-premium" href="{{ url_for('dev_editar_prompt', modulo_chave=modulo_chave) }}"><i class="fa-solid fa-arrow-left"></i> Voltar ao editor</a>
+                </nav>
+                <hr class="my-3">
+                <div class="small mb-3">
+                    <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
+                    <p class="mb-0 text-muted" style="font-size: .78rem;">Desenvolvedor</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link-premium text-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10">
+            <div class="conteudo-principal">
+                <div class="eyebrow">Central de IA · Histórico de versões</div>
+                <h3 class="fw-bold mb-4">{{ nome_exibicao }}</h3>
+
+                {% for v in versoes %}
+                <details class="card-versao" {% if loop.first %}open{% endif %}>
+                    <summary>
+                        <div>
+                            <span class="badge-versao-item">v{{ v['versao'] }}</span>
+                            {% if loop.first %}<span class="badge-mais-recente">Atual</span>{% endif %}
+                        </div>
+                        <div class="meta-versao">{{ v['criado_em'] }} · {{ v['criado_por'] }}</div>
+                    </summary>
+                    <div class="corpo-versao">
+                        <div class="prevoia-template">{{ v['template'] }}</div>
+                        {% if not loop.first %}
+                        <a href="{{ url_for('dev_editar_prompt', modulo_chave=modulo_chave, carregar_versao=v['versao']) }}" class="btn btn-outline-secondary btn-restaurar mt-3">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Carregar esta versão no editor
+                        </a>
+                        {% endif %}
+                    </div>
+                </details>
+                {% endfor %}
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
