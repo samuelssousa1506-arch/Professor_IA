@@ -243,6 +243,19 @@ def obter_fallback_pedagogico(tipo_modulo, tema, erro_adicional=""):
     {f'<p class="text-danger small"><strong>Detalhes do Erro:</strong> {erro_adicional}</p>' if erro_adicional else ''}
     """
 
+def limpar_chave_gemini(chave_bruta):
+    """Isola a chave de API do Gemini de qualquer formatação acidental
+    (colchetes, aspas, URL completa colada por engano etc.)."""
+    match = re.search(r'(AIzaSy[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9_-]+)', chave_bruta or '')
+    if match:
+        return match.group(1).strip()
+    chave_limpa = (chave_bruta or '').replace("[", "").replace("]", "").replace("'", "").replace('"', '')
+    if "key=" in chave_limpa:
+        chave_limpa = chave_limpa.split("key=")[-1]
+    if ")" in chave_limpa:
+        chave_limpa = chave_limpa.split(")")[-1]
+    return chave_limpa.strip()
+
 def executar_geracao_ia(**kwargs):
     tipo_modulo = kwargs.get('tipo_modulo', 'Banco de Atividades')
     tema = kwargs.get('tema', '')
@@ -281,19 +294,7 @@ def executar_geracao_ia(**kwargs):
     # -----------------------------------------------------------------
     # EXTRAÇÃO CIRÚRGICA DA CHAVE COM REGEX (Ignora qualquer formatação de link)
     # -----------------------------------------------------------------
-    # O padrão procura pela sequência que começa com AIza ou AQ e pega apenas caracteres válidos de chave
-    match = re.search(r'(AIzaSy[A-Za-z0-9_-]+|AQ\.[A-Za-z0-9_-]+)', GEMINI_API_KEY)
-    
-    if match:
-        chave_limpa = match.group(1).strip()
-    else:
-        # Fallback caso a regex não isole (remove manualmente caracteres de link comuns)
-        chave_limpa = GEMINI_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', '')
-        if "key=" in chave_limpa:
-            chave_limpa = chave_limpa.split("key=")[-1]
-        if ")" in chave_limpa:
-            chave_limpa = chave_limpa.split(")")[-1]
-        chave_limpa = chave_limpa.strip()
+    chave_limpa = limpar_chave_gemini(GEMINI_API_KEY)
     # -----------------------------------------------------------------
 
     # 2. CONSTRUÇÃO DO PROMPT PEDAGÓGICO
@@ -1072,10 +1073,162 @@ def init_db_dev():
         )
     ''')
 
+    # --- Gerenciador de Funcionalidades: liga/desliga global por módulo ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS feature_toggles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chave TEXT UNIQUE NOT NULL,
+            nome_exibicao TEXT NOT NULL,
+            ativo INTEGER NOT NULL DEFAULT 1,
+            atualizado_em TEXT,
+            atualizado_por TEXT
+        )
+    ''')
+
+    # --- Feature Flags: liberação granular por público-alvo ---
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS feature_flags (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chave TEXT UNIQUE NOT NULL,
+            nome_exibicao TEXT NOT NULL,
+            descricao TEXT,
+            habilitado_desenvolvedor INTEGER NOT NULL DEFAULT 1,
+            habilitado_beta INTEGER NOT NULL DEFAULT 0,
+            habilitado_todos INTEGER NOT NULL DEFAULT 0,
+            atualizado_em TEXT,
+            atualizado_por TEXT
+        )
+    ''')
+
+    # Marca de "professor beta" — usada pelas Feature Flags. A tela para o
+    # Desenvolvedor escolher quais professores são beta fica pra fase de
+    # Usuários e Permissões; por padrão ninguém é beta ainda.
+    try:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN beta_tester INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
 
 init_db_dev()
+
+# =====================================================================
+# GERENCIADOR DE FUNCIONALIDADES — liga/desliga global de módulos
+# =====================================================================
+# Lista dos módulos que podem ser desativados. Cobre os módulos de geração
+# (chave = nome exibido em MODULOS) mais duas seções centrais que não passam
+# por lá (Biblioteca e Banco de Questões).
+FUNCIONALIDADES_CONTROLAVEIS = {cfg['nome']: cfg['nome'] for cfg in MODULOS.values()}
+FUNCIONALIDADES_CONTROLAVEIS['Biblioteca'] = 'Biblioteca'
+FUNCIONALIDADES_CONTROLAVEIS['Banco de Questões'] = 'Banco de Questões'
+
+def _semear_feature_toggles():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT chave FROM feature_toggles")
+    existentes = {row[0] for row in cursor.fetchall()}
+    agora = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    for chave in FUNCIONALIDADES_CONTROLAVEIS:
+        if chave not in existentes:
+            cursor.execute(
+                "INSERT INTO feature_toggles (chave, nome_exibicao, ativo, atualizado_em, atualizado_por) VALUES (?, ?, 1, ?, ?)",
+                (chave, chave, agora, 'Sistema (padrão)')
+            )
+    conn.commit()
+    conn.close()
+
+_semear_feature_toggles()
+
+def funcionalidade_esta_ativa(nome_modulo):
+    """Checa se um módulo está ligado. Falha aberta com log silencioso
+    (retorna True) só em erro genuíno de banco — nunca queremos derrubar o
+    sistema inteiro por causa de uma checagem de feature toggle."""
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT ativo FROM feature_toggles WHERE chave = ?", (nome_modulo,))
+        row = cursor.fetchone()
+        conn.close()
+        if row is None:
+            return True
+        return bool(row[0])
+    except Exception:
+        return True
+
+def obter_modulos_desativados():
+    """Usado pelos templates para acinzentar módulos desligados no menu."""
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT chave FROM feature_toggles WHERE ativo = 0")
+        desativados = {row[0] for row in cursor.fetchall()}
+        conn.close()
+        return desativados
+    except Exception:
+        return set()
+
+# =====================================================================
+# FEATURE FLAGS — liberação granular por público-alvo
+# =====================================================================
+FEATURE_FLAGS_PADRAO = {
+    'sequencia_didatica_beta': {
+        'nome_exibicao': 'Sequência Didática',
+        'descricao': 'Módulo de geração de sequências didáticas completas com IA.',
+    },
+}
+
+def _semear_feature_flags():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT chave FROM feature_flags")
+    existentes = {row[0] for row in cursor.fetchall()}
+    agora = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    for chave, cfg in FEATURE_FLAGS_PADRAO.items():
+        if chave not in existentes:
+            # Já liberado para todo mundo por padrão, pois o módulo já está em produção —
+            # a flag existe para permitir restringir de volta se necessário, não para
+            # esconder algo que os professores já usam.
+            cursor.execute('''
+                INSERT INTO feature_flags (chave, nome_exibicao, descricao, habilitado_desenvolvedor, habilitado_beta, habilitado_todos, atualizado_em, atualizado_por)
+                VALUES (?, ?, ?, 1, 1, 1, ?, ?)
+            ''', (chave, cfg['nome_exibicao'], cfg['descricao'], agora, 'Sistema (padrão)'))
+    conn.commit()
+    conn.close()
+
+_semear_feature_flags()
+
+def usuario_tem_acesso_flag(chave_flag):
+    """True se a flag não existir (feature normal, sem controle), ou se o
+    usuário logado se enquadrar em algum público habilitado para ela."""
+    try:
+        conn = sqlite3.connect('database.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM feature_flags WHERE chave = ?", (chave_flag,))
+        flag = cursor.fetchone()
+        conn.close()
+        if not flag:
+            return True
+
+        role = session.get('user_role', 'professor')
+        if role == 'desenvolvedor':
+            return bool(flag['habilitado_desenvolvedor'])
+        if flag['habilitado_todos']:
+            return True
+        if flag['habilitado_beta']:
+            email = session.get('user_email', '')
+            if email:
+                conn = sqlite3.connect('database.db')
+                cursor = conn.cursor()
+                cursor.execute("SELECT beta_tester FROM usuarios WHERE email = ?", (email,))
+                row = cursor.fetchone()
+                conn.close()
+                if row and row[0]:
+                    return True
+        return False
+    except Exception:
+        return True
 
 # =====================================================================
 # CENTRAL DE IA — renderização segura de prompts editáveis (sandbox)
@@ -1305,19 +1458,193 @@ def acesso_negado(e):
         name=session.get('user_name', ''), school=session.get('user_school', '')
     ), 403
 
+def executar_teste_laboratorio(modelo_escolhido, prompt_teste, temperatura, max_tokens):
+    """Executa um teste isolado de prompt/modelo para o Laboratório do
+    Desenvolvedor. NÃO grava nada em materiais, system_logs de professores ou
+    ai_requisicoes — é uma chamada avulsa, fora do fluxo real de geração,
+    justamente para não poluir métricas nem dados reais."""
+    inicio = time.time()
+    resultado = {
+        'sucesso': False, 'texto_resposta': '', 'status_code': None, 'erro': None,
+        'duracao_ms': None, 'modelo': modelo_escolhido, 'tokens_entrada': None, 'tokens_saida': None,
+    }
+
+    try:
+        if modelo_escolhido.startswith('gemini'):
+            chave_limpa = limpar_chave_gemini(GEMINI_API_KEY)
+            if not chave_limpa:
+                resultado['erro'] = "GEMINI_API_KEY não configurada."
+                return resultado
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_escolhido}:generateContent?key={chave_limpa}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt_teste}]}],
+                "generationConfig": {"temperature": temperatura, "maxOutputTokens": max_tokens}
+            }
+            response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload, timeout=60)
+            resultado['status_code'] = response.status_code
+            resultado['duracao_ms'] = int((time.time() - inicio) * 1000)
+            if response.status_code == 200:
+                corpo = response.json()
+                resultado['texto_resposta'] = corpo['candidates'][0]['content']['parts'][0]['text']
+                resultado['sucesso'] = True
+                if 'usageMetadata' in corpo:
+                    resultado['tokens_entrada'] = corpo['usageMetadata'].get('promptTokenCount')
+                    resultado['tokens_saida'] = corpo['usageMetadata'].get('candidatesTokenCount')
+            else:
+                resultado['erro'] = response.text[:600]
+
+        elif modelo_escolhido.startswith('mistral'):
+            mistral_chave_limpa = MISTRAL_API_KEY.replace("[", "").replace("]", "").replace("'", "").replace('"', "").strip()
+            if not mistral_chave_limpa:
+                resultado['erro'] = "MISTRAL_API_KEY não configurada."
+                return resultado
+            url = "https://api.mistral.ai/v1/chat/completions"
+            payload = {
+                "model": modelo_escolhido, "messages": [{"role": "user", "content": prompt_teste}],
+                "temperature": temperatura, "max_tokens": max_tokens
+            }
+            headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {mistral_chave_limpa}'}
+            response = requests.post(url, headers=headers, json=payload, timeout=60)
+            resultado['status_code'] = response.status_code
+            resultado['duracao_ms'] = int((time.time() - inicio) * 1000)
+            if response.status_code == 200:
+                corpo = response.json()
+                resultado['texto_resposta'] = corpo['choices'][0]['message']['content']
+                resultado['sucesso'] = True
+                if 'usage' in corpo:
+                    resultado['tokens_entrada'] = corpo['usage'].get('prompt_tokens')
+                    resultado['tokens_saida'] = corpo['usage'].get('completion_tokens')
+            else:
+                resultado['erro'] = response.text[:600]
+        else:
+            resultado['erro'] = f"Modelo desconhecido: {modelo_escolhido}"
+
+    except Exception as e:
+        resultado['duracao_ms'] = int((time.time() - inicio) * 1000)
+        resultado['erro'] = f"Falha de conexão: {str(e)}"
+
+    return resultado
+
+@app.route('/desenvolvedor/laboratorio', methods=['GET', 'POST'])
+@requer_desenvolvedor
+def dev_laboratorio():
+    resultado = None
+    prompt_enviado = ''
+    modelo_selecionado = 'gemini-3.5-flash'
+    temperatura = 1.0
+    max_tokens = 2048
+
+    if request.method == 'POST':
+        modelo_selecionado = request.form.get('modelo', 'gemini-3.5-flash')
+        prompt_enviado = request.form.get('prompt', '').strip()
+        try:
+            temperatura = max(0.0, min(float(request.form.get('temperatura', '1.0') or 1.0), 2.0))
+        except ValueError:
+            temperatura = 1.0
+        try:
+            max_tokens = max(64, min(int(request.form.get('max_tokens', '2048') or 2048), 8192))
+        except ValueError:
+            max_tokens = 2048
+
+        if prompt_enviado:
+            resultado = executar_teste_laboratorio(modelo_selecionado, prompt_enviado, temperatura, max_tokens)
+            registrar_log(
+                session.get('user_email', ''), session.get('user_name', ''), 'Laboratório',
+                'Executou teste de prompt', detalhes=f"Modelo: {modelo_selecionado}",
+                status='sucesso' if resultado['sucesso'] else 'erro'
+            )
+
+    return render_template(
+        'dev_laboratorio.html', name=session.get('user_name', ''),
+        resultado=resultado, prompt_enviado=prompt_enviado, modelo_selecionado=modelo_selecionado,
+        temperatura=temperatura, max_tokens=max_tokens,
+        gemini_configurado=bool(GEMINI_API_KEY), mistral_configurado=bool(MISTRAL_API_KEY),
+    )
+
+@app.route('/desenvolvedor/funcionalidades')
+@requer_desenvolvedor
+def dev_funcionalidades():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM feature_toggles ORDER BY nome_exibicao")
+    funcionalidades = cursor.fetchall()
+    conn.close()
+    return render_template('dev_funcionalidades.html', name=session.get('user_name', ''), funcionalidades=funcionalidades)
+
+@app.route('/desenvolvedor/funcionalidades/<string:chave>/alternar', methods=['POST'])
+@requer_desenvolvedor
+def dev_alternar_funcionalidade(chave):
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT ativo, nome_exibicao FROM feature_toggles WHERE chave = ?", (chave,))
+    row = cursor.fetchone()
+    if row:
+        novo_estado = 0 if row[0] else 1
+        autor = session.get('user_name', 'Desenvolvedor')
+        cursor.execute(
+            "UPDATE feature_toggles SET ativo = ?, atualizado_em = ?, atualizado_por = ? WHERE chave = ?",
+            (novo_estado, datetime.now().strftime('%d/%m/%Y %H:%M:%S'), autor, chave)
+        )
+        conn.commit()
+        registrar_log(
+            session.get('user_email', ''), autor, 'Gerenciador de Funcionalidades',
+            f"{'Ativou' if novo_estado else 'Desativou'} o módulo {row[1]}",
+        )
+    conn.close()
+    return redirect(url_for('dev_funcionalidades'))
+
+@app.route('/desenvolvedor/feature-flags')
+@requer_desenvolvedor
+def dev_feature_flags():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM feature_flags ORDER BY nome_exibicao")
+    flags = cursor.fetchall()
+    cursor.execute("SELECT COUNT(*) FROM usuarios WHERE beta_tester = 1")
+    total_beta_testers = cursor.fetchone()[0]
+    conn.close()
+    return render_template('dev_feature_flags.html', name=session.get('user_name', ''), flags=flags, total_beta_testers=total_beta_testers)
+
+@app.route('/desenvolvedor/feature-flags/<string:chave>/alternar', methods=['POST'])
+@requer_desenvolvedor
+def dev_alternar_feature_flag(chave):
+    alvo = request.form.get('alvo', '')
+    coluna = {'desenvolvedor': 'habilitado_desenvolvedor', 'beta': 'habilitado_beta', 'todos': 'habilitado_todos'}.get(alvo)
+    if coluna:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT {coluna}, nome_exibicao FROM feature_flags WHERE chave = ?", (chave,))
+        row = cursor.fetchone()
+        if row:
+            novo_estado = 0 if row[0] else 1
+            autor = session.get('user_name', 'Desenvolvedor')
+            cursor.execute(
+                f"UPDATE feature_flags SET {coluna} = ?, atualizado_em = ?, atualizado_por = ? WHERE chave = ?",
+                (novo_estado, datetime.now().strftime('%d/%m/%Y %H:%M:%S'), autor, chave)
+            )
+            conn.commit()
+            registrar_log(
+                session.get('user_email', ''), autor, 'Feature Flags',
+                f"{'Habilitou' if novo_estado else 'Desabilitou'} '{row[1]}' para o público: {alvo}",
+            )
+        conn.close()
+    return redirect(url_for('dev_feature_flags'))
+
 @app.route('/desenvolvedor')
 @requer_desenvolvedor
 def central_desenvolvimento():
     modulos = [
         {'nome': 'Dashboard Técnico', 'icone': 'fa-chart-line', 'descricao': 'Indicadores reais de uso, geração de materiais e status do sistema.', 'disponivel': True, 'url': url_for('dev_dashboard_tecnico')},
-        {'nome': 'Laboratório', 'icone': 'fa-flask', 'descricao': 'Teste prompts e modelos de IA sem afetar dados reais dos professores.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Laboratório', 'icone': 'fa-flask', 'descricao': 'Teste prompts e modelos de IA sem afetar dados reais dos professores.', 'disponivel': True, 'url': url_for('dev_laboratorio')},
         {'nome': 'Central de IA', 'icone': 'fa-robot', 'descricao': 'Status da API, métricas de uso e editor de prompts com versionamento.', 'disponivel': True, 'url': url_for('dev_central_ia')},
-        {'nome': 'Gerenciador de Funcionalidades', 'icone': 'fa-toggle-on', 'descricao': 'Ative ou desative módulos do sistema para todos os professores.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Gerenciador de Funcionalidades', 'icone': 'fa-toggle-on', 'descricao': 'Ative ou desative módulos do sistema para todos os professores.', 'disponivel': True, 'url': url_for('dev_funcionalidades')},
         {'nome': 'Logs do Sistema', 'icone': 'fa-scroll', 'descricao': 'Histórico de ações dos usuários, com filtros por data, módulo e status.', 'disponivel': True, 'url': url_for('dev_logs')},
         {'nome': 'Central de Erros', 'icone': 'fa-triangle-exclamation', 'descricao': 'Monitoramento de falhas do sistema, classificadas por gravidade.', 'disponivel': True, 'url': url_for('dev_erros')},
         {'nome': 'Backups', 'icone': 'fa-database', 'descricao': 'Backup manual do banco de dados e histórico de versões salvas.', 'disponivel': False, 'url': '#'},
         {'nome': 'Controle de Versões', 'icone': 'fa-box-archive', 'descricao': 'Histórico de versões do Professor IA e o que mudou em cada uma.', 'disponivel': False, 'url': '#'},
-        {'nome': 'Feature Flags', 'icone': 'fa-flag', 'descricao': 'Libere funcionalidades novas de forma controlada, por perfil ou usuário.', 'disponivel': False, 'url': '#'},
+        {'nome': 'Feature Flags', 'icone': 'fa-flag', 'descricao': 'Libere funcionalidades novas de forma controlada, por perfil ou usuário.', 'disponivel': True, 'url': url_for('dev_feature_flags')},
         {'nome': 'Usuários e Permissões', 'icone': 'fa-users-gear', 'descricao': 'Gerencie contas de professores: ativar, bloquear, redefinir senha, papel.', 'disponivel': False, 'url': '#'},
         {'nome': 'Configurações Técnicas', 'icone': 'fa-gears', 'descricao': 'Parâmetros técnicos gerais da plataforma.', 'disponivel': False, 'url': '#'},
     ]
@@ -1791,6 +2118,23 @@ def dashboard():
         
     config_modulo = MODULOS[form_type]
     conteudo = ""
+
+    # Gerenciador de Funcionalidades: bloqueio global (afeta todo mundo, inclusive Desenvolvedor)
+    if not funcionalidade_esta_ativa(config_modulo['nome']):
+        return render_template(
+            'modulo_indisponivel.html', app_name="Professor IA",
+            name=session.get('user_name', ''), school=session.get('user_school', ''),
+            nome_modulo=config_modulo['nome'], motivo='desativado'
+        )
+
+    # Feature Flags: liberação granular por público-alvo (Desenvolvedor / Beta / Todos)
+    chave_flag = {'sequencia': 'sequencia_didatica_beta'}.get(form_type)
+    if chave_flag and not usuario_tem_acesso_flag(chave_flag):
+        return render_template(
+            'modulo_indisponivel.html', app_name="Professor IA",
+            name=session.get('user_name', ''), school=session.get('user_school', ''),
+            nome_modulo=config_modulo['nome'], motivo='beta'
+        )
     
     tema = request.form.get('tema', '').strip()
     disciplina = request.form.get('disciplina', '').strip()
@@ -2009,6 +2353,13 @@ def exportar_material(material_id, formato):
 def biblioteca():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+
+    if not funcionalidade_esta_ativa('Biblioteca'):
+        return render_template(
+            'modulo_indisponivel.html', app_name="Professor IA",
+            name=session.get('user_name', ''), school=session.get('user_school', ''),
+            nome_modulo='Biblioteca', motivo='desativado'
+        )
 
     email = session.get('user_email', '')
     apenas_favoritos = request.args.get('favoritos') == '1'
@@ -2239,6 +2590,13 @@ def excluir_material(material_id):
 def banco_questoes():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+
+    if not funcionalidade_esta_ativa('Banco de Questões'):
+        return render_template(
+            'modulo_indisponivel.html', app_name="Professor IA",
+            name=session.get('user_name', ''), school=session.get('user_school', ''),
+            nome_modulo='Banco de Questões', motivo='desativado'
+        )
 
     filtro_ano = request.args.get('ano', '').strip()
     filtro_disciplina = request.args.get('disciplina', '').strip()

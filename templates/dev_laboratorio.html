@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratório - Professor IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-950: #060f24; --azul-900: #0c1d3d; --azul-800: #123a7a;
+            --azul-700: #1b4da6; --azul-600: #2563eb; --azul-100: #dce9fb; --azul-50: #f2f6fc;
+            --tinta: #0f1f3d; --tinta-suave: #52627e; --borda: #dfe7f4; --fundo: #eef2f9;
+            --verde: #16a34a; --verde-bg: #ecfdf3; --vermelho: #dc2626; --vermelho-bg: #fef2f2;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--fundo); color: var(--tinta); }
+        h1,h2,h3 { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes subirEntrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes girando { to { transform: rotate(360deg); } }
+
+        .sidebar { background-color: #ffffff; border-right: 1px solid var(--borda); min-height: 100vh; padding: 0 !important; }
+        .sidebar-brand { position: relative; background: linear-gradient(140deg, #1a0c30 0%, #2c1052 55%, #3a1568 100%); padding: 1.5rem 1.25rem; color: #fff; }
+        .sidebar-brand::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, #a78bfa 25%, #a78bfa 75%, transparent); opacity: .8; }
+        .sidebar-brand h5 { font-family: 'Fraunces', serif; font-weight: 600; margin: 0; font-size: 1.05rem; }
+        .sidebar-brand .icone { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(167, 139, 250, 0.5); color: #c4b5fd; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; }
+        .sidebar-brand .tag-modo { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #c4b5fd; margin-top: 9px; }
+        .sidebar-body { padding: 1.25rem; animation: subirEntrar .45s cubic-bezier(.22,.61,.36,1) both; }
+        .nav-link-premium { display: flex; align-items: center; padding: 0.6rem 0.85rem; color: var(--tinta-suave); text-decoration: none; border-radius: 8px; margin-bottom: 0.2rem; font-weight: 600; font-size: 0.87rem; transition: all 0.18s ease; }
+        .nav-link-premium:hover { background-color: #f5f3ff; color: #5b21b6; }
+        .nav-link-premium.active { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; }
+        .nav-link-premium i { width: 1.2rem; margin-right: 0.65rem; }
+        .nav-link-premium.desabilitado { opacity: .4; pointer-events: none; }
+
+        .conteudo-principal { padding: 2rem 2.25rem; animation: subirEntrar .5s cubic-bezier(.22,.61,.36,1) both; }
+        .eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #7c3aed; display: flex; align-items: center; gap: 6px; margin-bottom: .35rem; }
+        .eyebrow::before { content: ""; width: 16px; height: 1px; background: #7c3aed; display: inline-block; }
+
+        .aviso-isolado { background: #ecfdf3; border: 1px solid #bbf7d0; color: #166534; border-radius: 10px; padding: .8rem 1.1rem; font-size: .82rem; margin-bottom: 1.5rem; }
+
+        .painel-config { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.4rem 1.5rem; margin-bottom: 1.25rem; }
+        .form-label-lab { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--tinta-suave); margin-bottom: .3rem; display: block; }
+        .textarea-lab { font-family: 'JetBrains Mono', monospace; font-size: .85rem; border-radius: 10px; border: 1px solid var(--borda); min-height: 180px; }
+        .textarea-lab:focus { border-color: #8b5cf6; box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.15); }
+        .btn-executar { background: linear-gradient(135deg, #4c1d95, #6d28d9); color: #fff; font-weight: 700; border: none; border-radius: 9px; padding: .7rem 1.6rem; }
+        .btn-executar:hover { color: #fff; filter: brightness(1.08); }
+
+        .painel-resultado { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 1.4rem 1.5rem; }
+        .grid-meta-resultado { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
+        .item-meta { background: var(--azul-50); border-radius: 10px; padding: .7rem .9rem; }
+        .item-meta .valor { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.05rem; color: var(--tinta); }
+        .item-meta .rotulo { font-size: .68rem; color: var(--tinta-suave); text-transform: uppercase; letter-spacing: .03em; }
+        .resposta-ia { background: #fafafa; border: 1px solid var(--borda); border-radius: 10px; padding: 1.25rem; white-space: pre-wrap; font-size: .88rem; line-height: 1.6; max-height: 500px; overflow-y: auto; }
+        .badge-status-lab { font-size: .72rem; font-weight: 800; padding: .3rem .7rem; border-radius: 6px; }
+        .badge-status-lab.sucesso { background: var(--verde-bg); color: var(--verde); }
+        .badge-status-lab.erro { background: var(--vermelho-bg); color: var(--vermelho); }
+        .erro-detalhe { background: var(--vermelho-bg); color: var(--vermelho); border-radius: 10px; padding: 1rem 1.2rem; font-size: .82rem; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; word-break: break-word; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar no-print">
+            <div class="sidebar-brand">
+                <div class="d-flex align-items-center">
+                    <span class="icone"><i class="fa-solid fa-code"></i></span>
+                    <h5>Central de Dev.</h5>
+                </div>
+                <div class="tag-modo"><i class="fa-solid fa-terminal"></i> Modo Desenvolvedor</div>
+            </div>
+            <div class="sidebar-body">
+                <nav class="nav flex-column mb-3">
+                    <a class="nav-link-premium" href="{{ url_for('inicio') }}"><i class="fa-solid fa-arrow-left"></i> Painel do Professor</a>
+                </nav>
+                <p class="text-muted small fw-bold text-uppercase px-1 mb-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">Central de Desenvolvimento</p>
+                <nav class="nav flex-column">
+                    <a class="nav-link-premium" href="{{ url_for('central_desenvolvimento') }}"><i class="fa-solid fa-grip"></i> Visão Geral</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_dashboard_tecnico') }}"><i class="fa-solid fa-chart-line"></i> Dashboard Técnico</a>
+                    <a class="nav-link-premium active" href="{{ url_for('dev_laboratorio') }}"><i class="fa-solid fa-flask"></i> Laboratório</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_central_ia') }}"><i class="fa-solid fa-robot"></i> Central de IA</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_funcionalidades') }}"><i class="fa-solid fa-toggle-on"></i> Funcionalidades</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_logs') }}"><i class="fa-solid fa-scroll"></i> Logs do Sistema</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_erros') }}"><i class="fa-solid fa-triangle-exclamation"></i> Central de Erros</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-database"></i> Backups</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-box-archive"></i> Versões</a>
+                    <a class="nav-link-premium" href="{{ url_for('dev_feature_flags') }}"><i class="fa-solid fa-flag"></i> Feature Flags</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-users-gear"></i> Usuários e Permissões</a>
+                    <a class="nav-link-premium desabilitado" href="#"><i class="fa-solid fa-gears"></i> Configurações Técnicas</a>
+                </nav>
+                <hr class="my-4">
+                <div class="small mb-3">
+                    <p class="mb-0 fw-bold" style="color: var(--tinta);">{{ name }}</p>
+                    <p class="mb-0 text-muted" style="font-size: .78rem;">Desenvolvedor</p>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link-premium text-danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10">
+            <div class="conteudo-principal">
+                <div class="eyebrow">Central de Desenvolvimento</div>
+                <h3 class="fw-bold mb-1">Laboratório</h3>
+                <p class="text-muted small mb-3">Teste prompts e modelos livremente antes de colocar em produção.</p>
+                <div class="aviso-isolado"><i class="fa-solid fa-shield-halved me-1"></i> Testes daqui não são salvos na biblioteca de nenhum professor, não geram material algum e não entram nas métricas de uso real da Central de IA.</div>
+
+                <form method="POST">
+                    <div class="painel-config">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label-lab">Modelo</label>
+                                <select class="form-select" name="modelo">
+                                    <optgroup label="Gemini">
+                                        <option value="gemini-3.5-flash" {% if modelo_selecionado == 'gemini-3.5-flash' %}selected{% endif %}>gemini-3.5-flash</option>
+                                        <option value="gemini-2.5-flash-lite" {% if modelo_selecionado == 'gemini-2.5-flash-lite' %}selected{% endif %}>gemini-2.5-flash-lite</option>
+                                    </optgroup>
+                                    <optgroup label="Mistral">
+                                        <option value="mistral-small-latest" {% if modelo_selecionado == 'mistral-small-latest' %}selected{% endif %}>mistral-small-latest</option>
+                                    </optgroup>
+                                </select>
+                                <div class="form-text" style="font-size:.72rem;">
+                                    Gemini: {{ 'chave configurada' if gemini_configurado else 'chave ausente' }} · Mistral: {{ 'chave configurada' if mistral_configurado else 'chave ausente' }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-lab">Temperatura ({{ temperatura }})</label>
+                                <input type="range" class="form-range" name="temperatura" min="0" max="2" step="0.1" value="{{ temperatura }}" oninput="this.nextElementSibling.textContent=this.value">
+                                <output style="font-size:.78rem; color: var(--tinta-suave);">{{ temperatura }}</output>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-lab">Máximo de tokens de saída</label>
+                                <input type="number" class="form-control" name="max_tokens" min="64" max="8192" value="{{ max_tokens }}">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label-lab">Prompt</label>
+                            <textarea class="form-control textarea-lab" name="prompt" placeholder="Escreva qualquer prompt para testar...">{{ prompt_enviado }}</textarea>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="submit" class="btn btn-executar"><i class="fa-solid fa-play me-1"></i> Executar Teste</button>
+                        </div>
+                    </div>
+                </form>
+
+                {% if resultado %}
+                <div class="painel-resultado">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0">Resultado</h5>
+                        <span class="badge-status-lab {{ 'sucesso' if resultado.sucesso else 'erro' }}">
+                            {{ 'Sucesso' if resultado.sucesso else 'Erro' }}{% if resultado.status_code %} · HTTP {{ resultado.status_code }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="grid-meta-resultado">
+                        <div class="item-meta"><div class="valor mono" style="font-size:.85rem;">{{ resultado.modelo }}</div><div class="rotulo">Modelo utilizado</div></div>
+                        <div class="item-meta"><div class="valor">{{ resultado.duracao_ms if resultado.duracao_ms is not none else '—' }}{% if resultado.duracao_ms is not none %}ms{% endif %}</div><div class="rotulo">Tempo de processamento</div></div>
+                        <div class="item-meta"><div class="valor">{{ resultado.tokens_entrada if resultado.tokens_entrada else '—' }}</div><div class="rotulo">Tokens de entrada</div></div>
+                        <div class="item-meta"><div class="valor">{{ resultado.tokens_saida if resultado.tokens_saida else '—' }}</div><div class="rotulo">Tokens de saída</div></div>
+                    </div>
+
+                    {% if resultado.sucesso %}
+                    <div class="resposta-ia">{{ resultado.texto_resposta }}</div>
+                    {% else %}
+                    <div class="erro-detalhe">{{ resultado.erro }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
