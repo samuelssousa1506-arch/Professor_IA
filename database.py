@@ -1,44 +1,70 @@
+import hmac
 import sqlite3
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
+
 def init_db():
-    conn = sqlite3.connect('database.db')
-    try:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
+    """Create the user table using the same schema as the Flask application."""
+    with sqlite3.connect("database.db") as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS usuarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
+                nome TEXT NOT NULL,
+                escola TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
-                school_name TEXT,
-                password TEXT NOT NULL
+                senha TEXT NOT NULL
             )
-        ''')
-        conn.commit()
-    finally:
-        conn.close()  # Garante o fechamento automático
+            """
+        )
+
 
 def create_user(name, email, school_name, password):
-    conn = sqlite3.connect('database.db')
+    """Create a user with a Werkzeug password hash, never storing plaintext."""
     try:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO users (name, email, school_name, password) 
-            VALUES (?, ?, ?, ?)
-        ''', (name, email, school_name, password))
-        conn.commit()
+        with sqlite3.connect("database.db") as conn:
+            conn.execute(
+                """
+                INSERT INTO usuarios (nome, escola, email, senha)
+                VALUES (?, ?, ?, ?)
+                """,
+                (name, school_name, email.strip().lower(), generate_password_hash(password)),
+            )
         return True
     except sqlite3.IntegrityError:
         return False
-    finally:
-        conn.close()  # Nunca mais deixa o banco bloqueado
+
 
 def verify_user(email, password):
-    conn = sqlite3.connect('database.db')
-    try:
+    """Verify hashed passwords and upgrade legacy plaintext rows on successful login."""
+    with sqlite3.connect("database.db") as conn:
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE email = ? AND password = ?', (email, password))
-        user = cursor.fetchone()
-        return user
-    finally:
-        conn.close()  # Fecha a conexão após a busca
+        user = conn.execute(
+            "SELECT * FROM usuarios WHERE LOWER(email) = ?",
+            (email.strip().lower(),),
+        ).fetchone()
+
+        if user is None:
+            return None
+
+        stored_password = user["senha"] or ""
+        is_hash = stored_password.startswith(("pbkdf2:", "scrypt:"))
+        if is_hash:
+            try:
+                return user if check_password_hash(stored_password, password) else None
+            except (ValueError, TypeError):
+                return None
+
+        # Compatibility for legacy records: compare safely, then immediately hash.
+        if not hmac.compare_digest(stored_password, password):
+            return None
+
+        conn.execute(
+            "UPDATE usuarios SET senha = ? WHERE id = ?",
+            (generate_password_hash(password), user["id"]),
+        )
+        return conn.execute(
+            "SELECT * FROM usuarios WHERE id = ?",
+            (user["id"],),
+        ).fetchone()
