@@ -12,3 +12,6 @@ env/
 
 # Opcional: Se não quiser enviar seu banco de dados de teste atual
 # database.db
+# SQLite data and transient journals (keep databases out of Git)
+database*.db
+database*.db-*
