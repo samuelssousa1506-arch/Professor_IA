@@ -7,11 +7,9 @@ venv/
 .venv/
 env/
 
-# Arquivo de configuração local (onde ficam as senhas/chaves se usar)
+# Configuração local com credenciais
 .env
 
-# Opcional: Se não quiser enviar seu banco de dados de teste atual
-# database.db
-# SQLite data and transient journals (keep databases out of Git)
+# Bancos SQLite locais e arquivos temporários do SQLite
 database*.db
 database*.db-*
