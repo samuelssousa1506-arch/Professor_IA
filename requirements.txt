@@ -7,3 +7,5 @@ htmldocx==0.0.6
 xhtml2pdf==0.2.16
 beautifulsoup4==4.12.3
 bleach==6.1.0
+requests>=2.32,<3
+gunicorn>=23,<24
