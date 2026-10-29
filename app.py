@@ -24,7 +24,10 @@ from xhtml2pdf import pisa
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "chave_mestra_professor_ia_2026")
+FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "").strip()
+if not FLASK_SECRET_KEY:
+    raise RuntimeError("Configure a variável de ambiente FLASK_SECRET_KEY antes de iniciar o Professor IA.")
+app.secret_key = FLASK_SECRET_KEY
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -895,13 +898,6 @@ def init_db():
             senha TEXT NOT NULL
         )
     ''')
-    cursor.execute("SELECT * FROM usuarios WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com'")
-    if not cursor.fetchone():
-        cursor.execute('''
-            INSERT INTO usuarios (nome, escola, email, senha) 
-            VALUES ('Samuel Araújo Sousa', 'U.E. Prof. João Martins Neto', 'samuel.ssousa1506@gmail.com', '123456')
-        ''')
-
     # Histórico + Biblioteca (favoritos) de materiais gerados
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS materiais (
@@ -977,14 +973,55 @@ def init_db():
     cursor.execute("UPDATE usuarios SET created_at = ? WHERE created_at IS NULL OR created_at = ''", (agora,))
     cursor.execute("UPDATE usuarios SET updated_at = ? WHERE updated_at IS NULL OR updated_at = ''", (agora,))
 
-    # 2. A conta semente vira o primeiro Desenvolvedor (nível de acesso mais alto,
-    #    acima de Admin — substitui o antigo papel "admin" que nunca chegou a ter
-    #    UI própria). Contas que já eram 'admin' também sobem para 'desenvolvedor',
-    #    sem perder nenhum dado.
-    cursor.execute("UPDATE usuarios SET role = 'desenvolvedor' WHERE role = 'admin'")
+    # Retira de circulação a conta semente antiga se ainda usar a senha pública
+    # "123456". A conta é desativada e preservada para eventual recuperação manual.
     cursor.execute(
-        "UPDATE usuarios SET role = 'desenvolvedor' WHERE LOWER(email) = 'samuel.ssousa1506@gmail.com' AND role != 'desenvolvedor'"
+        "SELECT id, senha FROM usuarios WHERE LOWER(email) = ?",
+        ("samuel.ssousa1506@gmail.com",),
     )
+    for usuario_id, senha_atual in cursor.fetchall():
+        senha_padrao = senha_atual == "123456"
+        if not senha_padrao and senha_atual and senha_atual.startswith(("pbkdf2:", "scrypt:")):
+            try:
+                senha_padrao = check_password_hash(senha_atual, "123456")
+            except (ValueError, TypeError):
+                senha_padrao = False
+        if senha_padrao:
+            cursor.execute(
+                "UPDATE usuarios SET senha = ?, role = 'professor', ativo = 0 WHERE id = ?",
+                (generate_password_hash(os.urandom(32).hex()), usuario_id),
+            )
+
+    # A conta de desenvolvedor é provisionada apenas com credenciais de ambiente.
+    # Isso evita credenciais padrão e não eleva contas por um e-mail fixo no código.
+    email_desenvolvedor = os.environ.get("DEVELOPER_EMAIL", "").strip().lower()
+    senha_desenvolvedor = os.environ.get("DEVELOPER_PASSWORD", "")
+    if bool(email_desenvolvedor) != bool(senha_desenvolvedor):
+        conn.close()
+        raise RuntimeError("Configure DEVELOPER_EMAIL e DEVELOPER_PASSWORD juntos.")
+    if email_desenvolvedor:
+        if len(senha_desenvolvedor) < 12:
+            conn.close()
+            raise RuntimeError("DEVELOPER_PASSWORD deve ter pelo menos 12 caracteres.")
+        nome_desenvolvedor = os.environ.get("DEVELOPER_NAME", "Desenvolvedor").strip() or "Desenvolvedor"
+        escola_desenvolvedor = os.environ.get("DEVELOPER_SCHOOL", "Professor IA").strip() or "Professor IA"
+        hash_desenvolvedor = generate_password_hash(senha_desenvolvedor)
+        cursor.execute("SELECT id FROM usuarios WHERE LOWER(email) = ?", (email_desenvolvedor,))
+        usuario_desenvolvedor = cursor.fetchone()
+        if usuario_desenvolvedor:
+            cursor.execute(
+                "UPDATE usuarios SET senha = ?, role = 'desenvolvedor', ativo = 1, updated_at = ? WHERE id = ?",
+                (hash_desenvolvedor, agora, usuario_desenvolvedor[0]),
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO usuarios (nome, escola, email, senha, role, ativo, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'desenvolvedor', 1, ?, ?)
+                """,
+                (nome_desenvolvedor, escola_desenvolvedor, email_desenvolvedor,
+                 hash_desenvolvedor, agora, agora),
+            )
 
     # 3. Migração de senhas em texto puro para hash seguro (werkzeug/pbkdf2).
     #    Identifica linhas cuja senha ainda NÃO está em formato de hash
