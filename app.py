@@ -1010,8 +1010,8 @@ def init_db():
         usuario_desenvolvedor = cursor.fetchone()
         if usuario_desenvolvedor:
             cursor.execute(
-                "UPDATE usuarios SET senha = ?, role = 'desenvolvedor', ativo = 1, updated_at = ? WHERE id = ?",
-                (hash_desenvolvedor, agora, usuario_desenvolvedor[0]),
+                "UPDATE usuarios SET nome = ?, escola = ?, senha = ?, role = 'desenvolvedor', ativo = 1, updated_at = ? WHERE id = ?",
+                (nome_desenvolvedor, escola_desenvolvedor, hash_desenvolvedor, agora, usuario_desenvolvedor[0]),
             )
         else:
             cursor.execute(
